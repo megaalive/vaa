@@ -1,0 +1,41 @@
+schema_version = "0.1"
+task_id = "missing-tests"
+artifact_kind = "callable-function"
+target = "x86_64-unknown-linux-gnu"
+
+[entry]
+symbol = "f"
+abi = "sysv64"
+
+[output]
+kind = "i64"
+
+[behavior]
+summary = "requires tests but lists none"
+
+[capabilities]
+
+[memory]
+max_stack_bytes = 64
+
+[instructions]
+
+[verification]
+require_complete_lowering = true
+require_abi_check = true
+require_object_inspection = true
+require_behavioral_tests = true
+require_reproducible_build = false
+
+[budgets]
+max_candidates = 1
+max_repairs_per_candidate = 0
+max_wall_time_seconds = 10
+max_model_tokens = 0
+max_no_progress_iterations = 1
+
+[delivery]
+include_source = true
+include_object = false
+include_binary = false
+include_evidence = true

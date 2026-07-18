@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/megaalive/vaa/schemas/task.vaa.schema.json",
+  "title": "VAA task.vaa.toml schema 0.1",
+  "description": "Machine-readable description of the VAA task document. TOML files are authoritative at runtime; this JSON Schema documents the shape for tooling and review.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "artifact_kind",
+    "target",
+    "entry",
+    "output",
+    "behavior",
+    "capabilities",
+    "memory",
+    "instructions",
+    "verification",
+    "budgets",
+    "delivery"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+    },
+    "artifact_kind": {
+      "type": "string",
+      "enum": [
+        "callable-function",
+        "hosted-program",
+        "freestanding-image"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["symbol", "abi"],
+      "properties": {
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "abi": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/input_spec"
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary"],
+      "properties": {
+        "summary": { "type": "string", "minLength": 1 },
+        "integer_overflow": { "type": "string" },
+        "empty_input_result": true
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "syscalls": { "type": "array", "items": { "type": "string" } },
+        "imports": { "type": "array", "items": { "type": "string" } },
+        "heap": { "type": "boolean" },
+        "filesystem": { "type": "boolean" },
+        "network": { "type": "boolean" },
+        "environment": { "type": "boolean" },
+        "clock": { "type": "boolean" },
+        "random": { "type": "boolean" }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_stack_bytes"],
+      "properties": {
+        "max_stack_bytes": { "type": "integer", "minimum": 1 },
+        "allow_global_writable": { "type": "boolean" },
+        "allow_self_modifying_code": { "type": "boolean" }
+      }
+    },
+    "instructions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required_features": { "type": "array", "items": { "type": "string" } },
+        "forbidden_mnemonics": { "type": "array", "items": { "type": "string" } },
+        "allow_unknown_semantics": { "type": "boolean" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_complete_lowering",
+        "require_abi_check",
+        "require_object_inspection",
+        "require_behavioral_tests",
+        "require_reproducible_build"
+      ],
+      "properties": {
+        "require_complete_lowering": { "type": "boolean" },
+        "require_abi_check": { "type": "boolean" },
+        "require_object_inspection": { "type": "boolean" },
+        "require_behavioral_tests": { "type": "boolean" },
+        "require_reproducible_build": { "type": "boolean" }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_candidates",
+        "max_repairs_per_candidate",
+        "max_wall_time_seconds",
+        "max_model_tokens",
+        "max_no_progress_iterations"
+      ],
+      "properties": {
+        "max_candidates": { "type": "integer", "minimum": 1 },
+        "max_repairs_per_candidate": { "type": "integer", "minimum": 0 },
+        "max_wall_time_seconds": { "type": "integer", "minimum": 1 },
+        "max_model_tokens": { "type": "integer", "minimum": 0 },
+        "max_no_progress_iterations": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "include_source",
+        "include_object",
+        "include_binary",
+        "include_evidence"
+      ],
+      "properties": {
+        "include_source": { "type": "boolean" },
+        "include_object": { "type": "boolean" },
+        "include_binary": { "type": "boolean" },
+        "include_evidence": { "type": "boolean" }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "expected"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "input": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "expected": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "input_spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "element": { "type": "string" },
+        "access": { "type": "string" },
+        "length_from": { "type": "string" },
+        "nullable": { "type": "boolean" }
+      }
+    }
+  }
+}

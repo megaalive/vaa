@@ -44,6 +44,8 @@ jobs:
         run: |
           cargo run -q -- version
           cargo run -q -- status
+          cargo run -q -- validate fixtures/tasks/sum_i64.vaa.toml
+          cargo run -q -- validate fixtures/tasks/sum_i64.vaa.toml --format json
 
   msrv:
     name: MSRV (1.85)

@@ -1,0 +1,42 @@
+schema_version = "0.1"
+task_id = "bad-unknown"
+artifact_kind = "callable-function"
+target = "x86_64-unknown-linux-gnu"
+extra_forbidden_field = true
+
+[entry]
+symbol = "f"
+abi = "sysv64"
+
+[output]
+kind = "i64"
+
+[behavior]
+summary = "invalid because of unknown root field"
+
+[capabilities]
+
+[memory]
+max_stack_bytes = 64
+
+[instructions]
+
+[verification]
+require_complete_lowering = false
+require_abi_check = false
+require_object_inspection = false
+require_behavioral_tests = false
+require_reproducible_build = false
+
+[budgets]
+max_candidates = 1
+max_repairs_per_candidate = 0
+max_wall_time_seconds = 10
+max_model_tokens = 0
+max_no_progress_iterations = 1
+
+[delivery]
+include_source = true
+include_object = false
+include_binary = false
+include_evidence = true

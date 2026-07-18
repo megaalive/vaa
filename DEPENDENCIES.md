@@ -20,6 +20,11 @@ This document is the human-readable companion to `deny.toml`.
 | Crate | Why |
 |---|---|
 | `clap` | Argument parsing for the local CLI |
+| `serde` | Typed task model derive |
+| `serde_json` | Canonical JSON for digests and `--format json` CLI output |
+| `toml` | Parse `task.vaa.toml` |
+| `sha2` | SHA-256 task content digests |
+| `thiserror` | Typed `TaskError` diagnostics |
 
 ## License allow-list
 

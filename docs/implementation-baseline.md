@@ -193,7 +193,17 @@ Until (1)–(3) exist, VAA PR-005 through PR-008 must implement **defensive mapp
 
 Per architecture plan §33 / PR plan:
 
-1. Complete **PR-001** — Rust binary crate, licenses, style, CI, dependency policy, truthful README (no functional claims).
-2. Then **PR-002+** for task schema and offline skeleton.
+1. ~~Complete **PR-001** — Rust binary crate, licenses, style, CI, dependency policy, truthful README (no functional claims).~~ **Done**
+2. ~~**PR-002 / PR-003** — task schema 0.1, validation, locked digest.~~ **Done** (see `docs/task-schema.md`, `docs/progress.md`)
+3. **Next:** **PR-004** — run directory layout and event log; then SemASM doctor/adapters (PR-005+).
 
 Do not implement live model adapters, Redis, Python services, or multi-crate splits in this phase.
+
+## 11. Related VAA docs (post Phase 0)
+
+| Document | Role |
+|---|---|
+| `docs/progress.md` | PR/phase checklist |
+| `docs/task-schema.md` | Task schema 0.1 guide |
+| `schemas/task.vaa.schema.json` | Checked-in JSON Schema |
+| `fixtures/tasks/` | Positive and negative task fixtures |
