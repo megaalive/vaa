@@ -14,6 +14,18 @@ Tracks evidence gates from `VAA_REVIEWED_AND_HARDENED_ARCHITECTURE_PLAN.md` §26
 | PR-007 — SemASM verification adapter | **Done** | Subprocess + JSON parse + status map |
 | PR-008 — Final evidence status aggregator | **Done** | `vaa verify <task> --source <candidate>` |
 | Phase 1 exit (`vaa verify …` full offline report) | **Done** | EvidenceAggregator, 4-outcome bundle |
+| PR-009 — Hardened process runner | **Done** | `src/process/runner.rs` — timeout, env allowlist, bounds, tree kill |
+| PR-010 — Build sandbox backend | **Done** | `src/sandbox/backend.rs` — trait, LocalBackend, ContainerBackend |
+| PR-011 — NASM and linker pipeline | **Done** | `src/build/pipeline.rs` — explicit argv, BuildManifest |
+| PR-012 — Artifact inspection gate | **Done** | `src/inspect/artifact.rs` — `object` crate, ELF/PE/MachO |
+| PR-013 — Trusted callable-function harness | **Done** | `src/harness/template.rs` — sysv64/win64 templates |
+| PR-014 — Execution sandbox | **Done** | `src/sandbox/exec.rs` — opt-in, timeout, result |
+| PR-015 — Candidate protocol | **Done** | `src/candidate/protocol.rs` — hash dedup, size limits |
+| PR-016 — Fixture model adapter | **Done** | `src/model/adapter.rs` — deterministic scripted responses |
+| PR-017 — Orchestrator state machine | **Done** | `src/orchestrate/machine.rs` — legal transitions, invariant tests |
+| Phase 2 — Isolated build vertical slice | **Done** | process runner + sandbox + assembler + linker + inspection |
+| Phase 3 — Trusted behavioral harness | **Done** | harness template + execution sandbox |
+| Phase 4 — Deterministic model adapter | **Done** | candidate protocol + fixture adapter + state machine |
 
 ## Current executable acceptance
 

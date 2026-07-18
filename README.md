@@ -9,15 +9,19 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 ## What works today
 
 | Capability | Status |
-|---|---|
+|---|---|---|
 | `vaa version` / `vaa status` | Available |
 | `vaa validate <task.vaa.toml>` | Available (schema **0.1**) |
 | Task content digest (`sha256:…`) | Available after successful validate |
 | `vaa doctor` | Available — SemASM version & schema compat |
 | `vaa capabilities --target <triple>` | Available — machine-readable JSON |
 | `vaa verify <task> --source <candidate.asm>` | Available — 4-outcome evidence bundle |
-| Model generation / repair | **Not implemented** |
-| Assemble / link / sandbox execute | **Not implemented** |
+| `vaa generate <task> --output <file.asm>` | Available — fixture model adapter |
+| `vaa build <source.asm> [--target elf64]` | Available — NASM + linker pipeline |
+| `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |
+| `vaa sandbox status` | Available via `vaa status` |
+| Model generation / repair | **Fixture adapter only** |
+| Assemble / link / sandbox execute | **Via toolchain on PATH** |
 
 This project does **not** claim safety, formal proof, zero overhead, or production readiness.
 

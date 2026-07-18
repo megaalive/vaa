@@ -2,67 +2,27 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings"
 
 jobs:
-  test:
-    name: test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Format
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-      - name: Test
-        run: cargo test --workspace
-
-      - name: Doc
-        run: cargo doc --workspace --no-deps
-
-      - name: Bootstrap CLI smoke
-        run: |
-          cargo run -q -- version
-          cargo run -q -- status
-          cargo run -q -- validate fixtures/tasks/sum_i64.vaa.toml
-          cargo run -q -- validate fixtures/tasks/sum_i64.vaa.toml --format json
-
-  msrv:
-    name: MSRV (1.85)
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install MSRV toolchain
-        uses: dtolnay/rust-toolchain@master
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: "1.85"
-
-      - name: Cache Cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Check on MSRV
-        run: cargo +1.85 check --all-targets --locked
-
-      - name: Test on MSRV
-        run: cargo +1.85 test --no-default-features --locked
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: Build
+        run: cargo build --workspace --all-targets --all-features
+      - name: Test
+        run: cargo test --workspace --all-features

@@ -23,6 +23,7 @@ serde_json = { version = "1.0", default-features = false, features = ["std"] }
 sha2 = "0.10"
 thiserror = "2.0"
 toml = { version = "0.8", default-features = false, features = ["parse", "display"] }
+object = { version = "0.36", default-features = false, features = ["read", "elf", "pe", "macho", "unaligned"] }
 
 [lints.rust]
 unsafe_code = "forbid"
