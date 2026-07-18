@@ -33,4 +33,20 @@ impl ExitCode {
     pub fn as_std(self) -> std::process::ExitCode {
         std::process::ExitCode::from(self as u8)
     }
+
+    /// Create from a raw exit code value.
+    #[must_use]
+    pub fn from_raw(code: u8) -> Self {
+        match code {
+            0 => Self::Success,
+            2 => Self::InvalidInput,
+            3 => Self::Violated,
+            4 => Self::Incomplete,
+            5 => Self::ToolFailure,
+            6 => Self::DependencyIncompatible,
+            7 => Self::BudgetExhausted,
+            8 => Self::SecurityBlock,
+            _ => Self::Internal,
+        }
+    }
 }

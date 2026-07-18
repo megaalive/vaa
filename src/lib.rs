@@ -5,12 +5,19 @@
 
 #![forbid(unsafe_code)]
 
+pub mod evidence;
 pub mod exit_code;
 pub mod run;
+pub mod semasm;
 pub mod task;
 
+pub use evidence::{CheckOutcome, EvidenceAggregator, EvidenceReport, EvidenceStatus};
 pub use exit_code::ExitCode as VaaExitCode;
 pub use run::{EventKind, EventLog, RunDir, RunDirPaths, RunId};
+pub use semasm::{
+    match_task_requirements, CapabilityMatch, DoctorReport, DoctorStatus, SemasmDoctor,
+    SemasmVerify, TargetCapabilities, VerifyError, VerifyReport,
+};
 pub use task::{load_locked_task, load_task_file, LockedTask, Task, TaskError};
 
 /// Package version embedded at compile time.

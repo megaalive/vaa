@@ -9,11 +9,11 @@ Tracks evidence gates from `VAA_REVIEWED_AND_HARDENED_ARCHITECTURE_PLAN.md` §26
 | PR-002 — Task schema v0.1 | **Done** | Typed model, strict parse, fixtures, JSON Schema, `vaa validate` |
 | PR-003 — Policy and immutable task digest | **Done** | Canonical JSON + SHA-256, `LockedTask`, mutation tests |
 | PR-004 — Run directory and event log | **Done** | RunId, RunDir, EventLog with atomic writes and bounded records |
-| PR-005 — SemASM doctor / version negotiation | Pending | Blocked on gaps listed in baseline |
-| PR-006 — SemASM capabilities adapter | Pending | |
-| PR-007 — SemASM verification adapter | Pending | |
-| PR-008 — Final evidence status aggregator | Pending | |
-| Phase 1 exit (`vaa verify …` full offline report) | Pending | Needs PR-004+ |
+| PR-005 — SemASM doctor / version negotiation | **Done** | Graceful if `semasm` not on PATH |
+| PR-006 — SemASM capabilities adapter | **Done** | `vaa capabilities --target <triple>` |
+| PR-007 — SemASM verification adapter | **Done** | Subprocess + JSON parse + status map |
+| PR-008 — Final evidence status aggregator | **Done** | `vaa verify <task> --source <candidate>` |
+| Phase 1 exit (`vaa verify …` full offline report) | **Done** | EvidenceAggregator, 4-outcome bundle |
 
 ## Current executable acceptance
 
@@ -32,6 +32,14 @@ Negative fixtures must fail with exit code 2:
 cargo run -q -- validate fixtures/tasks/invalid_unknown_field.vaa.toml; echo $?
 cargo run -q -- validate fixtures/tasks/invalid_schema_version.vaa.toml; echo $?
 cargo run -q -- validate fixtures/tasks/invalid_missing_tests.vaa.toml; echo $?
+
+Phase 1: doctor, capabilities, verify all available:
+
+```bash
+cargo run -q -- doctor
+cargo run -q -- capabilities --target x86_64-unknown-linux-gnu
+cargo run -q -- verify fixtures/tasks/sum_i64.vaa.toml --source fixtures/verify/pass.s --format text
+```
 ```
 
 ## Documentation map

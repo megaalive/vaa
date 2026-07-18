@@ -13,10 +13,11 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa version` / `vaa status` | Available |
 | `vaa validate <task.vaa.toml>` | Available (schema **0.1**) |
 | Task content digest (`sha256:…`) | Available after successful validate |
-| SemASM integration | **Not implemented** |
+| `vaa doctor` | Available — SemASM version & schema compat |
+| `vaa capabilities --target <triple>` | Available — machine-readable JSON |
+| `vaa verify <task> --source <candidate.asm>` | Available — 4-outcome evidence bundle |
 | Model generation / repair | **Not implemented** |
 | Assemble / link / sandbox execute | **Not implemented** |
-| `vaa verify` full evidence report | **Not implemented** |
 
 This project does **not** claim safety, formal proof, zero overhead, or production readiness.
 
@@ -67,6 +68,8 @@ Non-negotiable direction:
 |---:|---|
 | 0 | Success |
 | 2 | Invalid user input or task schema |
+| 3 | SemASM binary not found or version mismatch |
+| 4 | Verification produced violations or failures |
 
 Full table: architecture plan §19.3.
 
