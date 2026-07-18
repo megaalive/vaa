@@ -1,0 +1,32 @@
+[package]
+name = "vaa"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Verifiable Assembly Agent — fail-closed orchestration around SemASM"
+repository = "https://github.com/megaalive/vaa"
+homepage = "https://github.com/megaalive/vaa"
+readme = "README.md"
+keywords = ["assembly", "verification", "semasm", "cli"]
+categories = ["development-tools", "command-line-utilities"]
+authors = ["VAA contributors"]
+
+[features]
+default = ["local-cli"]
+local-cli = []
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"

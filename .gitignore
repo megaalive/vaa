@@ -1,0 +1,26 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# VAA local state (never commit run evidence or caches by default)
+.vaa/
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Coverage / profiling
+*.profraw
+*.profdata
+lcov.info
+coverage/

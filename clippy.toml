@@ -1,0 +1,5 @@
+# Shared Clippy configuration for VAA.
+# CI denies warnings via: cargo clippy ... -- -D warnings
+cognitive-complexity-threshold = 30
+too-many-arguments-threshold = 8
+type-complexity-threshold = 250
