@@ -45,6 +45,7 @@ pub struct Orchestrator {
 }
 
 impl Orchestrator {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             state: MachineState::Idle,
@@ -53,14 +54,17 @@ impl Orchestrator {
         }
     }
 
+    #[must_use]
     pub fn state(&self) -> MachineState {
         self.state
     }
 
+    #[must_use]
     pub fn transition_count(&self) -> usize {
         self.transitions.len()
     }
 
+    #[must_use]
     pub fn transitions(&self) -> &[StateTransition] {
         &self.transitions
     }
@@ -90,26 +94,53 @@ impl Orchestrator {
             (MachineState::Idle, MachineState::TaskLoaded),
             (MachineState::TaskLoaded, MachineState::TargetIdentified),
             (MachineState::TaskLoaded, MachineState::Error),
-            (MachineState::TargetIdentified, MachineState::CandidateSubmitted),
+            (
+                MachineState::TargetIdentified,
+                MachineState::CandidateSubmitted,
+            ),
             (MachineState::TargetIdentified, MachineState::Error),
-            (MachineState::CandidateSubmitted, MachineState::CandidateAccepted),
-            (MachineState::CandidateSubmitted, MachineState::CandidateRejected),
+            (
+                MachineState::CandidateSubmitted,
+                MachineState::CandidateAccepted,
+            ),
+            (
+                MachineState::CandidateSubmitted,
+                MachineState::CandidateRejected,
+            ),
             (MachineState::CandidateSubmitted, MachineState::Error),
-            (MachineState::CandidateAccepted, MachineState::BuildInProgress),
+            (
+                MachineState::CandidateAccepted,
+                MachineState::BuildInProgress,
+            ),
             (MachineState::CandidateAccepted, MachineState::Error),
-            (MachineState::CandidateRejected, MachineState::CandidateSubmitted),
+            (
+                MachineState::CandidateRejected,
+                MachineState::CandidateSubmitted,
+            ),
             (MachineState::CandidateRejected, MachineState::RunFinished),
             (MachineState::BuildInProgress, MachineState::BuildCompleted),
             (MachineState::BuildInProgress, MachineState::BuildFailed),
             (MachineState::BuildInProgress, MachineState::Error),
-            (MachineState::BuildCompleted, MachineState::VerificationInProgress),
+            (
+                MachineState::BuildCompleted,
+                MachineState::VerificationInProgress,
+            ),
             (MachineState::BuildCompleted, MachineState::Error),
             (MachineState::BuildFailed, MachineState::CandidateSubmitted),
             (MachineState::BuildFailed, MachineState::RunFinished),
-            (MachineState::VerificationInProgress, MachineState::VerificationCompleted),
+            (
+                MachineState::VerificationInProgress,
+                MachineState::VerificationCompleted,
+            ),
             (MachineState::VerificationInProgress, MachineState::Error),
-            (MachineState::VerificationCompleted, MachineState::RunFinished),
-            (MachineState::VerificationCompleted, MachineState::CandidateSubmitted),
+            (
+                MachineState::VerificationCompleted,
+                MachineState::RunFinished,
+            ),
+            (
+                MachineState::VerificationCompleted,
+                MachineState::CandidateSubmitted,
+            ),
             (MachineState::RunFinished, MachineState::Idle),
             (MachineState::Error, MachineState::Idle),
             (MachineState::Error, MachineState::TaskLoaded),
@@ -141,7 +172,8 @@ mod tests {
     #[test]
     fn valid_transition_succeeds() {
         let mut o = Orchestrator::new();
-        o.transit(MachineState::TaskLoaded, "loaded task").expect("transit");
+        o.transit(MachineState::TaskLoaded, "loaded task")
+            .expect("transit");
         assert_eq!(o.state(), MachineState::TaskLoaded);
     }
 
@@ -149,7 +181,10 @@ mod tests {
     fn invalid_transition_fails() {
         let mut o = Orchestrator::new();
         let result = o.transit(MachineState::VerificationCompleted, "skip ahead");
-        assert!(matches!(result, Err(OrchestratorError::InvalidTransition { .. })));
+        assert!(matches!(
+            result,
+            Err(OrchestratorError::InvalidTransition { .. })
+        ));
     }
 
     #[test]
@@ -175,7 +210,8 @@ mod tests {
     #[test]
     fn reset_clears_state() {
         let mut o = Orchestrator::new();
-        o.transit(MachineState::TaskLoaded, "load").expect("transit");
+        o.transit(MachineState::TaskLoaded, "load")
+            .expect("transit");
         o.reset();
         assert_eq!(o.state(), MachineState::Idle);
         assert_eq!(o.transition_count(), 0);

@@ -9,14 +9,17 @@ pub enum EvidenceStatus {
 }
 
 impl EvidenceStatus {
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Verified | Self::Violated | Self::Failed)
     }
 
+    #[must_use]
     pub fn is_success(&self) -> bool {
         matches!(self, Self::Verified)
     }
 
+    #[must_use]
     pub fn exit_code(self) -> u8 {
         match self {
             Self::Verified => 0,

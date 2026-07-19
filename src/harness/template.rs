@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use serde::{Deserialize, Serialize};
 
@@ -37,14 +38,27 @@ impl HarnessTemplate {
 
         let (abi_preserved_regs, abi_decl) = match config.abi.as_str() {
             "sysv64" => (
-                vec!["rbx".to_owned(), "rbp".to_owned(), "r12".to_owned(),
-                     "r13".to_owned(), "r14".to_owned(), "r15".to_owned()],
+                vec![
+                    "rbx".to_owned(),
+                    "rbp".to_owned(),
+                    "r12".to_owned(),
+                    "r13".to_owned(),
+                    "r14".to_owned(),
+                    "r15".to_owned(),
+                ],
                 "default rel".to_owned(),
             ),
             "win64" => (
-                vec!["rbx".to_owned(), "rbp".to_owned(), "rdi".to_owned(),
-                     "rsi".to_owned(), "r12".to_owned(), "r13".to_owned(),
-                     "r14".to_owned(), "r15".to_owned()],
+                vec![
+                    "rbx".to_owned(),
+                    "rbp".to_owned(),
+                    "rdi".to_owned(),
+                    "rsi".to_owned(),
+                    "r12".to_owned(),
+                    "r13".to_owned(),
+                    "r14".to_owned(),
+                    "r15".to_owned(),
+                ],
                 "default rel".to_owned(),
             ),
             other => return Err(HarnessError::UnsupportedAbi(other.to_owned())),
@@ -65,18 +79,23 @@ impl HarnessTemplate {
         s.push_str(&config.entry_symbol);
         s.push('\n');
 
-        for (i, (_val, _exp)) in config.test_values.iter().zip(config.expected_outputs.iter()).enumerate() {
-            s.push_str(&format!("; test[{}]\n", i));
+        for (i, (_val, _exp)) in config
+            .test_values
+            .iter()
+            .zip(config.expected_outputs.iter())
+            .enumerate()
+        {
+            let _ = writeln!(s, "; test[{i}]");
             s.push_str("mov rdi, ");
-            s.push_str(&format!("0x{:x}", i));
+            let _ = write!(s, "0x{i:x}");
             s.push('\n');
 
             for reg in preserved {
-                s.push_str(&format!("push {reg}\n"));
+                let _ = writeln!(s, "push {reg}");
             }
-            s.push_str(&format!("call {}\n", config.entry_symbol));
+            let _ = writeln!(s, "call {}", config.entry_symbol);
             for reg in preserved.iter().rev() {
-                s.push_str(&format!("pop {reg}\n"));
+                let _ = writeln!(s, "pop {reg}");
             }
             s.push('\n');
         }
@@ -85,6 +104,7 @@ impl HarnessTemplate {
         s
     }
 
+    #[must_use]
     pub fn render_with(&self, _vars: &HashMap<String, String>) -> String {
         self.source.clone()
     }

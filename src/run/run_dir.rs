@@ -76,14 +76,17 @@ impl RunDir {
         Ok(Self { paths })
     }
 
+    #[must_use]
     pub fn paths(&self) -> &RunDirPaths {
         &self.paths
     }
 
+    #[must_use]
     pub fn root(&self) -> &Path {
         &self.paths.root
     }
 
+    #[must_use]
     pub fn event_log_path(&self) -> &Path {
         &self.paths.event_log_path
     }
@@ -138,16 +141,14 @@ impl RunDir {
                 path: tmp_path.clone(),
                 source,
             })?;
-            tmp.write_all(data)
-                .map_err(|source| RunDirError::Write {
-                    path: tmp_path.clone(),
-                    source,
-                })?;
-            tmp.flush()
-                .map_err(|source| RunDirError::Write {
-                    path: tmp_path.clone(),
-                    source,
-                })?;
+            tmp.write_all(data).map_err(|source| RunDirError::Write {
+                path: tmp_path.clone(),
+                source,
+            })?;
+            tmp.flush().map_err(|source| RunDirError::Write {
+                path: tmp_path.clone(),
+                source,
+            })?;
         }
 
         fs::rename(&tmp_path, path).map_err(|source| RunDirError::Write {
@@ -165,11 +166,7 @@ impl RunDir {
         Ok(path)
     }
 
-    pub fn write_evidence_file(
-        &self,
-        filename: &str,
-        data: &[u8],
-    ) -> Result<PathBuf, RunDirError> {
+    pub fn write_evidence_file(&self, filename: &str, data: &[u8]) -> Result<PathBuf, RunDirError> {
         let safe_name = sanitize_filename(filename);
         let path = self.paths.evidence_dir.join(safe_name);
         self.write_atomic(&path, data)?;
@@ -196,9 +193,7 @@ impl RunDir {
 
         let joined = base.join(&sanitized);
         if !joined.starts_with(base) {
-            return Err(RunDirError::PathTraversal {
-                path: joined,
-            });
+            return Err(RunDirError::PathTraversal { path: joined });
         }
         Ok(joined)
     }
@@ -268,7 +263,10 @@ mod tests {
 
         let result = rundir.create_candidate_dir(10_000);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RunDirError::CandidateOverflow));
+        assert!(matches!(
+            result.unwrap_err(),
+            RunDirError::CandidateOverflow
+        ));
 
         let _ = fs::remove_dir_all(&base);
     }
@@ -299,7 +297,10 @@ mod tests {
         let outside = PathBuf::from(r"\\?\C:\Windows\system32\evil.dll");
         let result = rundir.write_atomic(&outside, b"evil");
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RunDirError::PathTraversal { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            RunDirError::PathTraversal { .. }
+        ));
 
         let _ = fs::remove_dir_all(&base);
     }
@@ -310,7 +311,10 @@ mod tests {
         let result = RunDir::safe_join(&base, "..\\..\\Windows\\system32");
         assert!(result.is_ok());
         let joined = result.unwrap();
-        assert!(!joined.starts_with(r"C:\Windows"), "traversal should be sanitized");
+        assert!(
+            !joined.starts_with(r"C:\Windows"),
+            "traversal should be sanitized"
+        );
     }
 
     #[test]

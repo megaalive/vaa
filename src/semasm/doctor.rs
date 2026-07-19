@@ -34,17 +34,15 @@ pub enum DoctorError {
 pub struct SemasmDoctor;
 
 impl SemasmDoctor {
+    #[must_use]
     pub fn run() -> DoctorReport {
-        let binary = match Self::find_binary() {
-            Some(path) => path,
-            None => {
-                return DoctorReport {
-                    status: DoctorStatus::Unavailable,
-                    binary_path: None,
-                    version: None,
-                    details: vec!["semasm binary not found on PATH".to_owned()],
-                };
-            }
+        let Some(binary) = Self::find_binary() else {
+            return DoctorReport {
+                status: DoctorStatus::Unavailable,
+                binary_path: None,
+                version: None,
+                details: vec!["semasm binary not found on PATH".to_owned()],
+            };
         };
 
         let version = match Self::read_version(&binary) {
@@ -75,6 +73,7 @@ impl SemasmDoctor {
         }
     }
 
+    #[must_use]
     pub fn find_binary() -> Option<PathBuf> {
         let paths = std::env::var_os("PATH")?;
         for dir in std::env::split_paths(&paths) {
@@ -101,11 +100,7 @@ impl SemasmDoctor {
         let combined = format!("{stdout}{stderr}");
 
         let lines: Vec<&str> = combined.lines().collect();
-        let version_line = lines
-            .first()
-            .copied()
-            .unwrap_or("unknown")
-            .trim();
+        let version_line = lines.first().copied().unwrap_or("unknown").trim();
 
         let version = version_line
             .strip_prefix("semasm ")

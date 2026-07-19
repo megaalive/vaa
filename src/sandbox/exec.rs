@@ -35,6 +35,7 @@ pub struct ExecutionSandbox {
 }
 
 impl ExecutionSandbox {
+    #[must_use]
     pub fn new(backend: Box<dyn SandboxBackend>) -> Self {
         Self {
             enabled: false,
@@ -43,6 +44,7 @@ impl ExecutionSandbox {
         }
     }
 
+    #[must_use]
     pub fn with_config(backend: Box<dyn SandboxBackend>, config: SandboxConfig) -> Self {
         Self {
             enabled: false,
@@ -55,7 +57,12 @@ impl ExecutionSandbox {
         self.enabled = true;
     }
 
-    pub fn run(&self, binary: &Path, args: &[String], timeout: Duration) -> Result<ExecutionResult, ExecutionError> {
+    pub fn run(
+        &self,
+        binary: &Path,
+        args: &[String],
+        timeout: Duration,
+    ) -> Result<ExecutionResult, ExecutionError> {
         if !self.enabled {
             return Err(ExecutionError::NotEnabled);
         }
@@ -83,11 +90,9 @@ impl ExecutionSandbox {
         sandbox_cfg.timeout = timeout;
         sandbox_cfg.network_disabled = true;
 
-        let pc = self.backend.wrap_process(
-            &binary.to_string_lossy(),
-            args,
-            &sandbox_cfg,
-        );
+        let pc = self
+            .backend
+            .wrap_process(&binary.to_string_lossy(), args, &sandbox_cfg);
 
         let output = ProcessRunner::run(&pc)?;
 
@@ -157,7 +162,10 @@ mod tests {
         let mut sandbox = ExecutionSandbox::new(backend);
         sandbox.enable();
         let (program, args) = if cfg!(windows) {
-            (PathBuf::from("cmd.exe"), vec!["/c".to_owned(), "echo".to_owned(), "ok".to_owned()])
+            (
+                PathBuf::from("cmd.exe"),
+                vec!["/c".to_owned(), "echo".to_owned(), "ok".to_owned()],
+            )
         } else {
             (PathBuf::from("echo"), vec!["ok".to_owned()])
         };

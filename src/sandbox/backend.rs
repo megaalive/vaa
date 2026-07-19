@@ -44,7 +44,8 @@ pub trait SandboxBackend {
     fn name(&self) -> &str;
     fn is_available(&self) -> bool;
     fn image_digest(&self) -> Option<String>;
-    fn wrap_process(&self, program: &str, args: &[String], config: &SandboxConfig) -> ProcessConfig;
+    fn wrap_process(&self, program: &str, args: &[String], config: &SandboxConfig)
+        -> ProcessConfig;
 }
 
 pub struct LocalBackend;
@@ -62,7 +63,12 @@ impl SandboxBackend for LocalBackend {
         None
     }
 
-    fn wrap_process(&self, program: &str, args: &[String], config: &SandboxConfig) -> ProcessConfig {
+    fn wrap_process(
+        &self,
+        program: &str,
+        args: &[String],
+        config: &SandboxConfig,
+    ) -> ProcessConfig {
         ProcessConfig {
             program: PathBuf::from(program),
             args: args.to_vec(),
@@ -82,6 +88,7 @@ pub struct ContainerBackend {
 }
 
 impl ContainerBackend {
+    #[must_use]
     pub fn new(runtime: &str, image: &str) -> Self {
         Self {
             runtime: runtime.to_owned(),
@@ -110,11 +117,13 @@ impl SandboxBackend for ContainerBackend {
         self.image_digest.clone()
     }
 
-    fn wrap_process(&self, program: &str, args: &[String], config: &SandboxConfig) -> ProcessConfig {
-        let mut wrapped = vec![
-            "run".to_owned(),
-            "--rm".to_owned(),
-        ];
+    fn wrap_process(
+        &self,
+        program: &str,
+        args: &[String],
+        config: &SandboxConfig,
+    ) -> ProcessConfig {
+        let mut wrapped = vec!["run".to_owned(), "--rm".to_owned()];
 
         if config.network_disabled {
             wrapped.push("--network".to_owned());

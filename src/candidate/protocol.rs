@@ -47,6 +47,7 @@ pub enum CandidateError {
     InvalidSource(String),
 }
 
+#[allow(dead_code)]
 pub struct CandidateProtocol {
     seen_hashes: HashSet<String>,
     next_index: u32,
@@ -55,6 +56,7 @@ pub struct CandidateProtocol {
 }
 
 impl CandidateProtocol {
+    #[must_use]
     pub fn new(target: &str) -> Self {
         Self {
             seen_hashes: HashSet::new(),
@@ -64,6 +66,7 @@ impl CandidateProtocol {
         }
     }
 
+    #[must_use]
     pub fn with_max(target: &str, max: u32) -> Self {
         Self {
             seen_hashes: HashSet::new(),
@@ -91,20 +94,27 @@ impl CandidateProtocol {
                 accepted: false,
                 index,
                 digest: String::new(),
-                rejection: Some(self.error_to_rejection(&e)),
+                rejection: Some(Self::error_to_rejection(&e)),
             },
         }
     }
 
+    #[must_use]
     pub fn submission_count(&self) -> u32 {
         self.next_index
     }
 
+    #[must_use]
     pub fn is_exhausted(&self) -> bool {
         self.next_index >= self.max_candidates
     }
 
-    fn validate(&mut self, source: &str, source_path: &Path, index: u32) -> Result<String, CandidateError> {
+    fn validate(
+        &mut self,
+        source: &str,
+        source_path: &Path,
+        index: u32,
+    ) -> Result<String, CandidateError> {
         if index >= self.max_candidates {
             return Err(CandidateError::IndexOverflow {
                 index,
@@ -129,15 +139,14 @@ impl CandidateProtocol {
         }
 
         if source.trim().is_empty() {
-            return Err(CandidateError::InvalidSource(
-                "source is empty".to_owned(),
-            ));
+            return Err(CandidateError::InvalidSource("source is empty".to_owned()));
         }
 
         if !source_path.exists() {
-            return Err(CandidateError::InvalidSource(
-                format!("path does not exist: {}", source_path.display()),
-            ));
+            return Err(CandidateError::InvalidSource(format!(
+                "path does not exist: {}",
+                source_path.display()
+            )));
         }
 
         Ok(digest)
@@ -158,18 +167,16 @@ impl CandidateProtocol {
         format!("sha256:{}", hex_encode(&hash))
     }
 
-    fn error_to_rejection(&self, error: &CandidateError) -> RejectionReason {
+    fn error_to_rejection(error: &CandidateError) -> RejectionReason {
         match error {
             CandidateError::SizeExceeded { actual, limit } => RejectionReason::SizeExceeded {
                 actual: *actual,
                 limit: *limit,
             },
-            CandidateError::Duplicate { previous_index } => {
-                RejectionReason::RepeatedHash {
-                    previous_index: *previous_index,
-                    digest: String::new(),
-                }
-            }
+            CandidateError::Duplicate { previous_index } => RejectionReason::RepeatedHash {
+                previous_index: *previous_index,
+                digest: String::new(),
+            },
             CandidateError::IndexOverflow { index, max } => RejectionReason::IndexOverflow {
                 index: *index,
                 max: *max,
@@ -180,15 +187,19 @@ impl CandidateProtocol {
                     actual: actual.clone(),
                 }
             }
-            CandidateError::InvalidSource(msg) => {
-                RejectionReason::InvalidSource(msg.clone())
-            }
+            CandidateError::InvalidSource(msg) => RejectionReason::InvalidSource(msg.clone()),
         }
     }
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+    use std::fmt::Write;
+    bytes
+        .iter()
+        .fold(String::with_capacity(bytes.len() * 2), |mut s, b| {
+            let _ = write!(s, "{b:02x}");
+            s
+        })
 }
 
 #[cfg(test)]
@@ -217,7 +228,10 @@ mod tests {
         assert!(first.accepted);
         let second = proto.submit("mov eax, 1\n", &path);
         assert!(!second.accepted);
-        assert!(matches!(second.rejection, Some(RejectionReason::RepeatedHash { .. })));
+        assert!(matches!(
+            second.rejection,
+            Some(RejectionReason::RepeatedHash { .. })
+        ));
         let _ = std::fs::remove_file(&path);
     }
 

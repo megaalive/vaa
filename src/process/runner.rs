@@ -71,12 +71,10 @@ impl ProcessRunner {
             }
         }
 
-        let child = cmd
-            .spawn()
-            .map_err(|e| ProcessError::Spawn {
-                program: program_str.clone(),
-                detail: e.to_string(),
-            })?;
+        let child = cmd.spawn().map_err(|e| ProcessError::Spawn {
+            program: program_str.clone(),
+            detail: e.to_string(),
+        })?;
 
         let pid = child.id();
         let (tx, rx) = mpsc::channel();

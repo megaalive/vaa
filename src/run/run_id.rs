@@ -4,6 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub struct RunId(String);
 
 impl RunId {
+    #[must_use]
     pub fn generate() -> Self {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -15,10 +16,12 @@ impl RunId {
         Self(format!("{ts}-{random_suffix}"))
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
+    #[must_use]
     pub fn dir_name(&self) -> &str {
         &self.0
     }
@@ -44,17 +47,14 @@ fn format_unix_utc(unix_secs: u64) -> String {
     let seconds = remaining % 60;
 
     let (y, m, d) = civil_from_days(days as i64);
-    format!(
-        "{:04}{:02}{:02}T{:02}{:02}{:02}Z",
-        y, m, d, hours, minutes, seconds
-    )
+    format!("{y:04}{m:02}{d:02}T{hours:02}{minutes:02}{seconds:02}Z")
 }
 
 fn civil_from_days(days: i64) -> (i64, u32, u32) {
-    let z = days + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
     let y = yoe + era * 400;
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
@@ -81,8 +81,10 @@ mod tests {
         let s = id.as_str();
         assert!(s.len() >= 20, "run id too short: {s}");
         assert!(s.contains('T'), "run id missing timestamp separator: {s}");
-        assert!(s.ends_with('Z') || s[s.len() - 5..].contains('-'),
-            "run id missing suffix: {s}");
+        assert!(
+            s.ends_with('Z') || s[s.len() - 5..].contains('-'),
+            "run id missing suffix: {s}"
+        );
     }
 
     #[test]
@@ -106,7 +108,7 @@ mod tests {
 
     #[test]
     fn format_unix_utc_known() {
-        let s = format_unix_utc(1710806400);
+        let s = format_unix_utc(1_710_806_400);
         assert_eq!(s, "20240319T000000Z");
     }
 }

@@ -10,17 +10,19 @@ pub enum CapabilityLevel {
 }
 
 impl CapabilityLevel {
+    #[must_use]
     pub fn is_available(&self) -> bool {
         matches!(self, Self::Supported | Self::Partial | Self::Experimental)
     }
 
+    #[must_use]
     pub fn is_sufficient_for(&self, required: &Self) -> bool {
-        match (required, self) {
-            (_, Self::Supported) => true,
-            (Self::Partial, Self::Partial | Self::Experimental) => true,
-            (Self::Experimental, Self::Experimental) => true,
-            _ => false,
-        }
+        matches!(
+            (required, self),
+            (_, Self::Supported)
+                | (Self::Partial, Self::Partial | Self::Experimental)
+                | (Self::Experimental, Self::Experimental)
+        )
     }
 }
 
@@ -37,19 +39,10 @@ pub struct TargetCapabilities {
 }
 
 impl TargetCapabilities {
+    #[must_use]
     pub fn for_target(target: &str) -> Self {
         match target {
-            "x86_64-unknown-linux-gnu" => Self {
-                target_id: target.to_owned(),
-                decode: CapabilityLevel::Partial,
-                lower: CapabilityLevel::Partial,
-                abi_check: CapabilityLevel::Partial,
-                object_inspect: CapabilityLevel::Experimental,
-                assemble: CapabilityLevel::Experimental,
-                link: CapabilityLevel::Experimental,
-                sandbox_run: CapabilityLevel::Unavailable,
-            },
-            "x86_64-pc-windows-msvc" => Self {
+            "x86_64-unknown-linux-gnu" | "x86_64-pc-windows-msvc" => Self {
                 target_id: target.to_owned(),
                 decode: CapabilityLevel::Partial,
                 lower: CapabilityLevel::Partial,
@@ -82,19 +75,28 @@ impl TargetCapabilities {
         }
     }
 
+    #[must_use]
     pub fn digest(&self) -> String {
         use sha2::{Digest, Sha256};
         let input = format!(
             "{}{:?}{:?}{:?}{:?}{:?}{:?}{:?}",
             self.target_id,
-            self.decode, self.lower, self.abi_check,
-            self.object_inspect, self.assemble, self.link,
+            self.decode,
+            self.lower,
+            self.abi_check,
+            self.object_inspect,
+            self.assemble,
+            self.link,
             self.sandbox_run
         );
         let hash = Sha256::digest(input.as_bytes());
-        hash.iter()
-            .map(|b| format!("{b:02x}"))
-            .collect::<String>()
+        {
+            use std::fmt::Write;
+            hash.iter().fold(String::with_capacity(64), |mut s, b| {
+                let _ = write!(s, "{b:02x}");
+                s
+            })
+        }
     }
 }
 
@@ -105,6 +107,7 @@ pub struct CapabilityMatch {
     pub insufficient: Vec<String>,
 }
 
+#[must_use]
 pub fn match_task_requirements(task: &Task, caps: &TargetCapabilities) -> CapabilityMatch {
     let mut missing = Vec::new();
     let mut insufficient = Vec::new();
@@ -112,14 +115,13 @@ pub fn match_task_requirements(task: &Task, caps: &TargetCapabilities) -> Capabi
     if task.verification.require_complete_lowering
         && !caps.lower.is_sufficient_for(&CapabilityLevel::Supported)
     {
-        insufficient.push(format!(
-            "lower: required supported, got {:?}",
-            caps.lower
-        ));
+        insufficient.push(format!("lower: required supported, got {:?}", caps.lower));
     }
 
     if task.verification.require_abi_check
-        && !caps.abi_check.is_sufficient_for(&CapabilityLevel::Supported)
+        && !caps
+            .abi_check
+            .is_sufficient_for(&CapabilityLevel::Supported)
     {
         insufficient.push(format!(
             "abi_check: required supported, got {:?}",
@@ -128,7 +130,9 @@ pub fn match_task_requirements(task: &Task, caps: &TargetCapabilities) -> Capabi
     }
 
     if task.verification.require_object_inspection
-        && !caps.object_inspect.is_sufficient_for(&CapabilityLevel::Supported)
+        && !caps
+            .object_inspect
+            .is_sufficient_for(&CapabilityLevel::Supported)
     {
         insufficient.push(format!(
             "object_inspect: required supported, got {:?}",
@@ -137,7 +141,9 @@ pub fn match_task_requirements(task: &Task, caps: &TargetCapabilities) -> Capabi
     }
 
     if task.verification.require_behavioral_tests
-        && !caps.sandbox_run.is_sufficient_for(&CapabilityLevel::Supported)
+        && !caps
+            .sandbox_run
+            .is_sufficient_for(&CapabilityLevel::Supported)
     {
         insufficient.push(format!(
             "sandbox_run (behavioral tests): required supported, got {:?}",
@@ -171,26 +177,38 @@ mod tests {
             task_id: "test-v1".to_owned(),
             artifact_kind: ArtifactKind::CallableFunction,
             target: "x86_64-unknown-linux-gnu".to_owned(),
-            entry: Entry { symbol: "test".to_owned(), abi: "sysv64".to_owned() },
+            entry: Entry {
+                symbol: "test".to_owned(),
+                abi: "sysv64".to_owned(),
+            },
             inputs: BTreeMap::new(),
-            output: ValueKind { kind: "i64".to_owned() },
+            output: ValueKind {
+                kind: "i64".to_owned(),
+            },
             behavior: Behavior {
                 summary: "test".to_owned(),
                 integer_overflow: None,
                 empty_input_result: None,
             },
             capabilities: Capabilities {
-                syscalls: vec![], imports: vec![],
-                heap: false, filesystem: false, network: false,
-                environment: false, clock: false, random: false,
+                syscalls: vec![],
+                imports: vec![],
+                heap: false,
+                filesystem: false,
+                network: false,
+                environment: false,
+                clock: false,
+                random: false,
             },
             memory: MemoryPolicy {
-                max_stack_bytes: 128, allow_global_writable: false,
+                max_stack_bytes: 128,
+                allow_global_writable: false,
                 allow_self_modifying_code: false,
             },
             instructions: InstructionPolicy {
                 required_features: vec!["x86-64-baseline".to_owned()],
-                forbidden_mnemonics: vec![], allow_unknown_semantics: false,
+                forbidden_mnemonics: vec![],
+                allow_unknown_semantics: false,
             },
             verification: VerificationRequirements {
                 require_complete_lowering: true,
@@ -200,13 +218,17 @@ mod tests {
                 require_reproducible_build: false,
             },
             budgets: Budgets {
-                max_candidates: 1, max_repairs_per_candidate: 0,
-                max_wall_time_seconds: 60, max_model_tokens: 0,
+                max_candidates: 1,
+                max_repairs_per_candidate: 0,
+                max_wall_time_seconds: 60,
+                max_model_tokens: 0,
                 max_no_progress_iterations: 1,
             },
             delivery: Delivery {
-                include_source: true, include_object: false,
-                include_binary: false, include_evidence: true,
+                include_source: true,
+                include_object: false,
+                include_binary: false,
+                include_evidence: true,
             },
             tests: vec![],
         }

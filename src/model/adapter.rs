@@ -23,7 +23,12 @@ pub enum ModelError {
 
 pub trait ModelAdapter {
     fn name(&self) -> &str;
-    fn generate(&self, prompt: &str, task_id: &str, target: &str) -> Result<ModelResponse, ModelError>;
+    fn generate(
+        &self,
+        prompt: &str,
+        task_id: &str,
+        target: &str,
+    ) -> Result<ModelResponse, ModelError>;
 }
 
 pub struct FixtureModelAdapter {
@@ -34,6 +39,7 @@ pub struct FixtureModelAdapter {
 }
 
 impl FixtureModelAdapter {
+    #[must_use]
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_owned(),
@@ -48,7 +54,8 @@ impl FixtureModelAdapter {
     }
 
     pub fn add_error(&mut self, key: &str, error: &str) {
-        self.error_responses.insert(key.to_owned(), error.to_owned());
+        self.error_responses
+            .insert(key.to_owned(), error.to_owned());
     }
 }
 
@@ -57,9 +64,17 @@ impl ModelAdapter for FixtureModelAdapter {
         &self.name
     }
 
-    fn generate(&self, prompt: &str, task_id: &str, target: &str) -> Result<ModelResponse, ModelError> {
+    fn generate(
+        &self,
+        prompt: &str,
+        task_id: &str,
+        target: &str,
+    ) -> Result<ModelResponse, ModelError> {
         let key = format!("{task_id}::{target}");
-        let source = self.responses.get(&key).or_else(|| self.responses.get(prompt));
+        let source = self
+            .responses
+            .get(&key)
+            .or_else(|| self.responses.get(prompt));
 
         match source {
             Some(src) => {
@@ -73,7 +88,11 @@ impl ModelAdapter for FixtureModelAdapter {
                 })
             }
             None => {
-                if let Some(err_msg) = self.error_responses.get(prompt).or_else(|| self.error_responses.get(&key)) {
+                if let Some(err_msg) = self
+                    .error_responses
+                    .get(prompt)
+                    .or_else(|| self.error_responses.get(&key))
+                {
                     Err(ModelError::GenerationFailed(err_msg.clone()))
                 } else {
                     Err(ModelError::NotConfigured)

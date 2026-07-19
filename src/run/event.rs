@@ -58,6 +58,7 @@ pub struct Event {
 }
 
 impl Event {
+    #[must_use]
     pub fn new(kind: EventKind) -> Self {
         Self {
             timestamp: iso_timestamp(),
@@ -83,15 +84,13 @@ pub enum EventLogError {
     #[error("failed to write event: {0}")]
     Io(#[from] std::io::Error),
     #[error("event log size limit reached ({count} events, ~{bytes} bytes)")]
-    SizeLimit {
-        count: usize,
-        bytes: u64,
-    },
+    SizeLimit { count: usize, bytes: u64 },
     #[error("failed to serialize event: {0}")]
     Serialize(#[from] serde_json::Error),
 }
 
 impl EventLog {
+    #[must_use]
     pub fn new(path: std::path::PathBuf) -> Self {
         Self {
             path,
@@ -102,12 +101,14 @@ impl EventLog {
         }
     }
 
+    #[must_use]
     pub fn with_limits(mut self, max_events: usize, max_file_bytes: u64) -> Self {
         self.max_events = max_events;
         self.max_file_bytes = max_file_bytes;
         self
     }
 
+    #[must_use]
     pub fn count(&self) -> usize {
         self.count
     }
@@ -167,22 +168,19 @@ fn iso_timestamp() -> String {
     let (y, m, d) = civil_from_days(days as i64);
     let subsec = format_subsec(subsec_nanos);
 
-    format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{subsec}Z",
-        y, m, d, hours, minutes, seconds
-    )
+    format!("{y:04}-{m:02}-{d:02}T{hours:02}:{minutes:02}:{seconds:02}.{subsec}Z")
 }
 
 fn format_subsec(nanos: u32) -> String {
     let ms = nanos / 1_000_000;
-    format!("{:03}", ms)
+    format!("{ms:03}")
 }
 
 fn civil_from_days(days: i64) -> (i64, u32, u32) {
-    let z = days + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
     let y = yoe + era * 400;
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
@@ -201,7 +199,8 @@ mod tests {
 
     fn temp_event_log() -> (EventLog, PathBuf) {
         let count = TEST_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("vaa_event_test_{}_{}", std::process::id(), count));
+        let dir =
+            std::env::temp_dir().join(format!("vaa_event_test_{}_{}", std::process::id(), count));
         let _ = fs::create_dir_all(&dir);
         let path = dir.join("events.jsonl");
         let log = EventLog::new(path.clone());
@@ -261,7 +260,10 @@ mod tests {
             message: "third".to_owned(),
         });
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), EventLogError::SizeLimit { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            EventLogError::SizeLimit { .. }
+        ));
 
         cleanup(&path);
     }

@@ -26,7 +26,7 @@ pub fn validate_task(task: &Task) -> Vec<String> {
 
     if task.target.trim().is_empty() {
         diagnostics.push("target must not be empty".to_owned());
-    } else if task.target.chars().any(|c| c.is_whitespace()) {
+    } else if task.target.chars().any(char::is_whitespace) {
         diagnostics.push("target must not contain whitespace".to_owned());
     }
 
@@ -63,8 +63,7 @@ pub fn validate_task(task: &Task) -> Vec<String> {
 
     if task.capabilities.network {
         diagnostics.push(
-            "capabilities.network=true is rejected in schema 0.1 (fail-closed default)"
-                .to_owned(),
+            "capabilities.network=true is rejected in schema 0.1 (fail-closed default)".to_owned(),
         );
     }
 

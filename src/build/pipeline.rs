@@ -61,14 +61,23 @@ impl Default for PipelineConfig {
 pub struct BuildPipeline;
 
 impl BuildPipeline {
+    #[must_use]
     pub fn build(config: &PipelineConfig) -> BuildOutcome {
         let object_name = format!(
             "{}.o",
-            config.source_path.file_stem().unwrap_or_default().to_string_lossy()
+            config
+                .source_path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
         );
         let binary_name = format!(
             "{}.bin",
-            config.source_path.file_stem().unwrap_or_default().to_string_lossy()
+            config
+                .source_path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
         );
         let object_path = config.output_dir.join(&object_name);
         let binary_path = config.output_dir.join(&binary_name);
@@ -93,7 +102,11 @@ impl BuildPipeline {
         let as_result = ProcessRunner::run(&as_cfg);
 
         let (as_stdout, as_stderr, as_ok) = match &as_result {
-            Ok(out) => (out.stdout.clone(), out.stderr.clone(), out.exit_code == Some(0)),
+            Ok(out) => (
+                out.stdout.clone(),
+                out.stderr.clone(),
+                out.exit_code == Some(0),
+            ),
             Err(e) => (String::new(), format!("{e}"), false),
         };
 
@@ -137,7 +150,12 @@ impl BuildPipeline {
         let ld_result = ProcessRunner::run(&ld_cfg);
 
         let (ld_stdout, ld_stderr, ld_ok, ld_code) = match &ld_result {
-            Ok(out) => (out.stdout.clone(), out.stderr.clone(), out.exit_code == Some(0), out.exit_code),
+            Ok(out) => (
+                out.stdout.clone(),
+                out.stderr.clone(),
+                out.exit_code == Some(0),
+                out.exit_code,
+            ),
             Err(e) => (String::new(), format!("{e}"), false, None),
         };
 
@@ -173,7 +191,7 @@ mod tests {
         let config = PipelineConfig {
             assembler_path: PathBuf::from("nasm"),
             source_path: PathBuf::from("nonexistent_file_xyz.asm"),
-            output_dir: PathBuf::from(std::env::temp_dir()),
+            output_dir: std::env::temp_dir(),
             ..PipelineConfig::default()
         };
         let outcome = BuildPipeline::build(&config);

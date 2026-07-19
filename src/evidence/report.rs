@@ -36,6 +36,7 @@ pub struct EvidenceReport {
 pub struct EvidenceAggregator;
 
 impl EvidenceAggregator {
+    #[must_use]
     pub fn build(
         task: &LockedTask,
         run_id: Option<String>,
@@ -87,16 +88,14 @@ impl EvidenceAggregator {
             });
         }
 
-        let required_failures: Vec<&CheckOutcome> = checks
-            .iter()
-            .filter(|c| c.required && !c.passed)
-            .collect();
+        let required_failures: Vec<&CheckOutcome> =
+            checks.iter().filter(|c| c.required && !c.passed).collect();
 
         let final_status = if required_failures.is_empty() {
             EvidenceStatus::Verified
         } else if required_failures
             .iter()
-            .any(|c| c.check_name == "semasm_verification" && c.passed == false)
+            .any(|c| c.check_name == "semasm_verification" && !c.passed)
         {
             EvidenceStatus::Violated
         } else if checks.iter().any(|c| !c.passed) {
@@ -140,7 +139,7 @@ fn iso_timestamp() -> String {
         .duration_since(UNIX_EPOCH)
         .expect("system time before epoch");
     let secs = dur.as_secs();
-    let subsec = dur.subsec_nanos() / 1_000_000;
+    let subsec = dur.subsec_millis();
     let days = secs / 86400;
     let remaining = secs % 86400;
     let hours = remaining / 3600;
@@ -151,10 +150,10 @@ fn iso_timestamp() -> String {
 }
 
 fn civil_from_days(days: i64) -> (i64, u32, u32) {
-    let z = days + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
     let y = yoe + era * 400;
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;

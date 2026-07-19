@@ -1,3 +1,3 @@
 pub mod template;
 
-pub use template::{HarnessConfig, HarnessTemplate, HarnessError};
+pub use template::{HarnessConfig, HarnessError, HarnessTemplate};

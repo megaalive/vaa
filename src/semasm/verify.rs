@@ -105,7 +105,6 @@ impl SemasmVerify {
         match status {
             "verified" => EvidenceStatus::Verified,
             "violated" => EvidenceStatus::Violated,
-            "incomplete" => EvidenceStatus::Incomplete,
             "failed" => EvidenceStatus::Failed,
             _ => EvidenceStatus::Incomplete,
         }

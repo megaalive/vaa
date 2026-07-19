@@ -1,6 +1,12 @@
 #![forbid(unsafe_code)]
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap,
+    clippy::too_many_lines
+)]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
@@ -8,9 +14,9 @@ use clap::{Parser, Subcommand, ValueEnum};
 use vaa::exit_code::ExitCode as VaaExitCode;
 use vaa::task::{load_locked_task, TaskError};
 use vaa::{
-    ArtifactInspector, BuildPipeline, EvidenceAggregator, EvidenceStatus,
-    FixtureModelAdapter, ModelAdapter, PipelineConfig, SemasmDoctor, SemasmVerify,
-    TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION, VAA_VERSION,
+    ArtifactInspector, BuildPipeline, EvidenceAggregator, EvidenceStatus, FixtureModelAdapter,
+    ModelAdapter, PipelineConfig, SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError,
+    MATURITY, TASK_SCHEMA_VERSION, VAA_VERSION,
 };
 
 /// Verifiable Assembly Agent command-line interface.
@@ -129,9 +135,18 @@ fn main() -> ExitCode {
         } => validate_command(&task, format, show_digest),
         Commands::Doctor { format } => doctor_command(format),
         Commands::Capabilities { target, format } => capabilities_command(&target, format),
-        Commands::Verify { task, source, format } => verify_command(&task, &source, format),
+        Commands::Verify {
+            task,
+            source,
+            format,
+        } => verify_command(&task, &source, format),
         Commands::Generate { task, output } => generate_command(&task, &output),
-        Commands::Build { source, output_dir, target, format } => build_command(&source, &output_dir, &target, format),
+        Commands::Build {
+            source,
+            output_dir,
+            target,
+            format,
+        } => build_command(&source, &output_dir, &target, format),
         Commands::Inspect { artifact, format } => inspect_command(&artifact, format),
     }
 }
@@ -160,7 +175,8 @@ fn validate_command(path: &std::path::Path, format: OutputFormat, show_digest: b
                     println!("  artifact_kind: {:?}", locked.task().artifact_kind);
                     println!(
                         "  entry: {} ({})",
-                        locked.task().entry.symbol, locked.task().entry.abi
+                        locked.task().entry.symbol,
+                        locked.task().entry.abi
                     );
                     println!("  tests: {}", locked.task().tests.len());
                     if show_digest {
@@ -201,7 +217,7 @@ fn validate_command(path: &std::path::Path, format: OutputFormat, show_digest: b
     }
 }
 
-fn emit_validate_error(path: &std::path::Path, format: OutputFormat, error: &TaskError) {
+fn emit_validate_error(path: &Path, format: OutputFormat, error: &TaskError) {
     match format {
         OutputFormat::Terminal => {
             eprintln!("error: failed to validate `{}`", path.display());
@@ -250,9 +266,10 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
     }
     match report.status {
         vaa::DoctorStatus::Available => VaaExitCode::Success.as_std(),
-        vaa::DoctorStatus::Incompatible => VaaExitCode::DependencyIncompatible.as_std(),
+        vaa::DoctorStatus::Incompatible | vaa::DoctorStatus::Unavailable => {
+            VaaExitCode::DependencyIncompatible.as_std()
+        }
         vaa::DoctorStatus::Degraded => VaaExitCode::ToolFailure.as_std(),
-        vaa::DoctorStatus::Unavailable => VaaExitCode::DependencyIncompatible.as_std(),
     }
 }
 
@@ -288,7 +305,7 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
     VaaExitCode::Success.as_std()
 }
 
-fn verify_command(task_path: &PathBuf, source_path: &PathBuf, format: OutputFormat) -> ExitCode {
+fn verify_command(task_path: &Path, source_path: &Path, format: OutputFormat) -> ExitCode {
     let locked = match load_locked_task(task_path) {
         Ok(t) => t,
         Err(error) => {
@@ -416,7 +433,12 @@ fn generate_command(task_path: &PathBuf, output_path: &PathBuf) -> ExitCode {
                 eprintln!("error: failed to write `{}`: {e}", output_path.display());
                 return VaaExitCode::ToolFailure.as_std();
             }
-            println!("generated `{}` (model: {}, id: {})", output_path.display(), resp.model_name, resp.generation_id);
+            println!(
+                "generated `{}` (model: {}, id: {})",
+                output_path.display(),
+                resp.model_name,
+                resp.generation_id
+            );
             VaaExitCode::Success.as_std()
         }
         Err(e) => {
@@ -426,10 +448,10 @@ fn generate_command(task_path: &PathBuf, output_path: &PathBuf) -> ExitCode {
     }
 }
 
-fn build_command(source: &PathBuf, output_dir: &PathBuf, target: &str, format: OutputFormat) -> ExitCode {
+fn build_command(source: &Path, output_dir: &Path, target: &str, format: OutputFormat) -> ExitCode {
     let config = PipelineConfig {
-        source_path: source.clone(),
-        output_dir: output_dir.clone(),
+        source_path: source.to_path_buf(),
+        output_dir: output_dir.to_path_buf(),
         target: target.to_owned(),
         ..PipelineConfig::default()
     };
@@ -465,7 +487,7 @@ fn build_command(source: &PathBuf, output_dir: &PathBuf, target: &str, format: O
     }
 }
 
-fn inspect_command(artifact: &PathBuf, format: OutputFormat) -> ExitCode {
+fn inspect_command(artifact: &Path, format: OutputFormat) -> ExitCode {
     match ArtifactInspector::inspect(artifact) {
         Ok(info) => {
             match format {
@@ -503,7 +525,7 @@ fn iso_timestamp() -> String {
         .duration_since(std::time::UNIX_EPOCH)
         .expect("system time before epoch");
     let secs = dur.as_secs();
-    let subsec = dur.subsec_nanos() / 1_000_000;
+    let subsec = dur.subsec_millis();
     let days = secs / 86400;
     let remaining = secs % 86400;
     let hours = remaining / 3600;
@@ -514,10 +536,10 @@ fn iso_timestamp() -> String {
 }
 
 fn civil_from_days(days: i64) -> (i64, u32, u32) {
-    let z = days + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
     let y = yoe + era * 400;
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
@@ -545,9 +567,13 @@ mod tests {
 
     #[test]
     fn clap_parses_capabilities() {
-        let cli =
-            Cli::try_parse_from(["vaa", "capabilities", "--target", "x86_64-unknown-linux-gnu"])
-                .expect("parse");
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "capabilities",
+            "--target",
+            "x86_64-unknown-linux-gnu",
+        ])
+        .expect("parse");
         assert!(matches!(cli.command, Some(Commands::Capabilities { .. })));
     }
 
@@ -566,14 +592,8 @@ mod tests {
 
     #[test]
     fn clap_parses_generate() {
-        let cli = Cli::try_parse_from([
-            "vaa",
-            "generate",
-            "task.vaa.toml",
-            "--output",
-            "out.asm",
-        ])
-        .expect("parse");
+        let cli = Cli::try_parse_from(["vaa", "generate", "task.vaa.toml", "--output", "out.asm"])
+            .expect("parse");
         assert!(matches!(cli.command, Some(Commands::Generate { .. })));
     }
 

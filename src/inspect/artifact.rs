@@ -35,17 +35,24 @@ pub struct ArtifactInspector;
 
 impl ArtifactInspector {
     pub fn inspect(path: &Path) -> Result<ArtifactInfo, InspectError> {
-        let data =
-            std::fs::read(path).map_err(|e| InspectError::ReadFailed(e.to_string()))?;
+        let data = std::fs::read(path).map_err(|e| InspectError::ReadFailed(e.to_string()))?;
 
         let size_bytes = data.len() as u64;
 
-        let file_format = object::FileKind::parse(&data[..]).map_err(|e| {
-            InspectError::ParseFailed(format!("cannot determine format: {e}"))
-        })?;
+        let file_format = object::FileKind::parse(&data[..])
+            .map_err(|e| InspectError::ParseFailed(format!("cannot determine format: {e}")))?;
 
-        let (format_name, architecture, is_executable, has_exec, has_wx, sym_count, imp_count, sec_count, warnings) =
-            Self::read_object(&data, &file_format);
+        let (
+            format_name,
+            architecture,
+            is_executable,
+            has_exec,
+            has_wx,
+            sym_count,
+            imp_count,
+            sec_count,
+            warnings,
+        ) = Self::read_object(&data, file_format);
 
         Ok(ArtifactInfo {
             path: path.to_string_lossy().to_string(),
@@ -65,8 +72,18 @@ impl ArtifactInspector {
     #[allow(clippy::too_many_lines)]
     fn read_object(
         data: &[u8],
-        kind: &object::FileKind,
-    ) -> (String, String, bool, bool, bool, usize, usize, usize, Vec<String>) {
+        kind: object::FileKind,
+    ) -> (
+        String,
+        String,
+        bool,
+        bool,
+        bool,
+        usize,
+        usize,
+        usize,
+        Vec<String>,
+    ) {
         let format_name = format!("{kind:?}");
         let mut architecture = "unknown".to_owned();
         let mut is_executable = false;
@@ -80,7 +97,6 @@ impl ArtifactInspector {
         match object::read::File::parse(data) {
             Ok(obj_file) => {
                 architecture = format!("{:?}", obj_file.architecture());
-                is_executable = obj_file.is_little_endian();
                 section_count = obj_file.sections().count();
 
                 for segment in obj_file.segments() {
@@ -139,7 +155,7 @@ impl ArtifactInspector {
         }
     }
 
-    fn is_executable_type(data: &[u8], kind: &object::FileKind) -> bool {
+    fn is_executable_type(data: &[u8], kind: object::FileKind) -> bool {
         match kind {
             object::FileKind::Elf32 | object::FileKind::Elf64 => {
                 if data.len() < 18 {
@@ -147,28 +163,24 @@ impl ArtifactInspector {
                 }
                 data[16] == 2
             }
-            object::FileKind::Pe32 | object::FileKind::Pe64 => true,
-            object::FileKind::MachOFat32 | object::FileKind::MachO32 | object::FileKind::MachO64 => {
-                true
-            }
+            object::FileKind::Pe32
+            | object::FileKind::Pe64
+            | object::FileKind::MachOFat32
+            | object::FileKind::MachO32
+            | object::FileKind::MachO64 => true,
             _ => false,
         }
     }
 
-    fn has_gnu_stack_exec(data: &[u8], kind: &object::FileKind) -> bool {
+    fn has_gnu_stack_exec(data: &[u8], kind: object::FileKind) -> bool {
         match kind {
             object::FileKind::Elf64 => {
                 if data.len() < 64 {
                     return false;
                 }
-                let e_phoff = u64::from_ne_bytes(
-                    data[32..40].try_into().unwrap_or([0; 8]),
-                );
-                let e_phentsize = u16::from_ne_bytes(
-                    data[54..56].try_into().unwrap_or([0; 2]),
-                );
-                let e_phnum =
-                    u16::from_ne_bytes(data[60..62].try_into().unwrap_or([0; 2]));
+                let e_phoff = u64::from_ne_bytes(data[32..40].try_into().unwrap_or([0; 8]));
+                let e_phentsize = u16::from_ne_bytes(data[54..56].try_into().unwrap_or([0; 2]));
+                let e_phnum = u16::from_ne_bytes(data[60..62].try_into().unwrap_or([0; 2]));
                 let phent_size = e_phentsize as usize;
 
                 for i in 0..e_phnum {
@@ -176,14 +188,11 @@ impl ArtifactInspector {
                     if offset + 16 > data.len() {
                         break;
                     }
-                    let p_type = u32::from_ne_bytes(
-                        data[offset..offset + 4].try_into().unwrap_or([0; 4]),
-                    );
-                    if p_type == 0x6474e551 {
+                    let p_type =
+                        u32::from_ne_bytes(data[offset..offset + 4].try_into().unwrap_or([0; 4]));
+                    if p_type == 0x6474_e551 {
                         let p_flags = u64::from_ne_bytes(
-                            data[offset + 4..offset + 12]
-                                .try_into()
-                                .unwrap_or([0; 8]),
+                            data[offset + 4..offset + 12].try_into().unwrap_or([0; 8]),
                         );
                         return (p_flags as u32 & PF_X) != 0;
                     }
@@ -194,14 +203,9 @@ impl ArtifactInspector {
                 if data.len() < 48 {
                     return false;
                 }
-                let e_phoff = u32::from_ne_bytes(
-                    data[28..32].try_into().unwrap_or([0; 4]),
-                );
-                let e_phentsize = u16::from_ne_bytes(
-                    data[42..44].try_into().unwrap_or([0; 2]),
-                );
-                let e_phnum =
-                    u16::from_ne_bytes(data[44..46].try_into().unwrap_or([0; 2]));
+                let e_phoff = u32::from_ne_bytes(data[28..32].try_into().unwrap_or([0; 4]));
+                let e_phentsize = u16::from_ne_bytes(data[42..44].try_into().unwrap_or([0; 2]));
+                let e_phnum = u16::from_ne_bytes(data[44..46].try_into().unwrap_or([0; 2]));
                 let phent_size = e_phentsize as usize;
 
                 for i in 0..e_phnum {
@@ -209,14 +213,11 @@ impl ArtifactInspector {
                     if offset + 8 > data.len() {
                         break;
                     }
-                    let p_type = u32::from_ne_bytes(
-                        data[offset..offset + 4].try_into().unwrap_or([0; 4]),
-                    );
-                    if p_type == 0x6474e551 {
+                    let p_type =
+                        u32::from_ne_bytes(data[offset..offset + 4].try_into().unwrap_or([0; 4]));
+                    if p_type == 0x6474_e551 {
                         let p_flags = u32::from_ne_bytes(
-                            data[offset + 4..offset + 8]
-                                .try_into()
-                                .unwrap_or([0; 4]),
+                            data[offset + 4..offset + 8].try_into().unwrap_or([0; 4]),
                         );
                         return (p_flags & PF_X) != 0;
                     }
