@@ -331,10 +331,10 @@ mod tests {
         let rundir = RunDir::create(&base, &id).expect("create run dir");
 
         let c1 = rundir.candidate_dir(0).expect("candidate 0");
-        assert!(c1.to_string_lossy().ends_with("\\0000"));
+        assert_eq!(c1.file_name(), Some(std::ffi::OsStr::new("0000")));
 
         let c2 = rundir.candidate_dir(9999).expect("candidate 9999");
-        assert!(c2.to_string_lossy().ends_with("\\9999"));
+        assert_eq!(c2.file_name(), Some(std::ffi::OsStr::new("9999")));
 
         let _ = fs::remove_dir_all(&base);
     }
