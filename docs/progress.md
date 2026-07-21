@@ -34,7 +34,8 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | **S0 — Slice lock** | **Done** | docs | Next CI slice = `count_byte` Gate-1 Incomplete; `sum_i64` = SemASM epic |
 | **S2 — Gate-1 CI** | **Done** | CI | Windows job: live SemASM Incomplete + ingest `verify-chain` |
 | **S3 — Gate-2 allow-execution** | **Done** | CI | `--allow-execution` plumbing + Win64 Verified smoke |
-| Phase 2–4 “vertical slice” claims | **Gate-1 Incomplete + Gate-2 Verified in CI** | CI | `sum_i64` still SemASM epic (S4) |
+| **S4 — sum_i64 fixtures** | **Done** | CI | SemASM `wrapping_sum_i64` + VAA Win64 fixtures in Gate-1/2 |
+| Phase 2–4 “vertical slice” claims | **Gate-1 Incomplete + Gate-2 Verified in CI** | CI | `count_byte` + `sum_i64` Win64 |
 
 ## Current executable acceptance
 
@@ -114,7 +115,7 @@ cargo run -q -- evidence verify-chain \
 |---|---|---|
 | **S2 Gate-1** | CI installs SemASM + toolchain; `vaa verify`/`ingest` + `verify-chain` on `count_byte` Win64 **without** `--allow-execution` | **Done** (Incomplete smoke) |
 | **S3 Gate-2** | VAA forwards `--allow-execution`; CI assert `Verified` | **Done** (opt-in) |
-| **S4** | SemASM ships `sum_i64` contract/oracle; VAA fixtures + CI | planned |
+| **S4** | SemASM ships `sum_i64` contract/oracle; VAA fixtures + CI | **Done** (`builtin.buffer.wrapping_sum_i64`) |
 
 Do **not** call Gate-1 a “verified vertical slice”.
 
