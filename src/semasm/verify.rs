@@ -1,11 +1,12 @@
 //! SemASM `agent verify` adapter: stdout-only VerificationReport 0.4 parse.
 
 use std::path::Path;
-use std::process::Command;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::evidence::EvidenceStatus;
+use crate::evidence::{schema_version_compatible, EvidenceStatus};
+use crate::process::{ProcessConfig, ProcessError, ProcessRunner};
 
 /// Optional diagnostic entry when present in older/fictional payloads.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +43,7 @@ pub struct VerifyReportRaw {
 pub struct VerifyReport {
     pub outcome: EvidenceStatus,
     pub raw_status: String,
+    pub schema_version: Option<String>,
     pub diagnostics: Vec<SemasmDiagnostic>,
     pub target: Option<String>,
     pub source_digest: Option<String>,
@@ -67,27 +69,40 @@ pub enum VerifyError {
 pub struct SemasmVerify;
 
 impl SemasmVerify {
-    /// Run SemASM verify and parse the JSON report from **stdout only**.
+    /// Run SemASM verify via [`ProcessRunner`] and parse JSON from **stdout only**.
     pub fn run(
         source: &Path,
         contract: &Path,
         binary: &Path,
         target: &str,
     ) -> Result<VerifyReport, VerifyError> {
-        let output = Command::new(binary)
-            .arg("agent")
-            .arg("verify")
-            .arg(source)
-            .arg(contract)
-            .arg("--format")
-            .arg("json")
-            .arg("--target")
-            .arg(target)
-            .output()
-            .map_err(|e| VerifyError::ProcessFailed(format!("failed to execute: {e}")))?;
+        let config = ProcessConfig {
+            program: binary.to_path_buf(),
+            args: vec![
+                "agent".to_owned(),
+                "verify".to_owned(),
+                source.to_string_lossy().into_owned(),
+                contract.to_string_lossy().into_owned(),
+                "--format".to_owned(),
+                "json".to_owned(),
+                "--target".to_owned(),
+                target.to_owned(),
+            ],
+            timeout: Duration::from_secs(120),
+            max_output_bytes: 4 * 1_048_576,
+            ..ProcessConfig::default()
+        };
 
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let output = ProcessRunner::run(&config).map_err(|e| match e {
+            ProcessError::Timeout { .. } => VerifyError::Timeout,
+            ProcessError::OutputOverflow { limit } => {
+                VerifyError::ProcessFailed(format!("output exceeded {limit} bytes"))
+            }
+            ProcessError::Spawn { detail, .. } => VerifyError::ProcessFailed(detail),
+        })?;
+
+        let stdout = output.stdout;
+        let stderr = output.stderr;
 
         if stdout.trim().is_empty() {
             return Err(VerifyError::ParseFailed(format!(
@@ -115,6 +130,7 @@ impl SemasmVerify {
         Ok(VerifyReport {
             outcome,
             raw_status: raw.status,
+            schema_version: raw.schema_version,
             diagnostics: raw.diagnostics,
             target: raw.target,
             source_digest: raw.source_digest,
@@ -124,15 +140,16 @@ impl SemasmVerify {
         })
     }
 
-    /// Soft-check: when `schema_version` is present, major must be `0`.
+    /// Accept only VerificationReport schemas in `[0.4, 0.5)`.
     fn check_schema_version(version: Option<&str>) -> Result<(), VerifyError> {
         let Some(version) = version else {
-            return Ok(());
+            return Err(VerifyError::ParseFailed(
+                "missing schema_version (required >=0.4,<0.5)".to_owned(),
+            ));
         };
-        let major = version.split('.').next().unwrap_or("");
-        if major != "0" {
+        if !schema_version_compatible(version) {
             return Err(VerifyError::ParseFailed(format!(
-                "unsupported VerificationReport schema_version major in `{version}` (expected 0.x)"
+                "unsupported VerificationReport schema_version `{version}` (accepted >=0.4,<0.5)"
             )));
         }
         Ok(())
@@ -174,6 +191,7 @@ mod tests {
         assert_eq!(report.outcome, EvidenceStatus::Verified);
         assert_eq!(report.target.as_deref(), Some("x86_64-unknown-linux-gnu"));
         assert_eq!(report.tool_version.as_deref(), Some("semasm 0.1.0"));
+        assert_eq!(report.schema_version.as_deref(), Some("0.4"));
     }
 
     #[test]
@@ -217,6 +235,18 @@ mod tests {
     }
 
     #[test]
+    fn schema_0_3_rejected() {
+        let json = r#"{"schema_version":"0.3","status":"verified"}"#;
+        assert!(SemasmVerify::parse_report(json).is_err());
+    }
+
+    #[test]
+    fn missing_schema_rejected() {
+        let json = r#"{"status":"verified"}"#;
+        assert!(SemasmVerify::parse_report(json).is_err());
+    }
+
+    #[test]
     fn golden_execution_denied_report_deserializes() {
         let json = include_str!(
             "../../fixtures/semasm/reports/verification-report-count_byte.execution_denied.json"
@@ -240,8 +270,6 @@ mod tests {
 
     #[test]
     fn stderr_noise_must_not_be_concatenated_for_parse() {
-        // Controllers must parse stdout alone; this unit test documents that
-        // `parse_report` never sees stderr and rejects non-JSON prefixes.
         let stdout = minimal("execution_denied");
         let with_stderr_prefix = format!("execution denied: human message\n{stdout}");
         assert!(SemasmVerify::parse_report(&with_stderr_prefix).is_err());

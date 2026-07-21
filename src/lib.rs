@@ -23,14 +23,20 @@ pub mod task;
 
 pub use build::{BuildManifest, BuildOutcome, BuildPipeline, PipelineConfig};
 pub use candidate::{CandidateProtocol, CandidateSubmission, SubmissionOutcome};
-pub use evidence::{CheckOutcome, EvidenceAggregator, EvidenceReport, EvidenceStatus};
+pub use evidence::{
+    sha256_digest_prefixed, CheckOutcome, EvidenceAggregator, EvidenceExpect, EvidenceReport,
+    EvidenceStatus,
+};
 pub use exit_code::ExitCode as VaaExitCode;
 pub use harness::{HarnessConfig, HarnessTemplate};
 pub use inspect::{ArtifactInfo, ArtifactInspector};
 pub use model::{FixtureModelAdapter, ModelAdapter, ModelResponse};
 pub use orchestrate::{MachineState, Orchestrator, StateTransition};
 pub use process::{ProcessConfig, ProcessError, ProcessOutput, ProcessRunner};
-pub use run::{EventKind, EventLog, RunDir, RunDirPaths, RunId};
+pub use run::{
+    run_fixture_loop, EventKind, EventLog, RunConfig, RunDir, RunDirPaths, RunError, RunId,
+    RunOutcome,
+};
 pub use sandbox::{ExecutionSandbox, LocalBackend, SandboxBackend, SandboxConfig};
 pub use semasm::{
     match_task_requirements, CapabilityMatch, DoctorReport, DoctorStatus, SemasmDoctor,

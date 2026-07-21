@@ -1,8 +1,12 @@
-use std::collections::HashMap;
+//! Fixture and trait model adapters.
+
+use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ModelResponse {
     pub source: String,
     pub target: String,
@@ -31,11 +35,12 @@ pub trait ModelAdapter {
     ) -> Result<ModelResponse, ModelError>;
 }
 
+/// Deterministic fixture adapter with a per-key response queue (wrong → repair).
 pub struct FixtureModelAdapter {
-    pub name: String,
-    pub responses: HashMap<String, String>,
-    pub error_responses: HashMap<String, String>,
-    pub generation_counter: u32,
+    name: String,
+    responses: Mutex<HashMap<String, VecDeque<String>>>,
+    error_responses: HashMap<String, String>,
+    generation_counter: AtomicU32,
 }
 
 impl FixtureModelAdapter {
@@ -43,19 +48,35 @@ impl FixtureModelAdapter {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_owned(),
-            responses: HashMap::new(),
+            responses: Mutex::new(HashMap::new()),
             error_responses: HashMap::new(),
-            generation_counter: 0,
+            generation_counter: AtomicU32::new(0),
         }
     }
 
+    /// Enqueue one source response for `{task_id}::{target}` (or a free-form key).
     pub fn add_response(&mut self, key: &str, source: &str) {
-        self.responses.insert(key.to_owned(), source.to_owned());
+        self.responses
+            .lock()
+            .expect("fixture responses lock")
+            .entry(key.to_owned())
+            .or_default()
+            .push_back(source.to_owned());
     }
 
     pub fn add_error(&mut self, key: &str, error: &str) {
         self.error_responses
             .insert(key.to_owned(), error.to_owned());
+    }
+
+    /// Remaining queued responses for a key.
+    #[must_use]
+    pub fn pending_count(&self, key: &str) -> usize {
+        self.responses
+            .lock()
+            .expect("fixture responses lock")
+            .get(key)
+            .map_or(0, VecDeque::len)
     }
 }
 
@@ -71,16 +92,19 @@ impl ModelAdapter for FixtureModelAdapter {
         target: &str,
     ) -> Result<ModelResponse, ModelError> {
         let key = format!("{task_id}::{target}");
-        let source = self
-            .responses
-            .get(&key)
-            .or_else(|| self.responses.get(prompt));
+        let mut guard = self.responses.lock().expect("fixture responses lock");
+
+        let source = guard
+            .get_mut(&key)
+            .and_then(VecDeque::pop_front)
+            .or_else(|| guard.get_mut(prompt).and_then(VecDeque::pop_front));
 
         match source {
             Some(src) => {
-                let gen_id = format!("{}-{:04}", self.name, self.generation_counter + 1);
+                let n = self.generation_counter.fetch_add(1, Ordering::Relaxed) + 1;
+                let gen_id = format!("{}-{n:04}", self.name);
                 Ok(ModelResponse {
-                    source: src.clone(),
+                    source: src,
                     target: target.to_owned(),
                     model_name: self.name.clone(),
                     generation_id: gen_id,
@@ -106,9 +130,14 @@ impl Clone for FixtureModelAdapter {
     fn clone(&self) -> Self {
         Self {
             name: self.name.clone(),
-            responses: self.responses.clone(),
+            responses: Mutex::new(
+                self.responses
+                    .lock()
+                    .expect("fixture responses lock")
+                    .clone(),
+            ),
             error_responses: self.error_responses.clone(),
-            generation_counter: 0,
+            generation_counter: AtomicU32::new(self.generation_counter.load(Ordering::Relaxed)),
         }
     }
 }
@@ -124,6 +153,21 @@ mod tests {
         let resp = adapter.generate("prompt", "sum_i64", "x86_64-unknown-linux-gnu");
         assert!(resp.is_ok());
         assert_eq!(resp.unwrap().source, "section .text");
+    }
+
+    #[test]
+    fn fixture_queue_advances_and_bumps_generation_id() {
+        let mut adapter = FixtureModelAdapter::new("fixture");
+        let key = "t::target";
+        adapter.add_response(key, "wrong");
+        adapter.add_response(key, "repaired");
+        let first = adapter.generate("", "t", "target").expect("first");
+        let second = adapter.generate("", "t", "target").expect("second");
+        assert_eq!(first.source, "wrong");
+        assert_eq!(second.source, "repaired");
+        assert_eq!(first.generation_id, "fixture-0001");
+        assert_eq!(second.generation_id, "fixture-0002");
+        assert!(adapter.generate("", "t", "target").is_err());
     }
 
     #[test]

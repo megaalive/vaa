@@ -1,6 +1,9 @@
+//! Fail-closed evidence aggregation with SemASM identity cross-checks.
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 use super::status::EvidenceStatus;
 use crate::semasm::capabilities::CapabilityMatch;
@@ -33,9 +36,53 @@ pub struct EvidenceReport {
     pub summary: String,
 }
 
+/// Expected identity for binding a SemASM report to the locked run.
+#[derive(Debug, Clone)]
+pub struct EvidenceExpect {
+    /// Locked task target triple.
+    pub expected_target: String,
+    /// `sha256:` digest of the candidate source bytes submitted for verify.
+    pub expected_source_digest: String,
+    /// `sha256:` digest of the SemASM contract file bytes.
+    pub expected_contract_digest: String,
+}
+
+impl EvidenceExpect {
+    #[must_use]
+    pub fn new(
+        expected_target: impl Into<String>,
+        expected_source_digest: impl Into<String>,
+        expected_contract_digest: impl Into<String>,
+    ) -> Self {
+        Self {
+            expected_target: expected_target.into(),
+            expected_source_digest: expected_source_digest.into(),
+            expected_contract_digest: expected_contract_digest.into(),
+        }
+    }
+}
+
+/// Prefixed SHA-256 digest (`sha256:` + lowercase hex).
+#[must_use]
+pub fn sha256_digest_prefixed(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut out = String::with_capacity(7 + 64);
+    out.push_str("sha256:");
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(out, "{byte:02x}");
+    }
+    out
+}
+
 pub struct EvidenceAggregator;
 
 impl EvidenceAggregator {
+    /// Build a fail-closed evidence report.
+    ///
+    /// Missing doctor / capability / verify inputs become **failed required
+    /// checks** (never silently omitted). Identity mismatches force `Failed`
+    /// even when SemASM reported `verified`.
     #[must_use]
     pub fn build(
         task: &LockedTask,
@@ -43,6 +90,7 @@ impl EvidenceAggregator {
         verify_report: Option<VerifyReport>,
         doctor: Option<DoctorReport>,
         capability_match: Option<CapabilityMatch>,
+        expect: &EvidenceExpect,
     ) -> EvidenceReport {
         let mut checks: Vec<CheckOutcome> = Vec::new();
 
@@ -53,55 +101,157 @@ impl EvidenceAggregator {
             details: None,
         });
 
-        if let Some(ref doc) = doctor {
-            let passed = doc.status == crate::semasm::DoctorStatus::Available;
-            checks.push(CheckOutcome {
+        match &doctor {
+            Some(doc) => {
+                // Degraded = binary usable but schema not advertised; still runnable.
+                let passed = matches!(
+                    doc.status,
+                    crate::semasm::DoctorStatus::Available | crate::semasm::DoctorStatus::Degraded
+                );
+                checks.push(CheckOutcome {
+                    check_name: "semasm_available".to_owned(),
+                    required: true,
+                    passed,
+                    details: Some(format!("{:?}", doc.status)),
+                });
+            }
+            None => checks.push(CheckOutcome {
                 check_name: "semasm_available".to_owned(),
                 required: true,
-                passed,
-                details: Some(format!("{:?}", doc.status)),
-            });
+                passed: false,
+                details: Some("doctor report missing".to_owned()),
+            }),
         }
 
-        if let Some(ref cm) = capability_match {
-            checks.push(CheckOutcome {
+        match &capability_match {
+            Some(cm) => {
+                checks.push(CheckOutcome {
+                    check_name: "target_capability_match".to_owned(),
+                    required: true,
+                    passed: cm.compatible,
+                    details: if cm.compatible {
+                        None
+                    } else {
+                        let mut msgs = cm.insufficient.clone();
+                        msgs.extend(cm.missing.clone());
+                        Some(msgs.join("; "))
+                    },
+                });
+            }
+            None => checks.push(CheckOutcome {
                 check_name: "target_capability_match".to_owned(),
                 required: true,
-                passed: cm.compatible,
-                details: if cm.compatible {
-                    None
-                } else {
-                    let mut msgs = cm.insufficient.clone();
-                    msgs.extend(cm.missing.clone());
-                    Some(msgs.join("; "))
-                },
-            });
+                passed: false,
+                details: Some("capability match missing".to_owned()),
+            }),
         }
 
-        if let Some(ref vr) = verify_report {
-            let passed = vr.outcome == EvidenceStatus::Verified;
-            checks.push(CheckOutcome {
+        match &verify_report {
+            Some(vr) => {
+                let passed = vr.outcome == EvidenceStatus::Verified;
+                checks.push(CheckOutcome {
+                    check_name: "semasm_verification".to_owned(),
+                    required: true,
+                    passed,
+                    details: Some(format!("{:?}", vr.outcome)),
+                });
+
+                let schema_ok = vr
+                    .schema_version
+                    .as_deref()
+                    .is_some_and(schema_version_compatible);
+                checks.push(CheckOutcome {
+                    check_name: "report_schema_compatible".to_owned(),
+                    required: true,
+                    passed: schema_ok,
+                    details: Some(
+                        vr.schema_version
+                            .clone()
+                            .unwrap_or_else(|| "missing".to_owned()),
+                    ),
+                });
+
+                let target_ok = vr.target.as_deref() == Some(expect.expected_target.as_str());
+                checks.push(CheckOutcome {
+                    check_name: "report_target_matches".to_owned(),
+                    required: true,
+                    passed: target_ok,
+                    details: Some(format!(
+                        "expected={} actual={:?}",
+                        expect.expected_target, vr.target
+                    )),
+                });
+
+                let source_ok =
+                    vr.source_digest.as_deref() == Some(expect.expected_source_digest.as_str());
+                checks.push(CheckOutcome {
+                    check_name: "report_source_digest_matches".to_owned(),
+                    required: true,
+                    passed: source_ok,
+                    details: Some(format!(
+                        "expected={} actual={:?}",
+                        expect.expected_source_digest, vr.source_digest
+                    )),
+                });
+
+                let contract_ok =
+                    vr.contract_digest.as_deref() == Some(expect.expected_contract_digest.as_str());
+                checks.push(CheckOutcome {
+                    check_name: "report_contract_digest_matches".to_owned(),
+                    required: true,
+                    passed: contract_ok,
+                    details: Some(format!(
+                        "expected={} actual={:?}",
+                        expect.expected_contract_digest, vr.contract_digest
+                    )),
+                });
+
+                let tool_ok = vr
+                    .tool_version
+                    .as_deref()
+                    .is_some_and(|v| v.starts_with("semasm "));
+                checks.push(CheckOutcome {
+                    check_name: "report_tool_identity_allowed".to_owned(),
+                    required: true,
+                    passed: tool_ok,
+                    details: Some(format!("{:?}", vr.tool_version)),
+                });
+            }
+            None => checks.push(CheckOutcome {
                 check_name: "semasm_verification".to_owned(),
                 required: true,
-                passed,
-                details: Some(format!("{:?}", vr.outcome)),
-            });
+                passed: false,
+                details: Some("verification report missing".to_owned()),
+            }),
         }
 
         let required_failures: Vec<&CheckOutcome> =
             checks.iter().filter(|c| c.required && !c.passed).collect();
 
-        // Prefer the SemASM-mapped verify outcome when a report was parsed.
-        // `execution_denied` → Incomplete must not be collapsed to Violated.
-        let final_status = if required_failures.is_empty() {
+        let identity_failed = required_failures.iter().any(|c| {
+            matches!(
+                c.check_name.as_str(),
+                "report_schema_compatible"
+                    | "report_target_matches"
+                    | "report_source_digest_matches"
+                    | "report_contract_digest_matches"
+                    | "report_tool_identity_allowed"
+            )
+        });
+
+        let final_status = if identity_failed {
+            EvidenceStatus::Failed
+        } else if required_failures.is_empty() {
             EvidenceStatus::Verified
+        } else if verify_report.is_none() {
+            EvidenceStatus::Failed
         } else if let Some(vr) = verify_report.as_ref() {
             match vr.outcome {
                 EvidenceStatus::Verified => EvidenceStatus::Incomplete,
                 other => other,
             }
         } else {
-            EvidenceStatus::Incomplete
+            EvidenceStatus::Failed
         };
 
         let summary = if final_status == EvidenceStatus::Verified {
@@ -132,6 +282,19 @@ impl EvidenceAggregator {
             summary,
         }
     }
+}
+
+/// Accepted VerificationReport schemas: major 0, minor >= 4 and < 5 (i.e. 0.4.x).
+#[must_use]
+pub fn schema_version_compatible(version: &str) -> bool {
+    let mut parts = version.split('.');
+    let Some(major) = parts.next().and_then(|p| p.parse::<u32>().ok()) else {
+        return false;
+    };
+    let Some(minor) = parts.next().and_then(|p| p.parse::<u32>().ok()) else {
+        return false;
+    };
+    major == 0 && (4..5).contains(&minor)
 }
 
 fn iso_timestamp() -> String {
@@ -167,6 +330,7 @@ fn civil_from_days(days: i64) -> (i64, u32, u32) {
 mod tests {
     use super::*;
     use crate::semasm::capabilities::CapabilityMatch;
+    use crate::semasm::doctor::{DoctorReport, DoctorStatus, SemasmVersion};
     use crate::semasm::verify::VerifyReport;
     use crate::task::{load_locked_task, LockedTask};
     use std::path::PathBuf;
@@ -182,51 +346,123 @@ mod tests {
         load_locked_task(fixture("sum_i64.vaa.toml")).expect("valid fixture")
     }
 
+    fn expect_for(task: &LockedTask) -> EvidenceExpect {
+        EvidenceExpect::new(
+            task.task().target.clone(),
+            "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        )
+    }
+
+    fn available_doctor() -> DoctorReport {
+        DoctorReport {
+            status: DoctorStatus::Available,
+            binary_path: Some(PathBuf::from("semasm")),
+            version: Some(SemasmVersion {
+                version: "0.1.0".to_owned(),
+                schema_version: "0.1".to_owned(),
+            }),
+            details: vec![],
+        }
+    }
+
+    fn ok_verify(task: &LockedTask, expect: &EvidenceExpect) -> VerifyReport {
+        VerifyReport {
+            outcome: EvidenceStatus::Verified,
+            raw_status: "verified".to_owned(),
+            schema_version: Some("0.4".to_owned()),
+            diagnostics: vec![],
+            target: Some(task.task().target.clone()),
+            source_digest: Some(expect.expected_source_digest.clone()),
+            contract_digest: Some(expect.expected_contract_digest.clone()),
+            tool_version: Some("semasm 0.1.0".to_owned()),
+            raw_json: "{}".to_owned(),
+        }
+    }
+
     #[test]
     fn aggregator_verified_when_all_pass() {
         let task = sample_locked_task();
+        let expect = expect_for(&task);
         let report = EvidenceAggregator::build(
             &task,
             None,
-            Some(VerifyReport {
-                outcome: EvidenceStatus::Verified,
-                raw_status: "verified".to_owned(),
-                diagnostics: vec![],
-                target: Some("x86_64-unknown-linux-gnu".to_owned()),
-                source_digest: None,
-                contract_digest: None,
-                tool_version: None,
-                raw_json: "{}".to_owned(),
-            }),
-            None,
+            Some(ok_verify(&task, &expect)),
+            Some(available_doctor()),
             Some(CapabilityMatch {
                 compatible: true,
                 missing: vec![],
                 insufficient: vec![],
             }),
+            &expect,
         );
         assert_eq!(report.final_status, EvidenceStatus::Verified);
         assert!(report.summary.contains("Accepted"));
     }
 
     #[test]
+    fn aggregator_never_verified_when_all_options_missing() {
+        let task = sample_locked_task();
+        let expect = expect_for(&task);
+        let report = EvidenceAggregator::build(&task, None, None, None, None, &expect);
+        assert_ne!(report.final_status, EvidenceStatus::Verified);
+        assert_eq!(report.final_status, EvidenceStatus::Failed);
+        assert!(report
+            .checks
+            .iter()
+            .any(|c| c.check_name == "semasm_verification" && !c.passed));
+    }
+
+    #[test]
+    fn aggregator_failed_on_source_digest_mismatch() {
+        let task = sample_locked_task();
+        let expect = expect_for(&task);
+        let mut verify = ok_verify(&task, &expect);
+        verify.source_digest = Some("sha256:deadbeef".to_owned());
+        let report = EvidenceAggregator::build(
+            &task,
+            None,
+            Some(verify),
+            Some(available_doctor()),
+            Some(CapabilityMatch {
+                compatible: true,
+                missing: vec![],
+                insufficient: vec![],
+            }),
+            &expect,
+        );
+        assert_eq!(report.final_status, EvidenceStatus::Failed);
+        assert!(report
+            .checks
+            .iter()
+            .any(|c| c.check_name == "report_source_digest_matches" && !c.passed));
+    }
+
+    #[test]
     fn aggregator_violated_when_verify_fails() {
         let task = sample_locked_task();
+        let expect = expect_for(&task);
         let report = EvidenceAggregator::build(
             &task,
             None,
             Some(VerifyReport {
                 outcome: EvidenceStatus::Violated,
-                raw_status: "violated".to_owned(),
+                raw_status: "semantic_failed".to_owned(),
+                schema_version: Some("0.4".to_owned()),
                 diagnostics: vec![],
-                target: None,
-                source_digest: None,
-                contract_digest: None,
-                tool_version: None,
+                target: Some(task.task().target.clone()),
+                source_digest: Some(expect.expected_source_digest.clone()),
+                contract_digest: Some(expect.expected_contract_digest.clone()),
+                tool_version: Some("semasm 0.1.0".to_owned()),
                 raw_json: "{}".to_owned(),
             }),
-            None,
-            None,
+            Some(available_doctor()),
+            Some(CapabilityMatch {
+                compatible: true,
+                missing: vec![],
+                insufficient: vec![],
+            }),
+            &expect,
         );
         assert_eq!(report.final_status, EvidenceStatus::Violated);
     }
@@ -234,26 +470,41 @@ mod tests {
     #[test]
     fn aggregator_preserves_execution_denied_as_incomplete() {
         let task = sample_locked_task();
+        let expect = EvidenceExpect::new(
+            task.task().target.clone(),
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        );
         let report = EvidenceAggregator::build(
             &task,
             None,
             Some(VerifyReport {
                 outcome: EvidenceStatus::Incomplete,
                 raw_status: "execution_denied".to_owned(),
+                schema_version: Some("0.4".to_owned()),
                 diagnostics: vec![],
-                target: Some("x86_64-pc-windows-msvc".to_owned()),
-                source_digest: Some("sha256:aa".to_owned()),
-                contract_digest: Some("sha256:bb".to_owned()),
+                target: Some(task.task().target.clone()),
+                source_digest: Some(expect.expected_source_digest.clone()),
+                contract_digest: Some(expect.expected_contract_digest.clone()),
                 tool_version: Some("semasm 0.1.0".to_owned()),
                 raw_json: "{}".to_owned(),
             }),
-            None,
+            Some(available_doctor()),
             Some(CapabilityMatch {
                 compatible: true,
                 missing: vec![],
                 insufficient: vec![],
             }),
+            &expect,
         );
         assert_eq!(report.final_status, EvidenceStatus::Incomplete);
+    }
+
+    #[test]
+    fn schema_pin_accepts_0_4() {
+        assert!(schema_version_compatible("0.4"));
+        assert!(!schema_version_compatible("0.3"));
+        assert!(!schema_version_compatible("0.5"));
+        assert!(!schema_version_compatible("1.0"));
     }
 }

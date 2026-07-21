@@ -14,9 +14,10 @@ use clap::{Parser, Subcommand, ValueEnum};
 use vaa::exit_code::ExitCode as VaaExitCode;
 use vaa::task::{load_locked_task, TaskError};
 use vaa::{
-    ArtifactInspector, BuildPipeline, EvidenceAggregator, EvidenceStatus, FixtureModelAdapter,
-    ModelAdapter, PipelineConfig, SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError,
-    MATURITY, TASK_SCHEMA_VERSION, VAA_VERSION,
+    run_fixture_loop, sha256_digest_prefixed, ArtifactInspector, BuildPipeline, EvidenceAggregator,
+    EvidenceExpect, EvidenceStatus, FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig,
+    SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION,
+    VAA_VERSION,
 };
 
 /// Verifiable Assembly Agent command-line interface.
@@ -80,6 +81,26 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Run fixture-driven generate → verify → repair → evidence loop.
+    Run {
+        /// Path to the locked task file.
+        task: PathBuf,
+        /// Path to the SemASM `*.sem.toml` contract.
+        #[arg(long)]
+        contract: PathBuf,
+        /// Directory that will contain the run folder.
+        #[arg(long, default_value = ".")]
+        run_dir: PathBuf,
+        /// Wrong candidate source (first generation).
+        #[arg(long)]
+        wrong: PathBuf,
+        /// Repaired candidate source (second generation).
+        #[arg(long)]
+        repaired: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
     /// Generate assembly from a locked task via model adapter.
     Generate {
         /// Path to the locked task file.
@@ -112,7 +133,7 @@ enum Commands {
     },
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum OutputFormat {
     /// Human-readable text.
     Terminal,
@@ -144,6 +165,14 @@ fn main() -> ExitCode {
             contract,
             format,
         } => verify_command(&task, &source, &contract, format),
+        Commands::Run {
+            task,
+            contract,
+            run_dir,
+            wrong,
+            repaired,
+            format,
+        } => run_command(&task, &contract, &run_dir, &wrong, &repaired, format),
         Commands::Generate { task, output } => generate_command(&task, &output),
         Commands::Build {
             source,
@@ -160,10 +189,10 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, generate, build, inspect");
-    println!("default mode: verify-only");
-    println!("model adapter: fixture adapter available");
-    println!("SemASM integration: doctor and capability adapters available");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, generate, build, inspect");
+    println!("default mode: verify-only (run uses fixture model; no live LLM)");
+    println!("model adapter: fixture adapter with queued wrong→repair responses");
+    println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("build pipeline: nasm + ld (needs toolchain on PATH)");
     println!("note: absence of errors here is not evidence that any assembly is verified");
 }
@@ -347,7 +376,10 @@ fn verify_command(
             checks.push(vaa::CheckOutcome {
                 check_name: "semasm_available".to_owned(),
                 required: true,
-                passed: matches!(doctor.status, vaa::DoctorStatus::Available),
+                passed: matches!(
+                    doctor.status,
+                    vaa::DoctorStatus::Available | vaa::DoctorStatus::Degraded
+                ),
                 details: Some(format!("{:?}", doctor.status)),
             });
             checks.push(vaa::CheckOutcome {
@@ -386,8 +418,82 @@ fn verify_command(
         }
     };
 
-    let report = EvidenceAggregator::build(&locked, None, verify_report, Some(doctor), Some(cm));
+    let source_bytes = match std::fs::read(source_path) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            eprintln!("error: cannot read source: {error}");
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+    let contract_bytes = match std::fs::read(contract_path) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            eprintln!("error: cannot read contract: {error}");
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+    let expect = EvidenceExpect::new(
+        target.clone(),
+        sha256_digest_prefixed(&source_bytes),
+        sha256_digest_prefixed(&contract_bytes),
+    );
+
+    let report = EvidenceAggregator::build(
+        &locked,
+        None,
+        verify_report,
+        Some(doctor),
+        Some(cm),
+        &expect,
+    );
     emit_evidence_report(&report, format)
+}
+
+fn run_command(
+    task_path: &Path,
+    contract_path: &Path,
+    run_base: &Path,
+    wrong_path: &Path,
+    repaired_path: &Path,
+    format: OutputFormat,
+) -> ExitCode {
+    let wrong = match std::fs::read_to_string(wrong_path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: cannot read wrong candidate: {e}");
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    let repaired = match std::fs::read_to_string(repaired_path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: cannot read repaired candidate: {e}");
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let config = RunConfig {
+        task_path,
+        contract_path,
+        run_base,
+        fixture_sources: vec![wrong, repaired],
+        max_attempts: 4,
+    };
+
+    match run_fixture_loop(&config) {
+        Ok(outcome) => {
+            if format == OutputFormat::Terminal {
+                println!("Run root: {}", outcome.run_root.display());
+                println!("Candidates accepted: {}", outcome.candidates_accepted);
+                println!("Transitions: {}", outcome.transitions);
+            }
+            emit_evidence_report(&outcome.evidence, format)
+        }
+        Err(e) => {
+            eprintln!("error: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
 }
 
 fn emit_evidence_report(report: &vaa::EvidenceReport, format: OutputFormat) -> ExitCode {
@@ -600,6 +706,23 @@ mod tests {
         ])
         .expect("parse");
         assert!(matches!(cli.command, Some(Commands::Verify { .. })));
+    }
+
+    #[test]
+    fn clap_parses_run() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "run",
+            "task.vaa.toml",
+            "--contract",
+            "c.sem.toml",
+            "--wrong",
+            "w.asm",
+            "--repaired",
+            "r.asm",
+        ])
+        .expect("parse");
+        assert!(matches!(cli.command, Some(Commands::Run { .. })));
     }
 
     #[test]

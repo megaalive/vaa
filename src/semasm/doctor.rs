@@ -1,5 +1,9 @@
-use std::path::PathBuf;
-use std::process::Command;
+//! SemASM doctor: discover binary and negotiate version via ProcessRunner.
+
+use std::path::{Path, PathBuf};
+use std::time::Duration;
+
+use crate::process::{ProcessConfig, ProcessError, ProcessRunner};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub enum DoctorStatus {
@@ -57,10 +61,17 @@ impl SemasmDoctor {
             }
         };
 
-        let details = vec![format!("semasm version {}", version.version)];
+        let details = vec![format!(
+            "semasm version {} schema {}",
+            version.version, version.schema_version
+        )];
 
+        // Capability/task negotiation schema advertised by SemASM (distinct from
+        // VerificationReport 0.4). Missing advertisement is fail-closed Degraded.
         let status = if version.schema_version == "0.1" {
             DoctorStatus::Available
+        } else if version.schema_version == "missing" {
+            DoctorStatus::Degraded
         } else {
             DoctorStatus::Incompatible
         };
@@ -89,17 +100,35 @@ impl SemasmDoctor {
         None
     }
 
-    pub fn read_version(binary: &PathBuf) -> Result<SemasmVersion, DoctorError> {
-        let output = Command::new(binary)
-            .arg("version")
-            .output()
-            .map_err(|e| DoctorError::VersionCheck(format!("failed to execute: {e}")))?;
+    pub fn read_version(binary: &Path) -> Result<SemasmVersion, DoctorError> {
+        let config = ProcessConfig {
+            program: binary.to_path_buf(),
+            args: vec!["version".to_owned()],
+            timeout: Duration::from_secs(15),
+            max_output_bytes: 65_536,
+            ..ProcessConfig::default()
+        };
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let combined = format!("{stdout}{stderr}");
+        let output = ProcessRunner::run(&config).map_err(|e| match e {
+            ProcessError::Timeout { duration } => {
+                DoctorError::VersionCheck(format!("timed out after {duration:?}"))
+            }
+            ProcessError::OutputOverflow { limit } => {
+                DoctorError::VersionCheck(format!("output exceeded {limit} bytes"))
+            }
+            ProcessError::Spawn { detail, .. } => DoctorError::VersionCheck(detail),
+        })?;
 
-        let lines: Vec<&str> = combined.lines().collect();
+        if output.exit_code != Some(0) {
+            return Err(DoctorError::VersionCheck(format!(
+                "non-zero exit {:?}; stderr={}",
+                output.exit_code, output.stderr
+            )));
+        }
+
+        // Parse stdout only — never concatenate stderr into version text.
+        let stdout = output.stdout;
+        let lines: Vec<&str> = stdout.lines().collect();
         let version_line = lines.first().copied().unwrap_or("unknown").trim();
 
         let version = version_line
@@ -109,10 +138,9 @@ impl SemasmDoctor {
 
         let schema_version = lines
             .iter()
-            .find(|l| l.contains("schema") || l.contains("capability"))
+            .find(|l| l.to_ascii_lowercase().contains("schema"))
             .and_then(|l| l.split_whitespace().last())
-            .unwrap_or("0.1")
-            .to_owned();
+            .map_or_else(|| "missing".to_owned(), ToOwned::to_owned);
 
         Ok(SemasmVersion {
             version,
@@ -140,9 +168,7 @@ mod tests {
     fn doctor_report_is_unavailable_without_binary() {
         let report = SemasmDoctor::run();
         match report.status {
-            DoctorStatus::Available | DoctorStatus::Incompatible | DoctorStatus::Degraded => {
-                // Binary exists in test environment — that's fine
-            }
+            DoctorStatus::Available | DoctorStatus::Incompatible | DoctorStatus::Degraded => {}
             DoctorStatus::Unavailable => {
                 assert!(report.binary_path.is_none());
                 assert!(report.version.is_none());
