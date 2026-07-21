@@ -119,3 +119,75 @@ jobs:
 
       - name: Gate-2 verify Verified with --allow-execution
         run: cargo test --test semasm_gate2_smoke -- --ignored --nocapture
+
+  # H3: live HlaX64 emit must match committed candidate, then Gate smokes.
+  hlax64-bridge:
+    name: HlaX64 emit + SemASM Gate (Win64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v4
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v4
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          ref: main
+
+      - name: Checkout HlaX64
+        uses: actions/checkout@v4
+        with:
+          repository: megaalive/hlax64
+          path: hlax64
+          ref: main
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install NASM and LLVM (lld-link)
+        run: choco install nasm llvm --no-progress -y
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        shell: pwsh
+        run: |
+          $semasmBin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          echo $semasmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          semasm --version
+
+      - name: Emit HlaX64 NASM and compare to fixture
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          $tmp = Join-Path $env:RUNNER_TEMP "hlax64-sum_i64.asm"
+          dotnet run --project hlax64/src/HlaX64.Cli --no-launch-profile -- emit-nasm `
+            hlax64/examples/interop/semasm-vaa/sum_i64/sum_i64.hla64 `
+            --target windows-x64-msabi --output-kind shared-library -o $tmp
+          $committed = (Get-Content -Raw fixtures/ingest/hlax64_sum_i64/candidate.asm) -replace "`r`n", "`n"
+          $emitted = (Get-Content -Raw $tmp) -replace "`r`n", "`n"
+          if ($committed -ne $emitted) {
+            Write-Error "Committed candidate.asm drifts from HlaX64 emit-nasm. Run scripts/regen-hlax64-sum_i64.ps1"
+          }
+          Write-Host "candidate.asm matches HlaX64 emit"
+
+      - name: Gate ingest + Gate-2 verify for hlax64 sum_i64
+        run: |
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_sum_i64_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_sum_i64_win64_verified -- --ignored --nocapture

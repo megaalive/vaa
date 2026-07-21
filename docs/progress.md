@@ -36,6 +36,7 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | **S3 — Gate-2 allow-execution** | **Done** | CI | `--allow-execution` plumbing + Win64 Verified smoke |
 | **S4 — sum_i64 fixtures** | **Done** | CI | SemASM `wrapping_sum_i64` + VAA Win64 fixtures in Gate-1/2 |
 | **H0 — HlaX64 bridge lock** | **Done** | docs | Roles: HlaX64 emit → SemASM verify → VAA seal |
+| **H1–H3 — HlaX64 bridge** | **Done** | CI | ingest fixture + regen scripts + `hlax64-bridge` job |
 | Phase 2–4 “vertical slice” claims | **Gate-1 Incomplete + Gate-2 Verified in CI** | CI | `count_byte` + `sum_i64` Win64 |
 
 ## Current executable acceptance
@@ -132,10 +133,10 @@ First leaf: `sum_i64` (Win64). Generator label: `--generator hlax64`.
 
 | Wave | Focus | Claim when done |
 |---|---|---|
-| **H0** | Lock roles in docs | Docs only |
-| **H1** | HlaX64 example + frozen NASM ingest fixture + Gate smoke | Incomplete ingest + optional Gate-2 Verified |
-| **H2** | `scripts/regen-hlax64-sum_i64` | Local regen of committed asm |
-| **H3** | CI checkout HlaX64 + emit-nasm + verify | Live emit matches / verifies |
+| **H0** | Lock roles in docs | **Done** |
+| **H1** | HlaX64 example + frozen NASM ingest fixture + Gate smoke | **Done** |
+| **H2** | `scripts/regen-hlax64-sum_i64` | **Done** |
+| **H3** | CI checkout HlaX64 + emit-nasm + verify | **Done** (`hlax64-bridge` job) |
 
 Honesty: HlaX64 `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete ≠ Verified.
 

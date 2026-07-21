@@ -160,3 +160,70 @@ fn gate1_ingest_and_verify_chain() {
         "unexpected chain output: {chain_out}"
     );
 }
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_ingest_hlax64_sum_i64_verify_chain() {
+    let task = root().join("fixtures/ingest/hlax64_sum_i64/sum_i64.vaa.toml");
+    let source = root().join("fixtures/ingest/hlax64_sum_i64/candidate.asm");
+    let contract = root().join("fixtures/ingest/hlax64_sum_i64/sum_i64.sem.toml");
+    let run_base = root().join("target/vaa-gate1-hlax64-runs");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "ingest",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--generator",
+            "hlax64",
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("run vaa ingest hlax64");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success() || stdout.contains("Incomplete") || stdout.contains("final_status"),
+        "hlax64 ingest failed: status={:?}\nstdout={stdout}\nstderr={stderr}",
+        output.status
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected a run directory after hlax64 ingest");
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert!(
+        chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
+        "unexpected chain output: {chain_out}"
+    );
+}
