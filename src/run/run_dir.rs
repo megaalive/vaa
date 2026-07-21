@@ -287,7 +287,15 @@ mod tests {
     use super::*;
 
     fn temp_base() -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("vaa_rundir_test_{}", std::process::id()));
+        // Unique per call so parallel tests never share/wipe a tree.
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!(
+            "vaa_rundir_test_{}_{}",
+            std::process::id(),
+            n
+        ));
         let _ = fs::remove_dir_all(&dir);
         dir
     }
