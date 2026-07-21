@@ -191,7 +191,7 @@ Until (1)–(3) exist, VAA PR-005 through PR-008 must implement **defensive mapp
 
 ## 10. Next implementation step
 
-Per architecture plan §33 / PR plan:
+Per architecture plan §27 (ordered PR plan) and `docs/progress.md`:
 
 1. ~~Complete **PR-001** — Rust binary crate, licenses, style, CI, dependency policy, truthful README (no functional claims).~~ **Done**
 2. ~~**PR-002 / PR-003** — task schema 0.1, validation, locked digest.~~ **Done** (see `docs/task-schema.md`, `docs/progress.md`)

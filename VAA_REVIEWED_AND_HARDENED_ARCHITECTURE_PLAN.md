@@ -4,7 +4,7 @@
 > **Document type:** Critical design review, revised architecture, and agent-executable implementation plan  
 > **Document status:** Engineering baseline — intentionally not labeled production-ready  
 > **Prepared for:** `megaalive/semasm` ecosystem  
-> **Primary executor:** GPT-5.6 Sol or another repository-capable coding agent  
+> **Intended audience:** repository-capable coding agents and human maintainers  
 > **Review date:** 2026-07-18  
 > **Repository language:** English for source code, comments, diagnostics, documentation, issues, and pull requests  
 > **Initial implementation language:** Rust  
@@ -39,7 +39,7 @@ The first version should prove one narrow statement:
 
 ---
 
-## 1. Directive for GPT-5.6 Sol
+## 1. Directive for implementing agents
 
 The implementing agent must follow these rules throughout the work:
 
@@ -2616,48 +2616,7 @@ toolchain, and tests recorded in the evidence bundle.
 
 ---
 
-## 33. Initial Prompt for GPT-5.6 Sol
-
-```text
-You are implementing VAA, a small fail-closed controller for model-assisted
-assembly generation around SemASM.
-
-Read this entire plan before editing code.
-
-Primary objective:
-Create the first offline vertical slice for one target and one artifact kind:
-x86_64-unknown-linux-gnu callable functions.
-
-Non-negotiable rules:
-1. Treat all model output and assembly source as untrusted.
-2. The approved task, policy, target, budgets, and authoritative tests are immutable.
-3. Never report verified when SemASM, a tool, a check, or required evidence is
-   unsupported, unavailable, malformed, timed out, or incomplete.
-4. Preserve four outcomes: verified, violated, incomplete, failed.
-5. Start with one Rust binary crate and internal modules.
-6. Do not add Python, FastAPI, Redis, LiteLLM, Instructor, an async runtime,
-   a provider SDK, a container SDK, or a plugin system.
-7. Integrate SemASM through a versioned JSON CLI protocol first.
-8. Use explicit argv, a cleared environment allowlist, null stdin, bounded
-   output, timeout, and complete process-tree cleanup for external tools.
-9. Dynamic execution is disabled by default and never occurs directly on the host.
-10. Every change must include tests and executable acceptance evidence.
-
-First action:
-- inspect the current repository;
-- inspect the current SemASM CLI and JSON outputs;
-- create `docs/implementation-baseline.md` describing what is actually available;
-- identify any mismatch between this plan and SemASM;
-- implement only PR-001 after the baseline is complete.
-
-Do not implement later phases early.
-Do not create abstract crates without executable need.
-Do not change the contract to make a candidate pass.
-```
-
----
-
-## 34. Final Recommendation
+## 33. Final Recommendation
 
 The VAA concept should continue, but not in the original “Python + LiteLLM + Instructor + PyO3 + Redis + Docker + FastAPI + Prometheus” form.
 
