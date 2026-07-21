@@ -50,6 +50,8 @@ pub struct RunConfig<'a> {
     /// Queued sources in order (wrong, then repair, …).
     pub fixture_sources: Vec<String>,
     pub max_attempts: u32,
+    /// Forward SemASM `--allow-execution` (default false).
+    pub allow_execution: bool,
 }
 
 /// Drive orchestrator + fixture model + SemASM verify until finished or exhausted.
@@ -103,6 +105,7 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
             generator: GeneratorMeta::fixture("fixture", Some(response.generation_id.clone())),
             doctor: doctor.clone(),
             capability_match: cm.clone(),
+            allow_execution: config.allow_execution,
         })
         .map_err(|e| match e {
             crate::run::verify_seal::VerifySealError::SemasmUnavailable => {

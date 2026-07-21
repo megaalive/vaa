@@ -57,6 +57,7 @@ pub struct VerifySealInput<'a> {
     pub generator: GeneratorMeta,
     pub doctor: DoctorReport,
     pub capability_match: CapabilityMatch,
+    pub allow_execution: bool,
 }
 
 /// Submit candidate, run SemASM verify, aggregate evidence, write per-candidate seal + final.
@@ -104,7 +105,13 @@ pub fn verify_candidate_and_seal(
         .as_ref()
         .ok_or(VerifySealError::SemasmUnavailable)?;
 
-    let verify = match SemasmVerify::run(&source_path, input.contract_path, binary, &target) {
+    let verify = match SemasmVerify::run(
+        &source_path,
+        input.contract_path,
+        binary,
+        &target,
+        input.allow_execution,
+    ) {
         Ok(report) => Some(report),
         Err(VerifyError::BinaryNotFound) => return Err(VerifySealError::SemasmUnavailable),
         Err(_) => None,
@@ -172,6 +179,7 @@ pub fn ingest_candidate(
     run_id: &str,
     generator_name: &str,
     max_attempts: u32,
+    allow_execution: bool,
 ) -> Result<VerifySealOutcome, VerifySealError> {
     let source_bytes =
         std::fs::read(source_path).map_err(|e| VerifySealError::Io(format!("read source: {e}")))?;
@@ -193,5 +201,6 @@ pub fn ingest_candidate(
         generator: GeneratorMeta::ingest(generator_name),
         doctor,
         capability_match: cm,
+        allow_execution,
     })
 }

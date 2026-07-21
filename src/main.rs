@@ -78,6 +78,9 @@ enum Commands {
         /// Path to the SemASM `*.sem.toml` contract (not the VAA task file).
         #[arg(long)]
         contract: PathBuf,
+        /// Forward `--allow-execution` to SemASM (opt-in behavioral verify).
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -98,6 +101,9 @@ enum Commands {
         /// Repaired candidate source (second generation).
         #[arg(long)]
         repaired: PathBuf,
+        /// Forward `--allow-execution` to SemASM (opt-in behavioral verify).
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -118,6 +124,9 @@ enum Commands {
         /// Directory that will contain the run folder.
         #[arg(long, default_value = ".")]
         run_dir: PathBuf,
+        /// Forward `--allow-execution` to SemASM (opt-in behavioral verify).
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -210,24 +219,43 @@ fn main() -> ExitCode {
             task,
             source,
             contract,
+            allow_execution,
             format,
-        } => verify_command(&task, &source, &contract, format),
+        } => verify_command(&task, &source, &contract, allow_execution, format),
         Commands::Run {
             task,
             contract,
             run_dir,
             wrong,
             repaired,
+            allow_execution,
             format,
-        } => run_command(&task, &contract, &run_dir, &wrong, &repaired, format),
+        } => run_command(
+            &task,
+            &contract,
+            &run_dir,
+            &wrong,
+            &repaired,
+            allow_execution,
+            format,
+        ),
         Commands::Ingest {
             task,
             contract,
             source,
             generator,
             run_dir,
+            allow_execution,
             format,
-        } => ingest_command(&task, &contract, &source, &generator, &run_dir, format),
+        } => ingest_command(
+            &task,
+            &contract,
+            &source,
+            &generator,
+            &run_dir,
+            allow_execution,
+            format,
+        ),
         Commands::Evidence { command } => match command {
             EvidenceCommands::CheckSeal { evidence, seal } => check_seal_command(&evidence, &seal),
             EvidenceCommands::VerifyBundle { bundle_dir } => verify_bundle_command(&bundle_dir),
@@ -255,6 +283,7 @@ fn print_status() {
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
     println!("evidence note: seal is content integrity, not cryptographic authenticity");
+    println!("SemASM execution: default static-only; pass --allow-execution for Gate-2 Verified");
     println!("build pipeline: nasm + ld (needs toolchain on PATH)");
     println!("note: absence of errors here is not evidence that any assembly is verified");
 }
@@ -404,6 +433,7 @@ fn verify_command(
     task_path: &Path,
     source_path: &Path,
     contract_path: &Path,
+    allow_execution: bool,
     format: OutputFormat,
 ) -> ExitCode {
     let locked = match load_locked_task(task_path) {
@@ -421,7 +451,9 @@ fn verify_command(
     let doctor = SemasmDoctor::run();
 
     let verify_result = match doctor.binary_path.as_ref() {
-        Some(binary) => SemasmVerify::run(source_path, contract_path, binary, target),
+        Some(binary) => {
+            SemasmVerify::run(source_path, contract_path, binary, target, allow_execution)
+        }
         None => Err(VerifyError::BinaryNotFound),
     };
 
@@ -517,6 +549,7 @@ fn run_command(
     run_base: &Path,
     wrong_path: &Path,
     repaired_path: &Path,
+    allow_execution: bool,
     format: OutputFormat,
 ) -> ExitCode {
     let wrong = match std::fs::read_to_string(wrong_path) {
@@ -540,6 +573,7 @@ fn run_command(
         run_base,
         fixture_sources: vec![wrong, repaired],
         max_attempts: 4,
+        allow_execution,
     };
 
     match run_fixture_loop(&config) {
@@ -564,6 +598,7 @@ fn ingest_command(
     source_path: &Path,
     generator: &str,
     run_base: &Path,
+    allow_execution: bool,
     format: OutputFormat,
 ) -> ExitCode {
     let locked = match load_locked_task(task_path) {
@@ -592,6 +627,7 @@ fn ingest_command(
         run_id.as_str(),
         generator,
         4,
+        allow_execution,
     ) {
         Ok(outcome) => {
             if format == OutputFormat::Terminal {

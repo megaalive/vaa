@@ -77,3 +77,45 @@ jobs:
 
       - name: Gate-1 verify Incomplete + ingest verify-chain
         run: cargo test --test semasm_gate1_smoke -- --ignored --nocapture
+
+  # Gate-2: opt-in behavioral Verified (count_byte Win64 + --allow-execution).
+  semasm-gate2:
+    name: Gate-2 SemASM Verified (Win64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v4
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v4
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          ref: main
+
+      - name: Install NASM and LLVM (lld-link)
+        run: choco install nasm llvm --no-progress -y
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        shell: pwsh
+        run: |
+          $semasmBin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          echo $semasmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          semasm --version
+
+      - name: Gate-2 verify Verified with --allow-execution
+        run: cargo test --test semasm_gate2_smoke -- --ignored --nocapture

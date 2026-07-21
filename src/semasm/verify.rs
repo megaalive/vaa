@@ -75,19 +75,24 @@ impl SemasmVerify {
         contract: &Path,
         binary: &Path,
         target: &str,
+        allow_execution: bool,
     ) -> Result<VerifyReport, VerifyError> {
+        let mut args = vec![
+            "agent".to_owned(),
+            "verify".to_owned(),
+            source.to_string_lossy().into_owned(),
+            contract.to_string_lossy().into_owned(),
+            "--format".to_owned(),
+            "json".to_owned(),
+            "--target".to_owned(),
+            target.to_owned(),
+        ];
+        if allow_execution {
+            args.push("--allow-execution".to_owned());
+        }
         let config = ProcessConfig {
             program: binary.to_path_buf(),
-            args: vec![
-                "agent".to_owned(),
-                "verify".to_owned(),
-                source.to_string_lossy().into_owned(),
-                contract.to_string_lossy().into_owned(),
-                "--format".to_owned(),
-                "json".to_owned(),
-                "--target".to_owned(),
-                target.to_owned(),
-            ],
+            args,
             timeout: Duration::from_secs(120),
             max_output_bytes: 4 * 1_048_576,
             ..ProcessConfig::default()
