@@ -26,3 +26,54 @@ jobs:
         run: cargo build --workspace --all-targets --all-features
       - name: Test
         run: cargo test --workspace --all-features
+
+  # Gate-1: live SemASM Incomplete smoke (count_byte Win64, no --allow-execution).
+  # This is NOT a Verified vertical slice — see docs/progress.md.
+  semasm-gate1:
+    name: Gate-1 SemASM Incomplete (Win64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v4
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v4
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          # Pin to main tip; SemASM S0/S1 are on main.
+          ref: main
+
+      - name: Install NASM and LLVM (lld-link)
+        run: choco install nasm llvm --no-progress -y
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        shell: pwsh
+        run: |
+          $semasmBin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          echo $semasmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Get-Command semasm | Format-List
+          semasm --version
+
+      - name: Record tool versions
+        shell: pwsh
+        run: |
+          nasm --version
+          lld-link --version
+
+      - name: Gate-1 verify Incomplete + ingest verify-chain
+        run: cargo test --test semasm_gate1_smoke -- --ignored --nocapture
