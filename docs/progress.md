@@ -31,7 +31,8 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | **R2 — Seal + ingest** | **Done** | unit | integrity envelope; `vaa ingest`; `check-seal` |
 | **R2b — Seal hardening** | **Done** | unit | acceptance/envelope; atomic publish; per-candidate chain; `verify-bundle` |
 | **R2c — verify-chain + append-only** | **Done** | unit | `verify-chain`; full check details; exclusive candidate dirs; canonical vectors |
-| Phase 2–4 “vertical slice” claims | **Components + R1/R2 wiring** | — | Not a CI-proven VAA→SemASM→toolchain golden yet |
+| **S0 — Slice lock** | **Done** | docs | Next CI slice = `count_byte` Gate-1 Incomplete; `sum_i64` = SemASM epic |
+| Phase 2–4 “vertical slice” claims | **Components + R1/R2 wiring** | — | Gate-1 CI live SemASM pending S2 |
 
 ## Current executable acceptance
 
@@ -95,16 +96,25 @@ cargo run -q -- evidence verify-chain \
 - Atomic publication with seal commit marker (not claimed fully crash-durable on all FS).
 - Positioning (honest): CryptOpt-like / Proof-Loop idea = candidates return to SemASM; acceptance digests sealed. Not a search engine or formal proof system.
 
-### Still out of scope (R3+)
+### Still out of scope / later waves
 
 - Streaming output caps / process-group kill
-- CI job with live SemASM + toolchain + transparency log of digests
 - Hardened ContainerBackend / generator FS isolation
 - Digital signature (Ed25519) authenticity
 - Fully crash-durable transactional pair (directory fsync everywhere)
 - Live model adapter
 - CryptOpt randomized search engine
-- Full `sum_i64` SemASM golden (needs SemASM contract)
+- Transparency log of digests (beyond CI artifact upload)
+
+### Planned vertical-slice waves (after R2c)
+
+| Wave | Focus | Claim when done |
+|---|---|---|
+| **S2 Gate-1** | CI installs SemASM + toolchain; `vaa verify`/`ingest` + `verify-chain` on `count_byte` Win64 **without** `--allow-execution` | Live Incomplete smoke (not Verified) |
+| **S3 Gate-2** | VAA forwards `--allow-execution`; optional CI assert `Verified` | Opt-in behavioral verify |
+| **S4** | SemASM ships `sum_i64` contract/oracle; VAA fixtures + CI | True `sum_i64` slice |
+
+Do **not** call Gate-1 a “verified vertical slice”.
 
 ## Documentation map
 
