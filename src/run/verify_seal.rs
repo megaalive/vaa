@@ -170,6 +170,7 @@ pub fn doctor_and_capabilities(locked: &LockedTask) -> (DoctorReport, Capability
 }
 
 /// Ingest a single external candidate (no model adapter).
+#[allow(clippy::too_many_arguments)]
 pub fn ingest_candidate(
     locked: &LockedTask,
     task_path: &Path,
