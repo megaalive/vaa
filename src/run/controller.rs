@@ -79,6 +79,7 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
 
     let mut protocol = CandidateProtocol::with_max(&target, config.max_attempts);
     let mut last_evidence: Option<EvidenceReport> = None;
+    let mut previous_seal_digest: Option<String> = None;
     let mut accepted = 0u32;
     let mut need_candidate = true;
 
@@ -91,12 +92,14 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
 
         let outcome = verify_candidate_and_seal(VerifySealInput {
             locked: &locked,
+            task_path: config.task_path,
             contract_path: config.contract_path,
             source_bytes: response.source.as_bytes(),
             run_dir: &run_dir,
             run_id: run_id.to_string(),
             protocol: &mut protocol,
             candidate_index: accepted,
+            previous_seal_digest: previous_seal_digest.clone(),
             generator: GeneratorMeta::fixture("fixture", Some(response.generation_id.clone())),
             doctor: doctor.clone(),
             capability_match: cm.clone(),
@@ -111,6 +114,8 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
             }
             other => RunError::VerifySeal(other.to_string()),
         })?;
+
+        previous_seal_digest = Some(outcome.seal.envelope_digest.clone());
 
         transit(
             &mut orch,

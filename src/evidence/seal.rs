@@ -1,17 +1,23 @@
-//! Sealed evidence envelope — acceptance digests that generators cannot rewrite.
+//! Sealed evidence envelope — integrity digests, not cryptographic attestation.
+//!
+//! See [`docs/seal.md`](../../docs/seal.md). Schema **0.2** separates
+//! `acceptance_digest` (technical truth) from `envelope_digest` (includes provenance).
 
-use std::fs;
-use std::path::Path;
+use std::fs::{self, File};
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+
+use crate::canonical_json::{canonical_json_bytes, CANONICALIZATION_ID, DIGEST_ALGORITHM_ID};
 
 use super::report::{sha256_digest_prefixed, CheckOutcome, EvidenceExpect, EvidenceReport};
 use super::status::EvidenceStatus;
 
-/// Seal schema for the deterministic payload.
-pub const SEAL_SCHEMA_VERSION: &str = "0.1";
+/// Seal schema version (acceptance / envelope split).
+pub const SEAL_SCHEMA_VERSION: &str = "0.2";
 
-/// Untrusted attribution for who proposed the candidate (not part of acceptance logic).
+/// Untrusted attribution for who proposed the candidate (not part of acceptance).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GeneratorMeta {
     /// Source kind (`fixture`, `ingest`, `external`, …).
@@ -43,29 +49,46 @@ impl GeneratorMeta {
     }
 }
 
-/// Deterministic seal body (no volatile timestamp).
+/// Technical acceptance body — hashed into [`SealEnvelope::acceptance_digest`].
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct SealPayloadV01 {
-    pub schema_version: String,
-    pub task_id: String,
+pub struct AcceptanceBody {
     pub task_digest: String,
     pub target: String,
-    pub run_id: Option<String>,
     pub contract_digest: String,
     pub source_digest: String,
-    /// Digest of SemASM `raw_json`, or literal `none`.
+    /// Digest of SemASM report bytes, or literal `none`.
     pub semasm_report_digest: String,
     pub final_status: EvidenceStatus,
     pub checks: Vec<CheckOutcome>,
-    pub generator: GeneratorMeta,
 }
 
-/// On-disk seal envelope: payload + its digest.
+/// Run / generator provenance — hashed into [`SealEnvelope::envelope_digest`] only.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProvenanceBody {
+    pub task_id: String,
+    pub run_id: Option<String>,
+    pub generator: GeneratorMeta,
+    pub candidate_index: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_seal_digest: Option<String>,
+}
+
+/// On-disk seal envelope (schema 0.2).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SealEnvelope {
     pub schema_version: String,
-    pub seal_digest: String,
-    pub payload: SealPayloadV01,
+    pub canonicalization: String,
+    pub digest_algorithm: String,
+    pub acceptance_digest: String,
+    pub envelope_digest: String,
+    pub acceptance: AcceptanceBody,
+    pub provenance: ProvenanceBody,
+}
+
+#[derive(Debug, Serialize)]
+struct EnvelopeHashBody<'a> {
+    acceptance: &'a AcceptanceBody,
+    provenance: &'a ProvenanceBody,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -74,19 +97,33 @@ pub enum SealError {
     Io(String),
     #[error("json: {0}")]
     Json(String),
-    #[error("seal digest mismatch")]
-    DigestMismatch,
+    #[error("acceptance digest mismatch")]
+    AcceptanceDigestMismatch,
+    #[error("envelope digest mismatch")]
+    EnvelopeDigestMismatch,
+    #[error("unsupported seal schema: {0}")]
+    UnsupportedSchema(String),
     #[error("evidence does not match seal payload: {0}")]
     EvidenceMismatch(String),
+    #[error("bundle: {0}")]
+    Bundle(String),
 }
 
-/// Build a seal payload from a finished evidence report and identity expect.
+/// Inputs for building a seal envelope.
+#[derive(Debug, Clone)]
+pub struct SealBuildInput {
+    pub candidate_index: u32,
+    pub previous_seal_digest: Option<String>,
+    pub generator: GeneratorMeta,
+}
+
+/// Build acceptance + provenance + digests from a finished evidence report.
 #[must_use]
-pub fn build_seal_payload(
+pub fn build_seal_envelope(
     report: &EvidenceReport,
     expect: &EvidenceExpect,
-    generator: GeneratorMeta,
-) -> SealPayloadV01 {
+    input: SealBuildInput,
+) -> SealEnvelope {
     let semasm_report_digest = report.verify_report.as_ref().map_or_else(
         || "none".to_owned(),
         |vr| sha256_digest_prefixed(vr.raw_json.as_bytes()),
@@ -95,71 +132,131 @@ pub fn build_seal_payload(
     let mut checks = report.checks.clone();
     checks.sort_by(|a, b| a.check_name.cmp(&b.check_name));
 
-    SealPayloadV01 {
-        schema_version: SEAL_SCHEMA_VERSION.to_owned(),
-        task_id: report.task_id.clone(),
+    let acceptance = AcceptanceBody {
         task_digest: report.task_digest.clone(),
         target: report.target.clone(),
-        run_id: report.run_id.clone(),
         contract_digest: expect.expected_contract_digest.clone(),
         source_digest: expect.expected_source_digest.clone(),
         semasm_report_digest,
         final_status: report.final_status,
         checks,
-        generator,
-    }
+    };
+    let provenance = ProvenanceBody {
+        task_id: report.task_id.clone(),
+        run_id: report.run_id.clone(),
+        generator: input.generator,
+        candidate_index: input.candidate_index,
+        previous_seal_digest: input.previous_seal_digest,
+    };
+
+    seal_envelope(acceptance, provenance)
 }
 
-/// SHA-256 over canonical JSON of the payload (`sha256:` + hex).
+/// SHA-256 over canonical JSON of the acceptance body.
 #[must_use]
-pub fn seal_digest_of(payload: &SealPayloadV01) -> String {
-    let canonical = canonical_json_bytes(payload);
-    sha256_digest_prefixed(&canonical)
+pub fn acceptance_digest_of(acceptance: &AcceptanceBody) -> String {
+    sha256_digest_prefixed(&canonical_json_bytes(acceptance))
 }
 
-/// Wrap payload with its digest.
+/// SHA-256 over canonical JSON of `{acceptance, provenance}`.
 #[must_use]
-pub fn seal_envelope(payload: SealPayloadV01) -> SealEnvelope {
-    let seal_digest = seal_digest_of(&payload);
+pub fn envelope_digest_of(acceptance: &AcceptanceBody, provenance: &ProvenanceBody) -> String {
+    let body = EnvelopeHashBody {
+        acceptance,
+        provenance,
+    };
+    sha256_digest_prefixed(&canonical_json_bytes(&body))
+}
+
+/// Wrap acceptance + provenance with both digests.
+#[must_use]
+pub fn seal_envelope(acceptance: AcceptanceBody, provenance: ProvenanceBody) -> SealEnvelope {
+    let acceptance_digest = acceptance_digest_of(&acceptance);
+    let envelope_digest = envelope_digest_of(&acceptance, &provenance);
     SealEnvelope {
         schema_version: SEAL_SCHEMA_VERSION.to_owned(),
-        seal_digest,
-        payload,
+        canonicalization: CANONICALIZATION_ID.to_owned(),
+        digest_algorithm: DIGEST_ALGORITHM_ID.to_owned(),
+        acceptance_digest,
+        envelope_digest,
+        acceptance,
+        provenance,
     }
 }
 
-/// Write `evidence.json` + `evidence.seal.json` under `evidence_dir`.
+/// Atomically write `evidence.json` + `evidence.seal.json` (seal rename last).
 pub fn write_sealed_evidence(
     evidence_dir: &Path,
     report: &EvidenceReport,
     expect: &EvidenceExpect,
-    generator: GeneratorMeta,
+    input: SealBuildInput,
 ) -> Result<SealEnvelope, SealError> {
     fs::create_dir_all(evidence_dir).map_err(|e| SealError::Io(e.to_string()))?;
 
-    let evidence_path = evidence_dir.join("evidence.json");
-    let seal_path = evidence_dir.join("evidence.seal.json");
-
-    let body = serde_json::to_string_pretty(report).map_err(|e| SealError::Json(e.to_string()))?;
-    fs::write(&evidence_path, body).map_err(|e| SealError::Io(e.to_string()))?;
-
-    let envelope = seal_envelope(build_seal_payload(report, expect, generator));
+    let envelope = build_seal_envelope(report, expect, input);
+    let evidence_body =
+        serde_json::to_string_pretty(report).map_err(|e| SealError::Json(e.to_string()))?;
     let seal_body =
         serde_json::to_string_pretty(&envelope).map_err(|e| SealError::Json(e.to_string()))?;
-    fs::write(&seal_path, seal_body).map_err(|e| SealError::Io(e.to_string()))?;
+
+    atomic_write_pair(
+        &evidence_dir.join("evidence.json"),
+        evidence_body.as_bytes(),
+        &evidence_dir.join("evidence.seal.json"),
+        seal_body.as_bytes(),
+    )?;
 
     Ok(envelope)
 }
 
-/// Verify seal digest integrity and cross-check against `evidence.json`.
+/// Write final acceptance markers under `evidence/` (copies of the latest pair).
+pub fn write_final_sealed_evidence(
+    evidence_dir: &Path,
+    report: &EvidenceReport,
+    envelope: &SealEnvelope,
+) -> Result<(), SealError> {
+    fs::create_dir_all(evidence_dir).map_err(|e| SealError::Io(e.to_string()))?;
+    let evidence_body =
+        serde_json::to_string_pretty(report).map_err(|e| SealError::Json(e.to_string()))?;
+    let seal_body =
+        serde_json::to_string_pretty(envelope).map_err(|e| SealError::Json(e.to_string()))?;
+    atomic_write_pair(
+        &evidence_dir.join("final.json"),
+        evidence_body.as_bytes(),
+        &evidence_dir.join("final.seal.json"),
+        seal_body.as_bytes(),
+    )
+}
+
+/// Verify seal digests and cross-check against `evidence.json`.
 pub fn verify_seal(evidence_path: &Path, seal_path: &Path) -> Result<(), SealError> {
     let seal_raw = fs::read_to_string(seal_path).map_err(|e| SealError::Io(e.to_string()))?;
     let envelope: SealEnvelope =
         serde_json::from_str(&seal_raw).map_err(|e| SealError::Json(e.to_string()))?;
 
-    let recomputed = seal_digest_of(&envelope.payload);
-    if recomputed != envelope.seal_digest {
-        return Err(SealError::DigestMismatch);
+    if envelope.schema_version != SEAL_SCHEMA_VERSION {
+        return Err(SealError::UnsupportedSchema(envelope.schema_version));
+    }
+    if envelope.canonicalization != CANONICALIZATION_ID {
+        return Err(SealError::Bundle(format!(
+            "canonicalization {}",
+            envelope.canonicalization
+        )));
+    }
+    if envelope.digest_algorithm != DIGEST_ALGORITHM_ID {
+        return Err(SealError::Bundle(format!(
+            "digest_algorithm {}",
+            envelope.digest_algorithm
+        )));
+    }
+
+    let acceptance_digest = acceptance_digest_of(&envelope.acceptance);
+    if acceptance_digest != envelope.acceptance_digest {
+        return Err(SealError::AcceptanceDigestMismatch);
+    }
+    let envelope_digest = envelope_digest_of(&envelope.acceptance, &envelope.provenance);
+    if envelope_digest != envelope.envelope_digest {
+        return Err(SealError::EnvelopeDigestMismatch);
     }
 
     let evidence_raw =
@@ -167,35 +264,35 @@ pub fn verify_seal(evidence_path: &Path, seal_path: &Path) -> Result<(), SealErr
     let report: EvidenceReport =
         serde_json::from_str(&evidence_raw).map_err(|e| SealError::Json(e.to_string()))?;
 
-    cross_check_evidence(&report, &envelope.payload)
+    cross_check_evidence(&report, &envelope)
 }
 
-fn cross_check_evidence(
-    report: &EvidenceReport,
-    payload: &SealPayloadV01,
-) -> Result<(), SealError> {
-    if report.task_id != payload.task_id {
+fn cross_check_evidence(report: &EvidenceReport, envelope: &SealEnvelope) -> Result<(), SealError> {
+    let acceptance = &envelope.acceptance;
+    let provenance = &envelope.provenance;
+
+    if report.task_id != provenance.task_id {
         return Err(SealError::EvidenceMismatch("task_id".into()));
     }
-    if report.task_digest != payload.task_digest {
+    if report.task_digest != acceptance.task_digest {
         return Err(SealError::EvidenceMismatch("task_digest".into()));
     }
-    if report.target != payload.target {
+    if report.target != acceptance.target {
         return Err(SealError::EvidenceMismatch("target".into()));
     }
-    if report.run_id != payload.run_id {
+    if report.run_id != provenance.run_id {
         return Err(SealError::EvidenceMismatch("run_id".into()));
     }
-    if report.final_status != payload.final_status {
+    if report.final_status != acceptance.final_status {
         return Err(SealError::EvidenceMismatch("final_status".into()));
     }
 
     let mut report_checks = report.checks.clone();
     report_checks.sort_by(|a, b| a.check_name.cmp(&b.check_name));
-    if report_checks.len() != payload.checks.len() {
+    if report_checks.len() != acceptance.checks.len() {
         return Err(SealError::EvidenceMismatch("checks length".into()));
     }
-    for (a, b) in report_checks.iter().zip(payload.checks.iter()) {
+    for (a, b) in report_checks.iter().zip(acceptance.checks.iter()) {
         if a.check_name != b.check_name || a.passed != b.passed || a.required != b.required {
             return Err(SealError::EvidenceMismatch(format!(
                 "check {}",
@@ -206,16 +303,16 @@ fn cross_check_evidence(
 
     if let Some(vr) = &report.verify_report {
         let report_digest = sha256_digest_prefixed(vr.raw_json.as_bytes());
-        if report_digest != payload.semasm_report_digest {
+        if report_digest != acceptance.semasm_report_digest {
             return Err(SealError::EvidenceMismatch("semasm_report_digest".into()));
         }
-        if vr.source_digest.as_deref() != Some(payload.source_digest.as_str()) {
+        if vr.source_digest.as_deref() != Some(acceptance.source_digest.as_str()) {
             return Err(SealError::EvidenceMismatch("source_digest".into()));
         }
-        if vr.contract_digest.as_deref() != Some(payload.contract_digest.as_str()) {
+        if vr.contract_digest.as_deref() != Some(acceptance.contract_digest.as_str()) {
             return Err(SealError::EvidenceMismatch("contract_digest".into()));
         }
-    } else if payload.semasm_report_digest != "none" {
+    } else if acceptance.semasm_report_digest != "none" {
         return Err(SealError::EvidenceMismatch(
             "semasm_report_digest expected none".into(),
         ));
@@ -224,39 +321,51 @@ fn cross_check_evidence(
     Ok(())
 }
 
-fn canonical_json_bytes<T: Serialize>(value: &T) -> Vec<u8> {
-    let value = serde_json::to_value(value).expect("serialize");
-    let canonical = sort_value(value);
-    serde_json::to_vec(&canonical).expect("canonical JSON")
+/// Write evidence then seal using tmp + fsync + rename; seal rename is the commit marker.
+fn atomic_write_pair(
+    evidence_path: &Path,
+    evidence_bytes: &[u8],
+    seal_path: &Path,
+    seal_bytes: &[u8],
+) -> Result<(), SealError> {
+    let evidence_tmp = tmp_sibling(evidence_path);
+    let seal_tmp = tmp_sibling(seal_path);
+
+    write_tmp_fsync(&evidence_tmp, evidence_bytes)?;
+    write_tmp_fsync(&seal_tmp, seal_bytes)?;
+
+    // Replace destinations if present (Windows rename fails when dest exists).
+    let _ = fs::remove_file(evidence_path);
+    fs::rename(&evidence_tmp, evidence_path).map_err(|e| SealError::Io(e.to_string()))?;
+
+    let _ = fs::remove_file(seal_path);
+    fs::rename(&seal_tmp, seal_path).map_err(|e| SealError::Io(e.to_string()))?;
+
+    Ok(())
 }
 
-fn sort_value(value: serde_json::Value) -> serde_json::Value {
-    match value {
-        serde_json::Value::Object(map) => {
-            let mut keys = map.keys().cloned().collect::<Vec<_>>();
-            keys.sort_unstable();
-            let mut out = serde_json::Map::new();
-            for key in keys {
-                let child = map.get(&key).cloned().expect("key exists");
-                out.insert(key, sort_value(child));
-            }
-            serde_json::Value::Object(out)
-        }
-        serde_json::Value::Array(items) => {
-            serde_json::Value::Array(items.into_iter().map(sort_value).collect())
-        }
-        other => other,
-    }
+fn tmp_sibling(path: &Path) -> PathBuf {
+    let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("file");
+    path.with_file_name(format!("{name}.tmp"))
+}
+
+fn write_tmp_fsync(path: &Path, bytes: &[u8]) -> Result<(), SealError> {
+    let mut file = File::create(path).map_err(|e| SealError::Io(e.to_string()))?;
+    file.write_all(bytes)
+        .map_err(|e| SealError::Io(e.to_string()))?;
+    file.flush().map_err(|e| SealError::Io(e.to_string()))?;
+    file.sync_all().map_err(|e| SealError::Io(e.to_string()))?;
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::evidence::EvidenceAggregator;
     use crate::semasm::capabilities::CapabilityMatch;
     use crate::semasm::doctor::{DoctorReport, DoctorStatus, SemasmVersion};
     use crate::semasm::verify::VerifyReport;
     use crate::task::load_locked_task;
-    use std::path::PathBuf;
 
     fn sample_report() -> (EvidenceReport, EvidenceExpect) {
         let task = load_locked_task(
@@ -302,23 +411,52 @@ mod tests {
         (report, expect)
     }
 
-    use crate::evidence::EvidenceAggregator;
+    fn build_input(generator: GeneratorMeta) -> SealBuildInput {
+        SealBuildInput {
+            candidate_index: 0,
+            previous_seal_digest: None,
+            generator,
+        }
+    }
 
     #[test]
-    fn seal_digest_is_stable() {
+    fn acceptance_digest_stable_across_provenance() {
         let (report, expect) = sample_report();
-        let gen = GeneratorMeta::ingest("unit");
-        let a = seal_digest_of(&build_seal_payload(&report, &expect, gen.clone()));
-        let b = seal_digest_of(&build_seal_payload(&report, &expect, gen));
-        assert_eq!(a, b);
-        assert!(a.starts_with("sha256:"));
+        let a = build_seal_envelope(
+            &report,
+            &expect,
+            SealBuildInput {
+                candidate_index: 0,
+                previous_seal_digest: None,
+                generator: GeneratorMeta::ingest("unit"),
+            },
+        );
+        let mut report2 = report.clone();
+        report2.run_id = Some("run-2".to_owned());
+        let b = build_seal_envelope(
+            &report2,
+            &expect,
+            SealBuildInput {
+                candidate_index: 1,
+                previous_seal_digest: Some(a.envelope_digest.clone()),
+                generator: GeneratorMeta::ingest("other"),
+            },
+        );
+        assert_eq!(a.acceptance_digest, b.acceptance_digest);
+        assert_ne!(a.envelope_digest, b.envelope_digest);
     }
 
     #[test]
     fn check_seal_rejects_final_status_tamper() {
         let (mut report, expect) = sample_report();
         let dir = tempfile_dir("vaa_seal_ok");
-        write_sealed_evidence(&dir, &report, &expect, GeneratorMeta::ingest("unit")).unwrap();
+        write_sealed_evidence(
+            &dir,
+            &report,
+            &expect,
+            build_input(GeneratorMeta::ingest("unit")),
+        )
+        .unwrap();
 
         report.final_status = EvidenceStatus::Verified;
         fs::write(
@@ -331,7 +469,9 @@ mod tests {
             .expect_err("tamper detected");
         assert!(matches!(
             err,
-            SealError::EvidenceMismatch(_) | SealError::DigestMismatch
+            SealError::EvidenceMismatch(_)
+                | SealError::AcceptanceDigestMismatch
+                | SealError::EnvelopeDigestMismatch
         ));
         let _ = fs::remove_dir_all(&dir);
     }
@@ -340,12 +480,17 @@ mod tests {
     fn check_seal_rejects_source_digest_tamper_in_seal() {
         let (report, expect) = sample_report();
         let dir = tempfile_dir("vaa_seal_src");
-        let mut envelope =
-            write_sealed_evidence(&dir, &report, &expect, GeneratorMeta::ingest("unit")).unwrap();
-        envelope.payload.source_digest =
+        let mut envelope = write_sealed_evidence(
+            &dir,
+            &report,
+            &expect,
+            build_input(GeneratorMeta::ingest("unit")),
+        )
+        .unwrap();
+        envelope.acceptance.source_digest =
             "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned();
-        // Recompute digest so envelope is self-consistent but mismatches evidence digests
-        envelope.seal_digest = seal_digest_of(&envelope.payload);
+        envelope.acceptance_digest = acceptance_digest_of(&envelope.acceptance);
+        envelope.envelope_digest = envelope_digest_of(&envelope.acceptance, &envelope.provenance);
         fs::write(
             dir.join("evidence.seal.json"),
             serde_json::to_string_pretty(&envelope).unwrap(),
@@ -366,10 +511,28 @@ mod tests {
             &dir,
             &report,
             &expect,
-            GeneratorMeta::fixture("fixture", None),
+            build_input(GeneratorMeta::fixture("fixture", None)),
         )
         .unwrap();
         verify_seal(&dir.join("evidence.json"), &dir.join("evidence.seal.json")).unwrap();
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn atomic_write_creates_final_names_not_tmp() {
+        let (report, expect) = sample_report();
+        let dir = tempfile_dir("vaa_seal_atomic");
+        write_sealed_evidence(
+            &dir,
+            &report,
+            &expect,
+            build_input(GeneratorMeta::ingest("unit")),
+        )
+        .unwrap();
+        assert!(dir.join("evidence.json").exists());
+        assert!(dir.join("evidence.seal.json").exists());
+        assert!(!dir.join("evidence.json.tmp").exists());
+        assert!(!dir.join("evidence.seal.json.tmp").exists());
         let _ = fs::remove_dir_all(&dir);
     }
 

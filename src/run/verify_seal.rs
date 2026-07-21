@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 
 use crate::candidate::CandidateProtocol;
 use crate::evidence::{
-    sha256_digest_prefixed, write_sealed_evidence, EvidenceAggregator, EvidenceExpect,
-    EvidenceReport, GeneratorMeta, SealEnvelope,
+    materialize_bundle_files, sha256_digest_prefixed, write_final_sealed_evidence,
+    write_sealed_evidence, EvidenceAggregator, EvidenceExpect, EvidenceReport, GeneratorMeta,
+    SealBuildInput, SealEnvelope,
 };
 use crate::run::RunDir;
 use crate::semasm::{
@@ -43,24 +44,28 @@ pub enum VerifySealError {
 /// Inputs for a single generator-agnostic verify+seal.
 pub struct VerifySealInput<'a> {
     pub locked: &'a LockedTask,
+    pub task_path: &'a Path,
     pub contract_path: &'a Path,
     pub source_bytes: &'a [u8],
     pub run_dir: &'a RunDir,
     pub run_id: String,
     pub protocol: &'a mut CandidateProtocol,
     pub candidate_index: u32,
+    pub previous_seal_digest: Option<String>,
     pub generator: GeneratorMeta,
     pub doctor: DoctorReport,
     pub capability_match: CapabilityMatch,
 }
 
-/// Submit candidate, run SemASM verify, aggregate evidence, write seal pair.
+/// Submit candidate, run SemASM verify, aggregate evidence, write per-candidate seal + final.
 pub fn verify_candidate_and_seal(
     input: VerifySealInput<'_>,
 ) -> Result<VerifySealOutcome, VerifySealError> {
     let target = input.locked.task().target.clone();
     let contract_bytes = std::fs::read(input.contract_path)
         .map_err(|e| VerifySealError::Io(format!("read contract: {e}")))?;
+    let task_bytes = std::fs::read(input.task_path)
+        .map_err(|e| VerifySealError::Io(format!("read task: {e}")))?;
     let contract_digest = sha256_digest_prefixed(&contract_bytes);
     let source_digest = sha256_digest_prefixed(input.source_bytes);
     let source_text = std::str::from_utf8(input.source_bytes)
@@ -105,13 +110,24 @@ pub fn verify_candidate_and_seal(
         &expect,
     );
 
+    let report_raw = verify.as_ref().map(|v| v.raw_json.as_str());
+    materialize_bundle_files(&cand_dir, &task_bytes, &contract_bytes, report_raw)
+        .map_err(|e| VerifySealError::Seal(e.to_string()))?;
+
     let seal = write_sealed_evidence(
-        &input.run_dir.paths().evidence_dir,
+        &cand_dir,
         &evidence,
         &expect,
-        input.generator,
+        SealBuildInput {
+            candidate_index: outcome.index,
+            previous_seal_digest: input.previous_seal_digest,
+            generator: input.generator,
+        },
     )
     .map_err(|e| VerifySealError::Seal(e.to_string()))?;
+
+    write_final_sealed_evidence(&input.run_dir.paths().evidence_dir, &evidence, &seal)
+        .map_err(|e| VerifySealError::Seal(e.to_string()))?;
 
     Ok(VerifySealOutcome {
         evidence,
@@ -136,6 +152,7 @@ pub fn doctor_and_capabilities(locked: &LockedTask) -> (DoctorReport, Capability
 /// Ingest a single external candidate (no model adapter).
 pub fn ingest_candidate(
     locked: &LockedTask,
+    task_path: &Path,
     contract_path: &Path,
     source_path: &Path,
     run_dir: &RunDir,
@@ -152,12 +169,14 @@ pub fn ingest_candidate(
     let mut protocol = CandidateProtocol::with_max(&locked.task().target, max_attempts);
     verify_candidate_and_seal(VerifySealInput {
         locked,
+        task_path,
         contract_path,
         source_bytes: &source_bytes,
         run_dir,
         run_id: run_id.to_owned(),
         protocol: &mut protocol,
         candidate_index: 0,
+        previous_seal_digest: None,
         generator: GeneratorMeta::ingest(generator_name),
         doctor,
         capability_match: cm,

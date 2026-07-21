@@ -14,10 +14,10 @@ use clap::{Parser, Subcommand, ValueEnum};
 use vaa::exit_code::ExitCode as VaaExitCode;
 use vaa::task::{load_locked_task, TaskError};
 use vaa::{
-    ingest_candidate, run_fixture_loop, sha256_digest_prefixed, verify_seal, ArtifactInspector,
-    BuildPipeline, EvidenceAggregator, EvidenceExpect, EvidenceStatus, FixtureModelAdapter,
-    ModelAdapter, PipelineConfig, RunConfig, RunDir, RunId, SemasmDoctor, SemasmVerify,
-    TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION, VAA_VERSION,
+    ingest_candidate, run_fixture_loop, sha256_digest_prefixed, verify_bundle, verify_seal,
+    ArtifactInspector, BuildPipeline, EvidenceAggregator, EvidenceExpect, EvidenceStatus,
+    FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig, RunDir, RunId, SemasmDoctor,
+    SemasmVerify, TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION, VAA_VERSION,
 };
 
 /// Verifiable Assembly Agent command-line interface.
@@ -160,12 +160,17 @@ enum Commands {
 
 #[derive(Debug, Subcommand)]
 enum EvidenceCommands {
-    /// Verify `evidence.json` against `evidence.seal.json`.
+    /// Verify `evidence.json` against `evidence.seal.json` (JSON drift only).
     CheckSeal {
         /// Path to evidence.json.
         evidence: PathBuf,
         /// Path to evidence.seal.json.
         seal: PathBuf,
+    },
+    /// Re-hash on-disk artifacts in a bundle directory against sealed digests.
+    VerifyBundle {
+        /// Directory containing task/contract/candidate/report/evidence/seal.
+        bundle_dir: PathBuf,
     },
 }
 
@@ -219,6 +224,7 @@ fn main() -> ExitCode {
         } => ingest_command(&task, &contract, &source, &generator, &run_dir, format),
         Commands::Evidence { command } => match command {
             EvidenceCommands::CheckSeal { evidence, seal } => check_seal_command(&evidence, &seal),
+            EvidenceCommands::VerifyBundle { bundle_dir } => verify_bundle_command(&bundle_dir),
         },
         Commands::Generate { task, output } => generate_command(&task, &output),
         Commands::Build {
@@ -240,7 +246,8 @@ fn print_status() {
     println!("default mode: verify-only (run=fixture; ingest=external candidate; no live LLM)");
     println!("model adapter: fixture adapter with queued wrong→repair responses");
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
-    println!("evidence: sealed digests (generator cannot move acceptance)");
+    println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
+    println!("evidence note: seal is content integrity, not cryptographic authenticity");
     println!("build pipeline: nasm + ld (needs toolchain on PATH)");
     println!("note: absence of errors here is not evidence that any assembly is verified");
 }
@@ -571,6 +578,7 @@ fn ingest_command(
 
     match ingest_candidate(
         &locked,
+        task_path,
         contract_path,
         source_path,
         &run_dir,
@@ -581,10 +589,12 @@ fn ingest_command(
         Ok(outcome) => {
             if format == OutputFormat::Terminal {
                 println!("Run root: {}", run_dir.root().display());
-                println!("Seal digest: {}", outcome.seal.seal_digest);
+                println!("Candidate dir: {}", outcome.candidate_dir.display());
+                println!("Acceptance digest: {}", outcome.seal.acceptance_digest);
+                println!("Envelope digest: {}", outcome.seal.envelope_digest);
                 println!(
                     "Generator: {} / {}",
-                    outcome.seal.payload.generator.kind, outcome.seal.payload.generator.name
+                    outcome.seal.provenance.generator.kind, outcome.seal.provenance.generator.name
                 );
             }
             emit_evidence_report(&outcome.evidence, format)
@@ -599,11 +609,26 @@ fn ingest_command(
 fn check_seal_command(evidence: &Path, seal: &Path) -> ExitCode {
     match verify_seal(evidence, seal) {
         Ok(()) => {
-            println!("ok: evidence seal verified");
+            println!("ok: evidence/seal JSON integrity verified (not artifact rehash)");
             VaaExitCode::Success.as_std()
         }
         Err(e) => {
             eprintln!("error: seal check failed: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn verify_bundle_command(bundle_dir: &Path) -> ExitCode {
+    match verify_bundle(bundle_dir) {
+        Ok(envelope) => {
+            println!("ok: bundle verified against sealed digests");
+            println!("  acceptance_digest: {}", envelope.acceptance_digest);
+            println!("  envelope_digest: {}", envelope.envelope_digest);
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: bundle verify failed: {e}");
             VaaExitCode::ToolFailure.as_std()
         }
     }
@@ -869,6 +894,18 @@ mod tests {
             cli.command,
             Some(Commands::Evidence {
                 command: EvidenceCommands::CheckSeal { .. }
+            })
+        ));
+    }
+
+    #[test]
+    fn clap_parses_evidence_verify_bundle() {
+        let cli = Cli::try_parse_from(["vaa", "evidence", "verify-bundle", "candidates/0000"])
+            .expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Evidence {
+                command: EvidenceCommands::VerifyBundle { .. }
             })
         ));
     }

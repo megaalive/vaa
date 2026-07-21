@@ -9,6 +9,7 @@
 
 pub mod build;
 pub mod candidate;
+pub mod canonical_json;
 pub mod evidence;
 pub mod exit_code;
 pub mod harness;
@@ -23,9 +24,11 @@ pub mod task;
 
 pub use build::{BuildManifest, BuildOutcome, BuildPipeline, PipelineConfig};
 pub use candidate::{CandidateProtocol, CandidateSubmission, SubmissionOutcome};
+pub use canonical_json::{CANONICALIZATION_ID, DIGEST_ALGORITHM_ID};
 pub use evidence::{
-    sha256_digest_prefixed, verify_seal, write_sealed_evidence, CheckOutcome, EvidenceAggregator,
-    EvidenceExpect, EvidenceReport, EvidenceStatus, GeneratorMeta, SealEnvelope, SealError,
+    sha256_digest_prefixed, verify_bundle, verify_seal, write_sealed_evidence, CheckOutcome,
+    EvidenceAggregator, EvidenceExpect, EvidenceReport, EvidenceStatus, GeneratorMeta,
+    SealEnvelope, SealError,
 };
 pub use exit_code::ExitCode as VaaExitCode;
 pub use harness::{HarnessConfig, HarnessTemplate};

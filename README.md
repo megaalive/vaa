@@ -18,7 +18,8 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa verify <task> --source <asm> --contract <sem.toml>` | Available — SemASM report 0.4, identity-bound evidence |
 | `vaa run <task> --contract … --wrong … --repaired …` | Available — fixture wrong→repair loop (no live LLM); writes sealed evidence |
 | `vaa ingest <task> --contract … --source …` | Available — generator-agnostic candidate deposit (no model) |
-| `vaa evidence check-seal <evidence.json> <evidence.seal.json>` | Available — detects acceptance/source drift |
+| `vaa evidence check-seal …` | Available — evidence/seal JSON integrity (not artifact rehash) |
+| `vaa evidence verify-bundle <dir>` | Available — re-hash task/contract/source/report vs seal |
 | `vaa generate <task> --output <file.asm>` | Available — fixture model adapter |
 | `vaa build <source.asm> [--target elf64]` | Available — NASM + linker pipeline |
 | `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |
@@ -70,7 +71,8 @@ Non-negotiable direction:
 - dynamic execution disabled by default (`vaa verify` / `vaa run` do not pass `--allow-execution`);
 - SemASM contract path is explicit: `--contract <*.sem.toml>` (distinct from the locked `*.vaa.toml` task);
 - `vaa run` wires the orchestrator with a **fixture** model queue (wrong→repair); live providers are out of scope;
-- `vaa ingest` accepts any external `.asm` (fixture, human, CryptOpt-like search, LLM dump) and always returns to SemASM verify + sealed evidence — generators do not move acceptance.
+- `vaa ingest` accepts any external `.asm` (fixture, human, CryptOpt-like search, LLM dump) and always returns to SemASM verify + sealed evidence — generators do not move acceptance;
+- seals are **content integrity** envelopes (`acceptance_digest` / `envelope_digest`), not publisher authenticity (no signing yet); see [`docs/seal.md`](docs/seal.md).
 
 ## Exit codes (partial)
 

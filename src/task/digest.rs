@@ -2,6 +2,7 @@
 
 use sha2::{Digest, Sha256};
 
+use crate::canonical_json::canonical_json_bytes;
 use crate::task::model::Task;
 
 /// Hex-encoded SHA-256 digest of the canonical task encoding.
@@ -21,9 +22,7 @@ impl TaskDigest {
 
 /// Compute the immutable task digest.
 ///
-/// The digest is SHA-256 over the canonical JSON encoding of the task. Canonical
-/// JSON sorts object keys lexicographically at every level and uses compact
-/// separators with no insignificant whitespace. Arrays keep author order.
+/// The digest is SHA-256 over `vaa-canonical-json-v1` encoding of the task.
 #[must_use]
 pub fn task_digest(task: &Task) -> TaskDigest {
     let canonical = canonical_task_bytes(task);
@@ -36,28 +35,7 @@ pub fn task_digest(task: &Task) -> TaskDigest {
 /// Canonical JSON bytes used for digests and mutation tests.
 #[must_use]
 pub fn canonical_task_bytes(task: &Task) -> Vec<u8> {
-    let value = serde_json::to_value(task).expect("task serializes to JSON value");
-    let canonical = sort_value(value);
-    serde_json::to_vec(&canonical).expect("canonical JSON serializes")
-}
-
-fn sort_value(value: serde_json::Value) -> serde_json::Value {
-    match value {
-        serde_json::Value::Object(map) => {
-            let mut keys = map.keys().cloned().collect::<Vec<_>>();
-            keys.sort_unstable();
-            let mut out = serde_json::Map::new();
-            for key in keys {
-                let child = map.get(&key).cloned().expect("key exists");
-                out.insert(key, sort_value(child));
-            }
-            serde_json::Value::Object(out)
-        }
-        serde_json::Value::Array(items) => {
-            serde_json::Value::Array(items.into_iter().map(sort_value).collect())
-        }
-        other => other,
-    }
+    canonical_json_bytes(task)
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
