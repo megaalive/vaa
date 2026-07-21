@@ -35,6 +35,7 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | **S2 — Gate-1 CI** | **Done** | CI | Windows job: live SemASM Incomplete + ingest `verify-chain` |
 | **S3 — Gate-2 allow-execution** | **Done** | CI | `--allow-execution` plumbing + Win64 Verified smoke |
 | **S4 — sum_i64 fixtures** | **Done** | CI | SemASM `wrapping_sum_i64` + VAA Win64 fixtures in Gate-1/2 |
+| **H0 — HlaX64 bridge lock** | **Done** | docs | Roles: HlaX64 emit → SemASM verify → VAA seal |
 | Phase 2–4 “vertical slice” claims | **Gate-1 Incomplete + Gate-2 Verified in CI** | CI | `count_byte` + `sum_i64` Win64 |
 
 ## Current executable acceptance
@@ -117,6 +118,27 @@ cargo run -q -- evidence verify-chain \
 | **S3 Gate-2** | VAA forwards `--allow-execution`; CI assert `Verified` | **Done** (opt-in) |
 | **S4** | SemASM ships `sum_i64` contract/oracle; VAA fixtures + CI | **Done** (`builtin.buffer.wrapping_sum_i64`) |
 
+### HlaX64 → SemASM → VAA bridge (after S4)
+
+Roles (do not conflate):
+
+| Layer | Owns | Does not own |
+|---|---|---|
+| **HlaX64** | Authoring `.hla64` → NASM (`hla64 emit-nasm`) | Verification status / seals |
+| **SemASM** | Contract + behavioral oracle + `VerificationReport` 0.4 | Task policy / evidence chain |
+| **VAA** | Task lock, `ingest`/`verify`, seal chain | Generating assembly |
+
+First leaf: `sum_i64` (Win64). Generator label: `--generator hlax64`.
+
+| Wave | Focus | Claim when done |
+|---|---|---|
+| **H0** | Lock roles in docs | Docs only |
+| **H1** | HlaX64 example + frozen NASM ingest fixture + Gate smoke | Incomplete ingest + optional Gate-2 Verified |
+| **H2** | `scripts/regen-hlax64-sum_i64` | Local regen of committed asm |
+| **H3** | CI checkout HlaX64 + emit-nasm + verify | Live emit matches / verifies |
+
+Honesty: HlaX64 `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete ≠ Verified.
+
 Do **not** call Gate-1 a “verified vertical slice”.
 
 ## Documentation map
@@ -132,6 +154,7 @@ Do **not** call Gate-1 a “verified vertical slice”.
 | `fixtures/canonical-json/` | Cross-language conformance vectors |
 | `fixtures/run/count_byte/README.md` | R1 golden run |
 | `fixtures/ingest/count_byte/README.md` | R2 generator-agnostic ingest |
+| `fixtures/ingest/hlax64_sum_i64/README.md` | HlaX64 → VAA ingest bridge (`sum_i64`) |
 | `fixtures/semasm/README.md` | Handshake fixtures |
 
 ## Honesty constraints
