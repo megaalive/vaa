@@ -99,7 +99,7 @@ fn gate1_ingest_and_verify_chain() {
     // Find the run directory created under run_base.
     let run_dir = std::fs::read_dir(&run_base)
         .expect("read run base")
-        .filter_map(|e| e.ok())
+        .filter_map(Result::ok)
         .map(|e| e.path())
         .find(|p| p.is_dir())
         .expect("expected a run directory after ingest");
