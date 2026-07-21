@@ -309,9 +309,14 @@ mod tests {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/tasks/sum_i64.vaa.toml")
     }
 
-    fn other_task() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("fixtures/ingest/count_byte/count_byte.vaa.toml")
+    /// Same `task_id` + `target` as default, but different locked content → different digest.
+    fn digest_mut_task() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/tasks/sum_i64_budget_mut.vaa.toml")
+    }
+
+    /// Same `target` as default, different `task_id` (and therefore digest).
+    fn alt_id_task() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/tasks/sum_i64_alt_id.vaa.toml")
     }
 
     fn write_candidate(run_root: &Path, dir_index: u32, opts: CandOpts<'_>) -> SealEnvelope {
@@ -624,12 +629,13 @@ mod tests {
                 previous_seal_digest: None,
             },
         );
+        // Same task_id + target; only locked content (budget) differs → digest only.
         let e1 = write_candidate(
             &run_root,
             1,
             CandOpts {
                 run_id: "run-chain",
-                task_path: other_task(),
+                task_path: digest_mut_task(),
                 source: b"cand1",
                 contract,
                 report_json,
@@ -637,9 +643,12 @@ mod tests {
                 previous_seal_digest: Some(e0.envelope_digest.clone()),
             },
         );
+        assert_eq!(e0.provenance.task_id, e1.provenance.task_id);
+        assert_eq!(e0.acceptance.target, e1.acceptance.target);
+        assert_ne!(e0.acceptance.task_digest, e1.acceptance.task_digest);
         let (report, _, _) = make_report(&CandOpts {
             run_id: "run-chain",
-            task_path: other_task(),
+            task_path: digest_mut_task(),
             source: b"cand1",
             contract,
             report_json,
@@ -647,15 +656,56 @@ mod tests {
             previous_seal_digest: None,
         });
         write_final_sealed_evidence(&run_root.join("evidence"), &report, &e1).unwrap();
-        let err = verify_chain(&run_root).expect_err("task");
-        // Different tasks also change task_id / target; any identity mismatch is fine.
-        match err {
-            SealError::Chain(msg) => assert!(
-                msg.contains("differs from chain identity"),
-                "unexpected: {msg}"
-            ),
-            other => panic!("{other:?}"),
-        }
+        let err = verify_chain(&run_root).expect_err("task_digest");
+        assert_chain_err(err, "task_digest differs from chain identity");
+        let _ = fs::remove_dir_all(&run_root);
+    }
+
+    #[test]
+    fn rejects_task_id_change() {
+        let run_root = temp_run();
+        let contract = b"contract";
+        let report_json = r#"{"status":"execution_denied"}"#;
+        let e0 = write_candidate(
+            &run_root,
+            0,
+            CandOpts {
+                run_id: "run-chain",
+                task_path: default_task(),
+                source: b"cand0",
+                contract,
+                report_json,
+                candidate_index: 0,
+                previous_seal_digest: None,
+            },
+        );
+        let e1 = write_candidate(
+            &run_root,
+            1,
+            CandOpts {
+                run_id: "run-chain",
+                task_path: alt_id_task(),
+                source: b"cand1",
+                contract,
+                report_json,
+                candidate_index: 1,
+                previous_seal_digest: Some(e0.envelope_digest.clone()),
+            },
+        );
+        assert_eq!(e0.acceptance.target, e1.acceptance.target);
+        assert_ne!(e0.provenance.task_id, e1.provenance.task_id);
+        let (report, _, _) = make_report(&CandOpts {
+            run_id: "run-chain",
+            task_path: alt_id_task(),
+            source: b"cand1",
+            contract,
+            report_json,
+            candidate_index: 1,
+            previous_seal_digest: None,
+        });
+        write_final_sealed_evidence(&run_root.join("evidence"), &report, &e1).unwrap();
+        let err = verify_chain(&run_root).expect_err("task_id");
+        assert_chain_err(err, "task_id differs from chain identity");
         let _ = fs::remove_dir_all(&run_root);
     }
 
@@ -706,11 +756,13 @@ mod tests {
 
     #[test]
     fn rejects_target_change() {
+        // Target is bound by verify_bundle to the on-disk task file. Tampering the seal
+        // target while leaving task.vaa.toml unchanged fails at bundle verify (not chain
+        // identity). Isolated target drift across two *valid* bundles would also change
+        // task_digest; that path is covered by rejects_task_digest_change.
         let run_root = temp_run();
         let (_e0, mut e1) = linked_pair(&run_root);
 
-        // Tamper candidate 0001 seal + evidence target while keeping digests self-consistent
-        // and artifact hashes valid (verify_bundle does not re-check target vs task file).
         e1.acceptance.target = "x86_64-pc-windows-msvc".into();
         e1.acceptance_digest = acceptance_digest_of(&e1.acceptance);
         e1.envelope_digest = envelope_digest_of(&e1.acceptance, &e1.provenance);
@@ -720,7 +772,6 @@ mod tests {
         let mut report: crate::evidence::EvidenceReport =
             serde_json::from_str(&evidence_raw).unwrap();
         report.target = "x86_64-pc-windows-msvc".into();
-        // Exclusive write_sealed_evidence would reject overwrite; rewrite files directly.
         fs::write(
             cand1.join("evidence.json"),
             serde_json::to_string_pretty(&report).unwrap(),
@@ -734,7 +785,13 @@ mod tests {
         write_final_sealed_evidence(&run_root.join("evidence"), &report, &e1).unwrap();
 
         let err = verify_chain(&run_root).expect_err("target");
-        assert_chain_err(err, "target differs from chain identity");
+        match err {
+            SealError::Bundle(msg) => assert!(
+                msg.contains("task.target != acceptance.target"),
+                "unexpected: {msg}"
+            ),
+            other => panic!("expected Bundle target mismatch, got {other:?}"),
+        }
         let _ = fs::remove_dir_all(&run_root);
     }
 }

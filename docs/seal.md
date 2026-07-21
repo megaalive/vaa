@@ -59,6 +59,9 @@ Validates the full Proof Loop history:
 5. All candidates share chain identity: `task_id`, `task_digest`, `run_id`, `target`, `contract_digest`.
 6. `evidence/final.seal.json` matches the last candidate's `envelope_digest` (and the same identity).
 
+`verify-bundle` also binds `task.task_id` / `task.target` from the on-disk task file to the seal
+(so a single valid bundle already proves those labels come from the locked task).
+
 Allowed to change across candidates: `source_digest`, SemASM report digest, `final_status`,
 `checks`, generator attribution, `candidate_index`, `previous_seal_digest`.
 
