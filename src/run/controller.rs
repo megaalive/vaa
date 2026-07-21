@@ -1,15 +1,15 @@
-//! End-to-end `vaa run` controller: fixture generate → verify → repair → evidence.
+//! End-to-end `vaa run` controller: fixture generate → verify → repair → seal.
 
 use std::path::{Path, PathBuf};
 
 use crate::candidate::CandidateProtocol;
-use crate::evidence::{sha256_digest_prefixed, EvidenceAggregator, EvidenceExpect, EvidenceReport};
+use crate::evidence::{EvidenceReport, GeneratorMeta};
 use crate::model::{FixtureModelAdapter, ModelAdapter};
 use crate::orchestrate::{MachineState, Orchestrator};
-use crate::run::{RunDir, RunId};
-use crate::semasm::{
-    match_task_requirements, SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError,
+use crate::run::verify_seal::{
+    doctor_and_capabilities, verify_candidate_and_seal, VerifySealInput,
 };
+use crate::run::{RunDir, RunId};
 use crate::task::load_locked_task;
 use crate::EvidenceStatus;
 
@@ -38,6 +38,8 @@ pub enum RunError {
     Io(String),
     #[error("semasm unavailable")]
     SemasmUnavailable,
+    #[error("verify/seal: {0}")]
+    VerifySeal(String),
 }
 
 /// Options for [`run_fixture_loop`].
@@ -60,10 +62,6 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
     let run_dir =
         RunDir::create(config.run_base, &run_id).map_err(|e| RunError::RunDir(e.to_string()))?;
 
-    let contract_bytes = std::fs::read(config.contract_path)
-        .map_err(|e| RunError::Io(format!("read contract: {e}")))?;
-    let contract_digest = sha256_digest_prefixed(&contract_bytes);
-
     let mut adapter = FixtureModelAdapter::new("fixture");
     let key = format!("{task_id}::{target}");
     for source in &config.fixture_sources {
@@ -74,17 +72,13 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
     transit(&mut orch, MachineState::TaskLoaded, "task locked")?;
     transit(&mut orch, MachineState::TargetIdentified, &target)?;
 
-    let caps = TargetCapabilities::for_target(&target);
-    let cm = match_task_requirements(locked.task(), &caps);
-    let doctor = SemasmDoctor::run();
-    let binary = doctor
-        .binary_path
-        .clone()
-        .ok_or(RunError::SemasmUnavailable)?;
+    let (doctor, cm) = doctor_and_capabilities(&locked);
+    if doctor.binary_path.is_none() {
+        return Err(RunError::SemasmUnavailable);
+    }
 
     let mut protocol = CandidateProtocol::with_max(&target, config.max_attempts);
-    let mut last_verify = None;
-    let mut last_expect = None;
+    let mut last_evidence: Option<EvidenceReport> = None;
     let mut accepted = 0u32;
     let mut need_candidate = true;
 
@@ -95,21 +89,34 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
             .generate("", &task_id, &target)
             .map_err(|e| RunError::Model(e.to_string()))?;
 
-        let cand_dir = run_dir
-            .candidate_dir(accepted)
-            .map_err(|e| RunError::RunDir(e.to_string()))?;
-        std::fs::create_dir_all(&cand_dir).map_err(|e| RunError::Io(e.to_string()))?;
-        let source_path = cand_dir.join("candidate.asm");
-        std::fs::write(&source_path, &response.source).map_err(|e| RunError::Io(e.to_string()))?;
+        let outcome = verify_candidate_and_seal(VerifySealInput {
+            locked: &locked,
+            contract_path: config.contract_path,
+            source_bytes: response.source.as_bytes(),
+            run_dir: &run_dir,
+            run_id: run_id.to_string(),
+            protocol: &mut protocol,
+            candidate_index: accepted,
+            generator: GeneratorMeta::fixture("fixture", Some(response.generation_id.clone())),
+            doctor: doctor.clone(),
+            capability_match: cm.clone(),
+        })
+        .map_err(|e| match e {
+            crate::run::verify_seal::VerifySealError::SemasmUnavailable => {
+                RunError::SemasmUnavailable
+            }
+            crate::run::verify_seal::VerifySealError::Candidate(msg) => {
+                let _ = orch.transit(MachineState::CandidateRejected, "rejected");
+                RunError::Candidate(msg)
+            }
+            other => RunError::VerifySeal(other.to_string()),
+        })?;
 
-        let outcome = protocol.submit(&response.source, &source_path, &target);
-        if !outcome.accepted {
-            transit(&mut orch, MachineState::CandidateRejected, "rejected")?;
-            return Err(RunError::Candidate(format!("{:?}", outcome.rejection)));
-        }
-
-        accepted += 1;
-        transit(&mut orch, MachineState::CandidateAccepted, &outcome.digest)?;
+        transit(
+            &mut orch,
+            MachineState::CandidateAccepted,
+            &outcome.source_digest,
+        )?;
         transit(
             &mut orch,
             MachineState::BuildInProgress,
@@ -126,39 +133,20 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
             "semasm agent verify",
         )?;
 
-        let source_digest = sha256_digest_prefixed(response.source.as_bytes());
-        let expect = EvidenceExpect::new(target.clone(), source_digest, contract_digest.clone());
-
-        let verify = match SemasmVerify::run(&source_path, config.contract_path, &binary, &target) {
-            Ok(report) => report,
-            Err(VerifyError::BinaryNotFound) => return Err(RunError::SemasmUnavailable),
-            Err(e) => {
-                transit(
-                    &mut orch,
-                    MachineState::VerificationCompleted,
-                    &format!("verify error: {e}"),
-                )?;
-                last_expect = Some(expect);
-                last_verify = None;
-                break;
-            }
-        };
-
+        accepted += 1;
         transit(
             &mut orch,
             MachineState::VerificationCompleted,
-            verify.raw_status.as_str(),
+            &format!("{:?}", outcome.evidence.final_status),
         )?;
 
-        let outcome_status = verify.outcome;
-        last_verify = Some(verify);
-        last_expect = Some(expect);
+        let status = outcome.evidence.final_status;
+        last_evidence = Some(outcome.evidence);
 
-        match outcome_status {
+        match status {
             EvidenceStatus::Incomplete | EvidenceStatus::Violated | EvidenceStatus::Failed
                 if adapter.pending_count(&key) > 0 && !protocol.is_exhausted() =>
             {
-                // Stay at VerificationCompleted; next loop does CandidateSubmitted.
                 need_candidate = true;
             }
             _ => {
@@ -167,26 +155,13 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
         }
     }
 
-    let expect = last_expect.ok_or_else(|| RunError::Io("no candidate verified".into()))?;
-    let evidence = EvidenceAggregator::build(
-        &locked,
-        Some(run_id.to_string()),
-        last_verify,
-        Some(doctor),
-        Some(cm),
-        &expect,
-    );
+    let evidence = last_evidence.ok_or_else(|| RunError::Io("no candidate verified".into()))?;
 
     transit(
         &mut orch,
         MachineState::RunFinished,
         &format!("{:?}", evidence.final_status),
     )?;
-
-    let evidence_path = run_dir.paths().evidence_dir.join("evidence.json");
-    if let Ok(body) = serde_json::to_string_pretty(&evidence) {
-        let _ = std::fs::write(evidence_path, body);
-    }
 
     Ok(RunOutcome {
         evidence,

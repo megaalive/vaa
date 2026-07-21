@@ -16,7 +16,9 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa doctor` | Available — SemASM version & schema compat |
 | `vaa capabilities --target <triple>` | Available — machine-readable JSON |
 | `vaa verify <task> --source <asm> --contract <sem.toml>` | Available — SemASM report 0.4, identity-bound evidence |
-| `vaa run <task> --contract … --wrong … --repaired …` | Available — fixture wrong→repair loop (no live LLM) |
+| `vaa run <task> --contract … --wrong … --repaired …` | Available — fixture wrong→repair loop (no live LLM); writes sealed evidence |
+| `vaa ingest <task> --contract … --source …` | Available — generator-agnostic candidate deposit (no model) |
+| `vaa evidence check-seal <evidence.json> <evidence.seal.json>` | Available — detects acceptance/source drift |
 | `vaa generate <task> --output <file.asm>` | Available — fixture model adapter |
 | `vaa build <source.asm> [--target elf64]` | Available — NASM + linker pipeline |
 | `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |
@@ -67,7 +69,8 @@ Non-negotiable direction:
 - SemASM integration via versioned process/JSON protocol (`VerificationReport` schema **0.4**, stdout-only; identity digests bound into evidence);
 - dynamic execution disabled by default (`vaa verify` / `vaa run` do not pass `--allow-execution`);
 - SemASM contract path is explicit: `--contract <*.sem.toml>` (distinct from the locked `*.vaa.toml` task);
-- `vaa run` wires the orchestrator with a **fixture** model queue (wrong→repair); live providers are out of scope.
+- `vaa run` wires the orchestrator with a **fixture** model queue (wrong→repair); live providers are out of scope;
+- `vaa ingest` accepts any external `.asm` (fixture, human, CryptOpt-like search, LLM dump) and always returns to SemASM verify + sealed evidence — generators do not move acceptance.
 
 ## Exit codes (partial)
 

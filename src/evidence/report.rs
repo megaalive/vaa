@@ -2,7 +2,7 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::status::EvidenceStatus;
@@ -11,7 +11,7 @@ use crate::semasm::doctor::DoctorReport;
 use crate::semasm::verify::VerifyReport;
 use crate::task::LockedTask;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CheckOutcome {
     pub check_name: String,
     pub required: bool,
@@ -19,7 +19,7 @@ pub struct CheckOutcome {
     pub details: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvidenceReport {
     pub task_id: String,
     pub task_digest: String,

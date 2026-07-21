@@ -14,10 +14,10 @@ use clap::{Parser, Subcommand, ValueEnum};
 use vaa::exit_code::ExitCode as VaaExitCode;
 use vaa::task::{load_locked_task, TaskError};
 use vaa::{
-    run_fixture_loop, sha256_digest_prefixed, ArtifactInspector, BuildPipeline, EvidenceAggregator,
-    EvidenceExpect, EvidenceStatus, FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig,
-    SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION,
-    VAA_VERSION,
+    ingest_candidate, run_fixture_loop, sha256_digest_prefixed, verify_seal, ArtifactInspector,
+    BuildPipeline, EvidenceAggregator, EvidenceExpect, EvidenceStatus, FixtureModelAdapter,
+    ModelAdapter, PipelineConfig, RunConfig, RunDir, RunId, SemasmDoctor, SemasmVerify,
+    TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION, VAA_VERSION,
 };
 
 /// Verifiable Assembly Agent command-line interface.
@@ -101,6 +101,31 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Ingest an external candidate (no model) and seal evidence.
+    Ingest {
+        /// Path to the locked task file.
+        task: PathBuf,
+        /// Path to the SemASM `*.sem.toml` contract.
+        #[arg(long)]
+        contract: PathBuf,
+        /// Path to the candidate assembly source.
+        #[arg(long)]
+        source: PathBuf,
+        /// Untrusted generator name for seal attribution.
+        #[arg(long, default_value = "external")]
+        generator: String,
+        /// Directory that will contain the run folder.
+        #[arg(long, default_value = ".")]
+        run_dir: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Evidence seal utilities.
+    Evidence {
+        #[command(subcommand)]
+        command: EvidenceCommands,
+    },
     /// Generate assembly from a locked task via model adapter.
     Generate {
         /// Path to the locked task file.
@@ -130,6 +155,17 @@ enum Commands {
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum EvidenceCommands {
+    /// Verify `evidence.json` against `evidence.seal.json`.
+    CheckSeal {
+        /// Path to evidence.json.
+        evidence: PathBuf,
+        /// Path to evidence.seal.json.
+        seal: PathBuf,
     },
 }
 
@@ -173,6 +209,17 @@ fn main() -> ExitCode {
             repaired,
             format,
         } => run_command(&task, &contract, &run_dir, &wrong, &repaired, format),
+        Commands::Ingest {
+            task,
+            contract,
+            source,
+            generator,
+            run_dir,
+            format,
+        } => ingest_command(&task, &contract, &source, &generator, &run_dir, format),
+        Commands::Evidence { command } => match command {
+            EvidenceCommands::CheckSeal { evidence, seal } => check_seal_command(&evidence, &seal),
+        },
         Commands::Generate { task, output } => generate_command(&task, &output),
         Commands::Build {
             source,
@@ -189,10 +236,11 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, generate, build, inspect");
-    println!("default mode: verify-only (run uses fixture model; no live LLM)");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, inspect");
+    println!("default mode: verify-only (run=fixture; ingest=external candidate; no live LLM)");
     println!("model adapter: fixture adapter with queued wrong→repair responses");
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
+    println!("evidence: sealed digests (generator cannot move acceptance)");
     println!("build pipeline: nasm + ld (needs toolchain on PATH)");
     println!("note: absence of errors here is not evidence that any assembly is verified");
 }
@@ -496,6 +544,71 @@ fn run_command(
     }
 }
 
+fn ingest_command(
+    task_path: &Path,
+    contract_path: &Path,
+    source_path: &Path,
+    generator: &str,
+    run_base: &Path,
+    format: OutputFormat,
+) -> ExitCode {
+    let locked = match load_locked_task(task_path) {
+        Ok(t) => t,
+        Err(error) => {
+            emit_validate_error(task_path, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let run_id = RunId::generate();
+    let run_dir = match RunDir::create(run_base, &run_id) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: run dir: {e}");
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+
+    match ingest_candidate(
+        &locked,
+        contract_path,
+        source_path,
+        &run_dir,
+        run_id.as_str(),
+        generator,
+        4,
+    ) {
+        Ok(outcome) => {
+            if format == OutputFormat::Terminal {
+                println!("Run root: {}", run_dir.root().display());
+                println!("Seal digest: {}", outcome.seal.seal_digest);
+                println!(
+                    "Generator: {} / {}",
+                    outcome.seal.payload.generator.kind, outcome.seal.payload.generator.name
+                );
+            }
+            emit_evidence_report(&outcome.evidence, format)
+        }
+        Err(e) => {
+            eprintln!("error: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn check_seal_command(evidence: &Path, seal: &Path) -> ExitCode {
+    match verify_seal(evidence, seal) {
+        Ok(()) => {
+            println!("ok: evidence seal verified");
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: seal check failed: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
 fn emit_evidence_report(report: &vaa::EvidenceReport, format: OutputFormat) -> ExitCode {
     match format {
         OutputFormat::Terminal => {
@@ -723,6 +836,41 @@ mod tests {
         ])
         .expect("parse");
         assert!(matches!(cli.command, Some(Commands::Run { .. })));
+    }
+
+    #[test]
+    fn clap_parses_ingest() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "ingest",
+            "task.vaa.toml",
+            "--contract",
+            "c.sem.toml",
+            "--source",
+            "cand.asm",
+            "--generator",
+            "cryptopt-like",
+        ])
+        .expect("parse");
+        assert!(matches!(cli.command, Some(Commands::Ingest { .. })));
+    }
+
+    #[test]
+    fn clap_parses_evidence_check_seal() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "evidence",
+            "check-seal",
+            "evidence.json",
+            "evidence.seal.json",
+        ])
+        .expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Evidence {
+                command: EvidenceCommands::CheckSeal { .. }
+            })
+        ));
     }
 
     #[test]

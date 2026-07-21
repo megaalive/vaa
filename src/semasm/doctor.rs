@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::process::{ProcessConfig, ProcessError, ProcessRunner};
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DoctorStatus {
     Available,
     Unavailable,
@@ -13,13 +13,13 @@ pub enum DoctorStatus {
     Degraded,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SemasmVersion {
     pub version: String,
     pub schema_version: String,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DoctorReport {
     pub status: DoctorStatus,
     pub binary_path: Option<PathBuf>,

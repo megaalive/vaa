@@ -100,7 +100,7 @@ impl TargetCapabilities {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CapabilityMatch {
     pub compatible: bool,
     pub missing: Vec<String>,

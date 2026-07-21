@@ -24,8 +24,8 @@ pub mod task;
 pub use build::{BuildManifest, BuildOutcome, BuildPipeline, PipelineConfig};
 pub use candidate::{CandidateProtocol, CandidateSubmission, SubmissionOutcome};
 pub use evidence::{
-    sha256_digest_prefixed, CheckOutcome, EvidenceAggregator, EvidenceExpect, EvidenceReport,
-    EvidenceStatus,
+    sha256_digest_prefixed, verify_seal, write_sealed_evidence, CheckOutcome, EvidenceAggregator,
+    EvidenceExpect, EvidenceReport, EvidenceStatus, GeneratorMeta, SealEnvelope, SealError,
 };
 pub use exit_code::ExitCode as VaaExitCode;
 pub use harness::{HarnessConfig, HarnessTemplate};
@@ -34,8 +34,8 @@ pub use model::{FixtureModelAdapter, ModelAdapter, ModelResponse};
 pub use orchestrate::{MachineState, Orchestrator, StateTransition};
 pub use process::{ProcessConfig, ProcessError, ProcessOutput, ProcessRunner};
 pub use run::{
-    run_fixture_loop, EventKind, EventLog, RunConfig, RunDir, RunDirPaths, RunError, RunId,
-    RunOutcome,
+    ingest_candidate, run_fixture_loop, EventKind, EventLog, RunConfig, RunDir, RunDirPaths,
+    RunError, RunId, RunOutcome, VerifySealOutcome,
 };
 pub use sandbox::{ExecutionSandbox, LocalBackend, SandboxBackend, SandboxConfig};
 pub use semasm::{
