@@ -56,7 +56,11 @@ Validates the full Proof Loop history:
 2. Each candidate passes `verify-bundle`.
 3. Candidate `0000` has `previous_seal_digest = null`.
 4. Candidate `i` has `previous_seal_digest == envelope_digest` of `i-1`.
-5. `evidence/final.seal.json` matches the last candidate's `envelope_digest`.
+5. All candidates share chain identity: `task_id`, `task_digest`, `run_id`, `target`, `contract_digest`.
+6. `evidence/final.seal.json` matches the last candidate's `envelope_digest` (and the same identity).
+
+Allowed to change across candidates: `source_digest`, SemASM report digest, `final_status`,
+`checks`, generator attribution, `candidate_index`, `previous_seal_digest`.
 
 ## Layout (append-only)
 

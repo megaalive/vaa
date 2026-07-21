@@ -27,8 +27,8 @@ pub use candidate::{CandidateProtocol, CandidateSubmission, SubmissionOutcome};
 pub use canonical_json::{CANONICALIZATION_ID, DIGEST_ALGORITHM_ID};
 pub use evidence::{
     sha256_digest_prefixed, verify_bundle, verify_chain, verify_seal, write_sealed_evidence,
-    CheckOutcome, EvidenceAggregator, EvidenceExpect, EvidenceReport, EvidenceStatus,
-    GeneratorMeta, SealEnvelope, SealError, VerifyChainReport,
+    ChainIdentity, CheckOutcome, EvidenceAggregator, EvidenceExpect, EvidenceReport,
+    EvidenceStatus, GeneratorMeta, SealEnvelope, SealError, VerifyChainReport,
 };
 pub use exit_code::ExitCode as VaaExitCode;
 pub use harness::{HarnessConfig, HarnessTemplate};

@@ -88,7 +88,7 @@ cargo run -q -- evidence verify-chain \
 - Seal schema **0.2**: `acceptance_digest` (technical truth) vs `envelope_digest` (includes provenance / chain).
 - `check-seal` = evidence/seal JSON drift (full `checks` including `details`).
 - `verify-bundle` = re-hash one candidate's artifacts.
-- `verify-chain` = contiguous hash chain + final seal; deleting a predecessor fails verification.
+- `verify-chain` = contiguous hash chain + final seal + chain-wide identity (task/run/target/contract); deleting a predecessor fails verification.
 - Append-only storage: exclusive candidate dirs + `create_new` writes.
 - Integrity ≠ authenticity: SHA-256 envelope detects drift; it does **not** prove a trusted VAA publisher (no signing yet). See [`docs/seal.md`](seal.md).
 - Canonicalization: [`docs/vaa-canonical-json-v1.md`](vaa-canonical-json-v1.md) + [`fixtures/canonical-json/`](../fixtures/canonical-json/).
