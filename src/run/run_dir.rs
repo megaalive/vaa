@@ -41,6 +41,9 @@ pub enum RunDirError {
 
     #[error("candidate index overflow")]
     CandidateOverflow,
+
+    #[error("candidate {index:04} already sealed at `{path}`")]
+    CandidateAlreadySealed { index: u32, path: PathBuf },
 }
 
 impl RunDir {
@@ -99,26 +102,72 @@ impl RunDir {
         Ok(self.paths.candidates_dir.join(name))
     }
 
+    /// Create an exclusive candidate directory (append-only).
+    ///
+    /// Uses `create_dir` (not `create_dir_all` on an existing leaf): if the
+    /// directory already exists, returns [`RunDirError::CandidateAlreadySealed`].
     pub fn create_candidate_dir(&self, index: u32) -> Result<PathBuf, RunDirError> {
         if index > 9999 {
             return Err(RunDirError::CandidateOverflow);
         }
         let name = format!("{index:04}");
         let dir = self.paths.candidates_dir.join(&name);
-        fs::create_dir_all(&dir).map_err(|source| RunDirError::Create {
+        if dir.exists() {
+            return Err(RunDirError::CandidateAlreadySealed { index, path: dir });
+        }
+        fs::create_dir(&dir).map_err(|source| RunDirError::Create {
             path: dir.clone(),
             source,
         })?;
 
         let marker = dir.join(".immutable");
-        if let Err(source) = fs::write(&marker, b"") {
-            return Err(RunDirError::Write {
-                path: marker,
-                source,
-            });
-        }
+        write_new_file(&marker, b"").map_err(|source| RunDirError::Write {
+            path: marker,
+            source,
+        })?;
 
         Ok(dir)
+    }
+
+    /// Write a new file that must not already exist (`create_new`).
+    pub fn write_new_file(&self, path: &Path, data: &[u8]) -> Result<(), RunDirError> {
+        if !path.starts_with(&self.paths.root) {
+            return Err(RunDirError::PathTraversal {
+                path: path.to_path_buf(),
+            });
+        }
+        write_new_file(path, data).map_err(|source| RunDirError::Write {
+            path: path.to_path_buf(),
+            source,
+        })
+    }
+
+    /// Best-effort: mark candidate bundle files read-only after seal.
+    pub fn seal_candidate_readonly(&self, candidate_dir: &Path) -> Result<(), RunDirError> {
+        if !candidate_dir.starts_with(&self.paths.root) {
+            return Err(RunDirError::PathTraversal {
+                path: candidate_dir.to_path_buf(),
+            });
+        }
+        let names = [
+            "candidate.asm",
+            "task.vaa.toml",
+            "contract.sem.toml",
+            "semasm-report.json",
+            "evidence.json",
+            "evidence.seal.json",
+            ".immutable",
+        ];
+        for name in names {
+            let path = candidate_dir.join(name);
+            if path.exists() {
+                set_readonly(&path).map_err(|source| RunDirError::Write {
+                    path: path.clone(),
+                    source,
+                })?;
+            }
+        }
+        Ok(())
     }
 
     pub fn write_atomic(&self, path: &Path, data: &[u8]) -> Result<(), RunDirError> {
@@ -204,6 +253,23 @@ fn tempfile(path: &Path) -> Result<fs::File, std::io::Error> {
     fs::File::create(&tmp)
 }
 
+fn write_new_file(path: &Path, data: &[u8]) -> Result<(), std::io::Error> {
+    use std::io::Write;
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)?;
+    file.write_all(data)?;
+    file.flush()?;
+    Ok(())
+}
+
+fn set_readonly(path: &Path) -> Result<(), std::io::Error> {
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_readonly(true);
+    fs::set_permissions(path, perms)
+}
+
 fn sanitize_filename(name: &str) -> String {
     name.chars()
         .map(|c| {
@@ -238,6 +304,22 @@ mod tests {
         assert!(rundir.paths.candidates_dir.exists());
         assert!(rundir.paths.accepted_dir.exists());
         assert!(rundir.paths.evidence_dir.exists());
+
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn create_candidate_dir_rejects_reuse() {
+        let base = temp_base();
+        let id = RunId::generate();
+        let rundir = RunDir::create(&base, &id).expect("create run dir");
+
+        rundir.create_candidate_dir(0).expect("first");
+        let err = rundir.create_candidate_dir(0).expect_err("reuse");
+        assert!(matches!(
+            err,
+            RunDirError::CandidateAlreadySealed { index: 0, .. }
+        ));
 
         let _ = fs::remove_dir_all(&base);
     }

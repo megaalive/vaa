@@ -14,10 +14,11 @@ use clap::{Parser, Subcommand, ValueEnum};
 use vaa::exit_code::ExitCode as VaaExitCode;
 use vaa::task::{load_locked_task, TaskError};
 use vaa::{
-    ingest_candidate, run_fixture_loop, sha256_digest_prefixed, verify_bundle, verify_seal,
-    ArtifactInspector, BuildPipeline, EvidenceAggregator, EvidenceExpect, EvidenceStatus,
-    FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig, RunDir, RunId, SemasmDoctor,
-    SemasmVerify, TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION, VAA_VERSION,
+    ingest_candidate, run_fixture_loop, sha256_digest_prefixed, verify_bundle, verify_chain,
+    verify_seal, ArtifactInspector, BuildPipeline, EvidenceAggregator, EvidenceExpect,
+    EvidenceStatus, FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig, RunDir, RunId,
+    SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION,
+    VAA_VERSION,
 };
 
 /// Verifiable Assembly Agent command-line interface.
@@ -172,6 +173,11 @@ enum EvidenceCommands {
         /// Directory containing task/contract/candidate/report/evidence/seal.
         bundle_dir: PathBuf,
     },
+    /// Verify the full candidate seal chain for a run directory.
+    VerifyChain {
+        /// Run directory containing `candidates/` and `evidence/final*.json`.
+        run_dir: PathBuf,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -225,6 +231,7 @@ fn main() -> ExitCode {
         Commands::Evidence { command } => match command {
             EvidenceCommands::CheckSeal { evidence, seal } => check_seal_command(&evidence, &seal),
             EvidenceCommands::VerifyBundle { bundle_dir } => verify_bundle_command(&bundle_dir),
+            EvidenceCommands::VerifyChain { run_dir } => verify_chain_command(&run_dir),
         },
         Commands::Generate { task, output } => generate_command(&task, &output),
         Commands::Build {
@@ -634,6 +641,27 @@ fn verify_bundle_command(bundle_dir: &Path) -> ExitCode {
     }
 }
 
+fn verify_chain_command(run_dir: &Path) -> ExitCode {
+    match verify_chain(run_dir) {
+        Ok(report) => {
+            println!(
+                "ok: seal chain verified ({} candidates)",
+                report.candidate_count
+            );
+            println!(
+                "  last acceptance_digest: {}",
+                report.last_acceptance_digest
+            );
+            println!("  last envelope_digest: {}", report.last_envelope_digest);
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: chain verify failed: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
 fn emit_evidence_report(report: &vaa::EvidenceReport, format: OutputFormat) -> ExitCode {
     match format {
         OutputFormat::Terminal => {
@@ -906,6 +934,18 @@ mod tests {
             cli.command,
             Some(Commands::Evidence {
                 command: EvidenceCommands::VerifyBundle { .. }
+            })
+        ));
+    }
+
+    #[test]
+    fn clap_parses_evidence_verify_chain() {
+        let cli = Cli::try_parse_from(["vaa", "evidence", "verify-chain", "target/vaa-runs/run-1"])
+            .expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Evidence {
+                command: EvidenceCommands::VerifyChain { .. }
             })
         ));
     }

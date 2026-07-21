@@ -1,4 +1,5 @@
 pub mod bundle;
+pub mod chain;
 pub mod report;
 pub mod seal;
 pub mod status;
@@ -7,6 +8,7 @@ pub use bundle::{
     materialize_bundle_files, verify_bundle, BUNDLE_CONTRACT, BUNDLE_EVIDENCE, BUNDLE_REPORT,
     BUNDLE_SEAL, BUNDLE_SOURCE, BUNDLE_TASK,
 };
+pub use chain::{verify_chain, VerifyChainReport};
 pub use report::{
     schema_version_compatible, sha256_digest_prefixed, CheckOutcome, EvidenceAggregator,
     EvidenceExpect, EvidenceReport,

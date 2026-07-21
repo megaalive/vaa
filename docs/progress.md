@@ -29,7 +29,8 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | PR-017 — Orchestrator state machine | **Done** | unit | Edges for repair |
 | **R1 — `vaa run` wired** | **Done** | unit | Fixture loop + SemASM verify; live SemASM not in CI |
 | **R2 — Seal + ingest** | **Done** | unit | integrity envelope; `vaa ingest`; `check-seal` |
-| **R2b — Seal hardening** | **Done** | unit | acceptance vs envelope digests; atomic write; per-candidate chain; `verify-bundle`; `vaa-canonical-json-v1` |
+| **R2b — Seal hardening** | **Done** | unit | acceptance/envelope; atomic publish; per-candidate chain; `verify-bundle` |
+| **R2c — verify-chain + append-only** | **Done** | unit | `verify-chain`; full check details; exclusive candidate dirs; canonical vectors |
 | Phase 2–4 “vertical slice” claims | **Components + R1/R2 wiring** | — | Not a CI-proven VAA→SemASM→toolchain golden yet |
 
 ## Current executable acceptance
@@ -69,6 +70,9 @@ cargo run -q -- evidence check-seal \
 
 cargo run -q -- evidence verify-bundle \
   target/vaa-runs/<run-id>/candidates/0000
+
+cargo run -q -- evidence verify-chain \
+  target/vaa-runs/<run-id>
 ```
 
 ### SemASM VerificationReport 0.4 handshake
@@ -78,21 +82,26 @@ cargo run -q -- evidence verify-bundle \
 - Status map: `verified`→Verified; gate failures→Violated; `execution_denied`→Incomplete; missing report→Failed.
 - Evidence identity: target + source/contract digests + tool identity must match.
 
-### Seal + generator-agnostic ingest (R2 / R2b)
+### Seal + generator-agnostic ingest (R2 / R2b / R2c)
 
 - Per-candidate bundle under `candidates/NNNN/` plus `evidence/final.json` + `evidence/final.seal.json`.
 - Seal schema **0.2**: `acceptance_digest` (technical truth) vs `envelope_digest` (includes provenance / chain).
-- `check-seal` = evidence/seal JSON drift. `verify-bundle` = re-hash task/contract/source/report files.
+- `check-seal` = evidence/seal JSON drift (full `checks` including `details`).
+- `verify-bundle` = re-hash one candidate's artifacts.
+- `verify-chain` = contiguous hash chain + final seal; deleting a predecessor fails verification.
+- Append-only storage: exclusive candidate dirs + `create_new` writes.
 - Integrity ≠ authenticity: SHA-256 envelope detects drift; it does **not** prove a trusted VAA publisher (no signing yet). See [`docs/seal.md`](seal.md).
-- Canonicalization: [`docs/vaa-canonical-json-v1.md`](vaa-canonical-json-v1.md).
+- Canonicalization: [`docs/vaa-canonical-json-v1.md`](vaa-canonical-json-v1.md) + [`fixtures/canonical-json/`](../fixtures/canonical-json/).
+- Atomic publication with seal commit marker (not claimed fully crash-durable on all FS).
 - Positioning (honest): CryptOpt-like / Proof-Loop idea = candidates return to SemASM; acceptance digests sealed. Not a search engine or formal proof system.
 
 ### Still out of scope (R3+)
 
 - Streaming output caps / process-group kill
 - CI job with live SemASM + toolchain + transparency log of digests
-- Hardened ContainerBackend / filesystem isolation of evidence dir
+- Hardened ContainerBackend / generator FS isolation
 - Digital signature (Ed25519) authenticity
+- Fully crash-durable transactional pair (directory fsync everywhere)
 - Live model adapter
 - CryptOpt randomized search engine
 - Full `sum_i64` SemASM golden (needs SemASM contract)
@@ -105,8 +114,9 @@ cargo run -q -- evidence verify-bundle \
 | `docs/implementation-baseline.md` | Phase 0 SemASM reality check |
 | `docs/task-schema.md` | Task schema 0.1 |
 | `docs/progress.md` | This file |
-| `docs/seal.md` | Integrity vs authenticity; seal schema 0.2 |
+| `docs/seal.md` | Integrity vs authenticity; seal schema 0.2; verify-chain |
 | `docs/vaa-canonical-json-v1.md` | Named canonical JSON profile |
+| `fixtures/canonical-json/` | Cross-language conformance vectors |
 | `fixtures/run/count_byte/README.md` | R1 golden run |
 | `fixtures/ingest/count_byte/README.md` | R2 generator-agnostic ingest |
 | `fixtures/semasm/README.md` | Handshake fixtures |

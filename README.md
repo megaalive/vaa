@@ -20,6 +20,7 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa ingest <task> --contract … --source …` | Available — generator-agnostic candidate deposit (no model) |
 | `vaa evidence check-seal …` | Available — evidence/seal JSON integrity (not artifact rehash) |
 | `vaa evidence verify-bundle <dir>` | Available — re-hash task/contract/source/report vs seal |
+| `vaa evidence verify-chain <run-dir>` | Available — full candidate hash chain + final seal |
 | `vaa generate <task> --output <file.asm>` | Available — fixture model adapter |
 | `vaa build <source.asm> [--target elf64]` | Available — NASM + linker pipeline |
 | `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |

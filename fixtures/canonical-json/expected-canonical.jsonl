@@ -1,0 +1,10 @@
+nested_objects	{"a":{"y":3,"z":2},"b":1}
+array_order	{"items":[3,1,2]}
+empty_collections	{"a":[],"o":{}}
+unicode	{"msg":"café 日本語"}
+escaped	{"s":"line\n\t\"quote\\"}
+negative_int	{"n":-1}
+i64_min	{"n":-9223372036854775808}
+i64_max	{"n":9223372036854775807}
+key_order	{"a":2,"m":3,"z":1}
+null_bool	{"a":null,"b":true,"c":false}

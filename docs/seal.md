@@ -7,13 +7,12 @@ attestation of publisher identity.
 
 | Property | Supported today? | Meaning |
 |---|---|---|
-| **Content integrity** | Yes | Detect drift or corruption between `evidence.json` and the sealed digests, and (via `verify-bundle`) between digests and on-disk artifacts. |
+| **Content integrity** | Yes | Detect drift or corruption between `evidence.json` and the sealed digests, and (via `verify-bundle` / `verify-chain`) between digests and on-disk artifacts. |
 | **Authenticity** | No | Does **not** prove a trusted VAA instance issued the acceptance. Anyone who can write both evidence and seal files can rewrite the payload and recompute SHA-256. |
 
 There is no secret key and no digital signature in the seal path today. That is
-intentional for R2: process isolation plus an external transparency artifact
-(CI log, Git note, append-only store of `envelope_digest`) is enough for early
-phases.
+intentional for early phases: process isolation plus an external transparency
+artifact (CI log, Git note, append-only store of `envelope_digest`) is enough.
 
 ### Future authenticity options (not implemented)
 
@@ -33,29 +32,33 @@ phases.
 Generator metadata lives only under `provenance.generator` and is **not** part of
 `acceptance_digest`.
 
+`check-seal` compares the full sorted `checks` vector (including `details`).
+
 ## Commands
 
 ### `vaa evidence check-seal <evidence.json> <evidence.seal.json>`
 
-Detects **evidence/seal drift** (JSON report vs sealed payload / digests).
+Detects **evidence/seal JSON drift** (report vs sealed payload / digests),
+including full `CheckOutcome` equality.
 
 Does **not** re-hash `candidate.asm` / contract / task files on disk.
 
 ### `vaa evidence verify-bundle <bundle-dir>`
 
-Re-hashes on-disk artifacts and compares them to sealed digests:
+Re-hashes on-disk artifacts and compares them to sealed digests for **one**
+candidate (or bundle) directory.
 
-| File | Compared to |
-|---|---|
-| `task.vaa.toml` | locked-task content digest → `acceptance.task_digest` |
-| `contract.sem.toml` | SHA-256 of file bytes → `acceptance.contract_digest` |
-| `candidate.asm` | SHA-256 of file bytes → `acceptance.source_digest` |
-| `semasm-report.json` | SHA-256 of file bytes → `acceptance.semasm_report_digest` (or `none`) |
-| `evidence.json` + `evidence.seal.json` | digests + cross-checks |
+### `vaa evidence verify-chain <run-directory>`
 
-## Layout (Proof Loop–oriented)
+Validates the full Proof Loop history:
 
-Per candidate (append-only; not overwritten by later repairs):
+1. Contiguous `candidates/0000` … `candidates/NNNN` (no gaps; deleting a predecessor fails).
+2. Each candidate passes `verify-bundle`.
+3. Candidate `0000` has `previous_seal_digest = null`.
+4. Candidate `i` has `previous_seal_digest == envelope_digest` of `i-1`.
+5. `evidence/final.seal.json` matches the last candidate's `envelope_digest`.
+
+## Layout (append-only)
 
 ```text
 candidates/0000/
@@ -71,8 +74,20 @@ evidence/final.json
 evidence/final.seal.json
 ```
 
-Each candidate seal’s `provenance` may include `previous_seal_digest` (hash chain).
-Deleting a failed attempt breaks the chain.
+Storage boundary: exclusive `create_dir` per candidate index, `create_new` file
+writes, and best-effort read-only permissions after seal. Reusing an index fails
+with `CandidateAlreadySealed`.
 
-Atomic write: `evidence.json.tmp` / `evidence.seal.json.tmp`, fsync, rename
-evidence first, seal last (seal rename is the commit marker).
+## Atomic publication
+
+Writes use:
+
+1. `evidence.*.tmp` / `seal.*.tmp`
+2. `sync_all` on temporary files
+3. rename evidence, then rename seal (seal rename = commit marker)
+4. best-effort parent-directory fsync
+
+Accurate term: **atomic publication with a seal commit marker**.
+
+Not claimed: fully **crash-durable transactional pair** on every filesystem
+(especially where directory fsync is unavailable, e.g. typical Windows directory handles).

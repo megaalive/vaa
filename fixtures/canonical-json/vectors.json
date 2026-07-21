@@ -1,0 +1,12 @@
+[
+  {"name": "nested_objects", "value": {"b": 1, "a": {"z": 2, "y": 3}}},
+  {"name": "array_order", "value": {"items": [3, 1, 2]}},
+  {"name": "empty_collections", "value": {"o": {}, "a": []}},
+  {"name": "unicode", "value": {"msg": "café 日本語"}},
+  {"name": "escaped", "value": {"s": "line\n\t\"quote\\"}},
+  {"name": "negative_int", "value": {"n": -1}},
+  {"name": "i64_min", "value": {"n": -9223372036854775808}},
+  {"name": "i64_max", "value": {"n": 9223372036854775807}},
+  {"name": "key_order", "value": {"z": 1, "a": 2, "m": 3}},
+  {"name": "null_bool", "value": {"a": null, "b": true, "c": false}}
+]

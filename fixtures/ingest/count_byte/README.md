@@ -18,6 +18,10 @@ cargo run -q -- evidence check-seal \
 # Re-hash on-disk artifacts against sealed digests:
 cargo run -q -- evidence verify-bundle \
   target/vaa-runs/<run-id>/candidates/0000
+
+# Full run chain (contiguous predecessors + final):
+cargo run -q -- evidence verify-chain \
+  target/vaa-runs/<run-id>
 ```
 
 Requires `semasm` on PATH. Generator never writes `final_status`. The seal is **content integrity**, not a cryptographic attestation of publisher identity — see `docs/seal.md`.

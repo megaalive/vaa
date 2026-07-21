@@ -33,6 +33,8 @@ pub enum VerifySealError {
     Io(String),
     #[error("candidate rejected: {0}")]
     Candidate(String),
+    #[error("candidate already sealed: {0}")]
+    CandidateAlreadySealed(String),
     #[error("semasm unavailable")]
     SemasmUnavailable,
     #[error("seal: {0}")]
@@ -74,11 +76,19 @@ pub fn verify_candidate_and_seal(
 
     let cand_dir = input
         .run_dir
-        .candidate_dir(input.candidate_index)
-        .map_err(|e| VerifySealError::RunDir(e.to_string()))?;
-    std::fs::create_dir_all(&cand_dir).map_err(|e| VerifySealError::Io(e.to_string()))?;
+        .create_candidate_dir(input.candidate_index)
+        .map_err(|e| match e {
+            crate::run::RunDirError::CandidateAlreadySealed { index, path } => {
+                VerifySealError::CandidateAlreadySealed(format!("{index:04} at {}", path.display()))
+            }
+            other => VerifySealError::RunDir(other.to_string()),
+        })?;
+
     let source_path = cand_dir.join("candidate.asm");
-    std::fs::write(&source_path, &source_text).map_err(|e| VerifySealError::Io(e.to_string()))?;
+    input
+        .run_dir
+        .write_new_file(&source_path, source_text.as_bytes())
+        .map_err(|e| VerifySealError::Io(e.to_string()))?;
 
     let outcome = input.protocol.submit(&source_text, &source_path, &target);
     if !outcome.accepted {
@@ -128,6 +138,9 @@ pub fn verify_candidate_and_seal(
 
     write_final_sealed_evidence(&input.run_dir.paths().evidence_dir, &evidence, &seal)
         .map_err(|e| VerifySealError::Seal(e.to_string()))?;
+
+    // Best-effort append-only hardening after successful seal.
+    let _ = input.run_dir.seal_candidate_readonly(&cand_dir);
 
     Ok(VerifySealOutcome {
         evidence,

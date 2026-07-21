@@ -107,6 +107,10 @@ pub enum SealError {
     EvidenceMismatch(String),
     #[error("bundle: {0}")]
     Bundle(String),
+    #[error("chain: {0}")]
+    Chain(String),
+    #[error("already sealed: {0}")]
+    AlreadySealed(String),
 }
 
 /// Inputs for building a seal envelope.
@@ -185,6 +189,8 @@ pub fn seal_envelope(acceptance: AcceptanceBody, provenance: ProvenanceBody) -> 
 }
 
 /// Atomically write `evidence.json` + `evidence.seal.json` (seal rename last).
+///
+/// Fails if either destination already exists (append-only candidate seals).
 pub fn write_sealed_evidence(
     evidence_dir: &Path,
     report: &EvidenceReport,
@@ -193,6 +199,12 @@ pub fn write_sealed_evidence(
 ) -> Result<SealEnvelope, SealError> {
     fs::create_dir_all(evidence_dir).map_err(|e| SealError::Io(e.to_string()))?;
 
+    let evidence_path = evidence_dir.join("evidence.json");
+    let seal_path = evidence_dir.join("evidence.seal.json");
+    if evidence_path.exists() || seal_path.exists() {
+        return Err(SealError::AlreadySealed(evidence_dir.display().to_string()));
+    }
+
     let envelope = build_seal_envelope(report, expect, input);
     let evidence_body =
         serde_json::to_string_pretty(report).map_err(|e| SealError::Json(e.to_string()))?;
@@ -200,16 +212,17 @@ pub fn write_sealed_evidence(
         serde_json::to_string_pretty(&envelope).map_err(|e| SealError::Json(e.to_string()))?;
 
     atomic_write_pair(
-        &evidence_dir.join("evidence.json"),
+        &evidence_path,
         evidence_body.as_bytes(),
-        &evidence_dir.join("evidence.seal.json"),
+        &seal_path,
         seal_body.as_bytes(),
+        false, // exclusive: destinations must not exist
     )?;
 
     Ok(envelope)
 }
 
-/// Write final acceptance markers under `evidence/` (copies of the latest pair).
+/// Write final acceptance markers under `evidence/` (may replace prior final).
 pub fn write_final_sealed_evidence(
     evidence_dir: &Path,
     report: &EvidenceReport,
@@ -225,6 +238,7 @@ pub fn write_final_sealed_evidence(
         evidence_body.as_bytes(),
         &evidence_dir.join("final.seal.json"),
         seal_body.as_bytes(),
+        true, // allow replace final pointer
     )
 }
 
@@ -289,16 +303,9 @@ fn cross_check_evidence(report: &EvidenceReport, envelope: &SealEnvelope) -> Res
 
     let mut report_checks = report.checks.clone();
     report_checks.sort_by(|a, b| a.check_name.cmp(&b.check_name));
-    if report_checks.len() != acceptance.checks.len() {
-        return Err(SealError::EvidenceMismatch("checks length".into()));
-    }
-    for (a, b) in report_checks.iter().zip(acceptance.checks.iter()) {
-        if a.check_name != b.check_name || a.passed != b.passed || a.required != b.required {
-            return Err(SealError::EvidenceMismatch(format!(
-                "check {}",
-                a.check_name
-            )));
-        }
+    // Strict: entire CheckOutcome including `details`.
+    if report_checks != acceptance.checks {
+        return Err(SealError::EvidenceMismatch("checks".into()));
     }
 
     if let Some(vr) = &report.verify_report {
@@ -321,27 +328,58 @@ fn cross_check_evidence(report: &EvidenceReport, envelope: &SealEnvelope) -> Res
     Ok(())
 }
 
-/// Write evidence then seal using tmp + fsync + rename; seal rename is the commit marker.
+/// Atomic publication with a seal commit marker.
+///
+/// Temporary files are `sync_all`'d before rename; seal is renamed last.
+/// Parent-directory fsync is best-effort (platform-dependent). This is **not**
+/// a fully crash-durable transactional pair across all filesystems.
 fn atomic_write_pair(
     evidence_path: &Path,
     evidence_bytes: &[u8],
     seal_path: &Path,
     seal_bytes: &[u8],
+    allow_replace: bool,
 ) -> Result<(), SealError> {
+    if !allow_replace && (evidence_path.exists() || seal_path.exists()) {
+        return Err(SealError::AlreadySealed(
+            evidence_path
+                .parent()
+                .unwrap_or(evidence_path)
+                .display()
+                .to_string(),
+        ));
+    }
+
     let evidence_tmp = tmp_sibling(evidence_path);
     let seal_tmp = tmp_sibling(seal_path);
 
     write_tmp_fsync(&evidence_tmp, evidence_bytes)?;
     write_tmp_fsync(&seal_tmp, seal_bytes)?;
 
-    // Replace destinations if present (Windows rename fails when dest exists).
-    let _ = fs::remove_file(evidence_path);
+    if allow_replace {
+        let _ = fs::remove_file(evidence_path);
+    }
     fs::rename(&evidence_tmp, evidence_path).map_err(|e| SealError::Io(e.to_string()))?;
 
-    let _ = fs::remove_file(seal_path);
+    if allow_replace {
+        let _ = fs::remove_file(seal_path);
+    }
     fs::rename(&seal_tmp, seal_path).map_err(|e| SealError::Io(e.to_string()))?;
 
+    // Best-effort durability of directory entries after rename.
+    let _ = fsync_parent(seal_path);
+
     Ok(())
+}
+
+fn fsync_parent(path: &Path) -> Result<(), SealError> {
+    let Some(parent) = path.parent() else {
+        return Ok(());
+    };
+    match File::open(parent) {
+        Ok(dir) => dir.sync_all().map_err(|e| SealError::Io(e.to_string())),
+        Err(_) => Ok(()), // Windows often cannot open directories as File
+    }
 }
 
 fn tmp_sibling(path: &Path) -> PathBuf {
@@ -533,6 +571,33 @@ mod tests {
         assert!(dir.join("evidence.seal.json").exists());
         assert!(!dir.join("evidence.json.tmp").exists());
         assert!(!dir.join("evidence.seal.json.tmp").exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn check_seal_rejects_check_details_tamper() {
+        let (mut report, expect) = sample_report();
+        let dir = tempfile_dir("vaa_seal_details");
+        write_sealed_evidence(
+            &dir,
+            &report,
+            &expect,
+            build_input(GeneratorMeta::ingest("unit")),
+        )
+        .unwrap();
+
+        if let Some(check) = report.checks.first_mut() {
+            check.details = Some("tampered diagnostic".into());
+        }
+        fs::write(
+            dir.join("evidence.json"),
+            serde_json::to_string_pretty(&report).unwrap(),
+        )
+        .unwrap();
+
+        let err = verify_seal(&dir.join("evidence.json"), &dir.join("evidence.seal.json"))
+            .expect_err("details tamper");
+        assert!(matches!(err, SealError::EvidenceMismatch(_)));
         let _ = fs::remove_dir_all(&dir);
     }
 

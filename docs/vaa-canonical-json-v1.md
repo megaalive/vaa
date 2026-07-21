@@ -25,8 +25,10 @@ Digest form: `sha256:` + lowercase hex of SHA-256 over the canonical UTF-8 bytes
    change the numeric token; VAA currently emits integers and simple floats via
    `serde_json` after key sorting. Do not reorder or rewrite number tokens beyond
    that encoder’s normal form.
-7. **Unicode in strings:** keep JSON string escapes as emitted by a conforming
-   encoder; do not NFC/NFD-normalize string contents for digests.
+7. **Unicode in strings:** emit UTF-8 code points directly inside JSON strings
+   (do not require `\uXXXX` escaping for non-ASCII). Escapes for control characters
+   (`\n`, `\t`, `\"`, `\\`, …) follow a conforming JSON encoder. Do not NFC/NFD-normalize
+   string contents for digests.
 
 ## Non-goals
 

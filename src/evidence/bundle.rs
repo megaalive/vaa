@@ -75,27 +75,39 @@ pub fn verify_bundle(bundle_dir: &Path) -> Result<SealEnvelope, SealError> {
     Ok(envelope)
 }
 
-/// Materialize bundle companion files next to candidate evidence.
+/// Materialize bundle companion files into an **existing** exclusive candidate dir.
+///
+/// Uses `create_new` so re-materializing into a sealed candidate fails.
 pub fn materialize_bundle_files(
     bundle_dir: &Path,
     task_bytes: &[u8],
     contract_bytes: &[u8],
     semasm_report_json: Option<&str>,
 ) -> Result<(), SealError> {
-    fs::create_dir_all(bundle_dir).map_err(|e| SealError::Io(e.to_string()))?;
-    fs::write(bundle_dir.join(BUNDLE_TASK), task_bytes)
-        .map_err(|e| SealError::Io(e.to_string()))?;
-    fs::write(bundle_dir.join(BUNDLE_CONTRACT), contract_bytes)
-        .map_err(|e| SealError::Io(e.to_string()))?;
-    if let Some(raw) = semasm_report_json {
-        fs::write(bundle_dir.join(BUNDLE_REPORT), raw.as_bytes())
-            .map_err(|e| SealError::Io(e.to_string()))?;
-    } else {
-        let path = bundle_dir.join(BUNDLE_REPORT);
-        if path.exists() {
-            let _ = fs::remove_file(path);
-        }
+    if !bundle_dir.is_dir() {
+        return Err(SealError::Io(format!(
+            "bundle dir missing: {}",
+            bundle_dir.display()
+        )));
     }
+    write_new(&bundle_dir.join(BUNDLE_TASK), task_bytes)?;
+    write_new(&bundle_dir.join(BUNDLE_CONTRACT), contract_bytes)?;
+    if let Some(raw) = semasm_report_json {
+        write_new(&bundle_dir.join(BUNDLE_REPORT), raw.as_bytes())?;
+    }
+    Ok(())
+}
+
+fn write_new(path: &Path, data: &[u8]) -> Result<(), SealError> {
+    use std::io::Write;
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map_err(|e| SealError::Io(format!("{}: {e}", path.display())))?;
+    file.write_all(data)
+        .map_err(|e| SealError::Io(e.to_string()))?;
+    file.flush().map_err(|e| SealError::Io(e.to_string()))?;
     Ok(())
 }
 
@@ -166,6 +178,8 @@ mod tests {
         ));
         fs::create_dir_all(&dir).unwrap();
         materialize_bundle_files(&dir, &task_bytes, contract_bytes, Some(report_json)).unwrap();
+        // candidate.asm is written separately with create_new semantics in production;
+        // tests may use fs::write into a fresh dir.
         fs::write(dir.join(BUNDLE_SOURCE), source_bytes).unwrap();
         write_sealed_evidence(
             &dir,
