@@ -15,7 +15,7 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | Task content digest (`sha256:…`) | Available after successful validate |
 | `vaa doctor` | Available — SemASM version & schema compat |
 | `vaa capabilities --target <triple>` | Available — machine-readable JSON |
-| `vaa verify <task> --source <candidate.asm>` | Available — 4-outcome evidence bundle |
+| `vaa verify <task> --source <candidate.asm> --contract <contract.sem.toml>` | Available — SemASM VerificationReport **0.4**, stdout-only, 4-outcome evidence bundle |
 | `vaa generate <task> --output <file.asm>` | Available — fixture model adapter |
 | `vaa build <source.asm> [--target elf64]` | Available — NASM + linker pipeline |
 | `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |
@@ -63,8 +63,9 @@ Non-negotiable direction:
 - immutable task / policy / tests / budgets after lock;
 - four evidence outcomes: `verified`, `violated`, `incomplete`, `failed`;
 - never promote unsupported, missing, or incomplete analysis to success;
-- SemASM integration via versioned process/JSON protocol;
-- dynamic execution disabled by default.
+- SemASM integration via versioned process/JSON protocol (`VerificationReport` schema **0.4**, stdout-only; see handshake notes in `docs/progress.md`);
+- dynamic execution disabled by default (`vaa verify` does not pass `--allow-execution`);
+- SemASM contract path is explicit: `--contract <*.sem.toml>` (distinct from the locked `*.vaa.toml` task).
 
 ## Exit codes (partial)
 

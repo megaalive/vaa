@@ -11,9 +11,10 @@ Tracks evidence gates from `VAA_REVIEWED_AND_HARDENED_ARCHITECTURE_PLAN.md` §26
 | PR-004 — Run directory and event log | **Done** | RunId, RunDir, EventLog with atomic writes and bounded records |
 | PR-005 — SemASM doctor / version negotiation | **Done** | Graceful if `semasm` not on PATH |
 | PR-006 — SemASM capabilities adapter | **Done** | `vaa capabilities --target <triple>` |
-| PR-007 — SemASM verification adapter | **Done** | Subprocess + JSON parse + status map |
-| PR-008 — Final evidence status aggregator | **Done** | `vaa verify <task> --source <candidate>` |
+| PR-007 — SemASM verification adapter | **Done** | stdout-only VerificationReport **0.4** + status map |
+| PR-008 — Final evidence status aggregator | **Done** | preserves SemASM-mapped outcomes (`execution_denied`→Incomplete) |
 | Phase 1 exit (`vaa verify …` full offline report) | **Done** | EvidenceAggregator, 4-outcome bundle |
+| PR-007b — Controller handshake (SemASM 0.4) | **Done** | `--contract`, digests/`tool_version`, golden + Win64 smoke fixtures |
 | PR-009 — Hardened process runner | **Done** | `src/process/runner.rs` — timeout, env allowlist, bounds, tree kill |
 | PR-010 — Build sandbox backend | **Done** | `src/sandbox/backend.rs` — trait, LocalBackend, ContainerBackend |
 | PR-011 — NASM and linker pipeline | **Done** | `src/build/pipeline.rs` — explicit argv, BuildManifest |
@@ -44,15 +45,25 @@ Negative fixtures must fail with exit code 2:
 cargo run -q -- validate fixtures/tasks/invalid_unknown_field.vaa.toml; echo $?
 cargo run -q -- validate fixtures/tasks/invalid_schema_version.vaa.toml; echo $?
 cargo run -q -- validate fixtures/tasks/invalid_missing_tests.vaa.toml; echo $?
+```
 
 Phase 1: doctor, capabilities, verify all available:
 
 ```bash
 cargo run -q -- doctor
 cargo run -q -- capabilities --target x86_64-unknown-linux-gnu
-cargo run -q -- verify fixtures/tasks/sum_i64.vaa.toml --source fixtures/verify/pass.s --format text
+cargo run -q -- verify fixtures/semasm/count_byte/count_byte.vaa.toml \
+  --source fixtures/semasm/count_byte/count_byte_win64.asm \
+  --contract fixtures/semasm/count_byte/count_byte.sem.toml \
+  --format json
 ```
-```
+
+### SemASM VerificationReport 0.4 handshake
+
+- Parse **stdout only** (never concatenate stderr).
+- Status map: `verified`→Verified; `semantic_failed`/`executable_failed`/`behavior_failed`→Violated; `execution_denied`→Incomplete; missing report / parse / binary errors→Failed.
+- Fixtures: [`fixtures/semasm/`](../fixtures/semasm/README.md).
+- Out of scope still: automatic `.vaa.toml`→`.sem.toml` translation, live model repair loop, SemASM `--allow-execution` policy in VAA.
 
 ## Documentation map
 

@@ -115,8 +115,8 @@ Observed pieces:
 | VAA plan expectation (§8.1 / §8.2) | Status |
 |---|---|
 | Machine-readable capability manifest | **Partial.** File `capabilities.toml` exists and is human/CI source of truth; no stable `semasm capabilities --format json` command observed. |
-| Versioned JSON verification report | **Partial.** Several commands emit JSON, but schemas differ per command; no single unified `verify` report schema advertised as a compatibility contract. |
-| Explicit `verified` / `violated` / `incomplete` / `failed` | **Partial / incomplete.** ABI analysis has verified/incomplete; contract uses ok/bool; no universal four-way result. |
+| Versioned JSON verification report | **Available for agent verify.** SemASM emits `VerificationReport` schema **0.4** on stdout (`semasm agent verify … --format json`). VAA adapter parses stdout-only and maps statuses to the 4-outcome vocabulary. |
+| Explicit `verified` / `violated` / `incomplete` / `failed` | **Constructed in VAA.** SemASM statuses (`verified`, `semantic_failed`, `executable_failed`, `behavior_failed`, `execution_denied`) are mapped per `docs/progress.md` handshake notes. |
 | Instruction coverage counts | **Unknown / not verified in this baseline pass.** Must be confirmed from concrete ABI/build JSON fixtures before VAA maps coverage fields. |
 | Unsupported instruction details | **Present in analysis path** (incomplete evidence / unsupported lowering). Exact JSON field names need fixture capture in PR-007. |
 | Target identity in every report | **Partial.** Present in doctor and many target-scoped commands; not proven for every JSON surface. |

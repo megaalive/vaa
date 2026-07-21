@@ -73,6 +73,9 @@ enum Commands {
         /// Path to the assembly source file.
         #[arg(long)]
         source: PathBuf,
+        /// Path to the SemASM `*.sem.toml` contract (not the VAA task file).
+        #[arg(long)]
+        contract: PathBuf,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -138,8 +141,9 @@ fn main() -> ExitCode {
         Commands::Verify {
             task,
             source,
+            contract,
             format,
-        } => verify_command(&task, &source, format),
+        } => verify_command(&task, &source, &contract, format),
         Commands::Generate { task, output } => generate_command(&task, &output),
         Commands::Build {
             source,
@@ -305,7 +309,12 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
     VaaExitCode::Success.as_std()
 }
 
-fn verify_command(task_path: &Path, source_path: &Path, format: OutputFormat) -> ExitCode {
+fn verify_command(
+    task_path: &Path,
+    source_path: &Path,
+    contract_path: &Path,
+    format: OutputFormat,
+) -> ExitCode {
     let locked = match load_locked_task(task_path) {
         Ok(t) => t,
         Err(error) => {
@@ -321,7 +330,7 @@ fn verify_command(task_path: &Path, source_path: &Path, format: OutputFormat) ->
     let doctor = SemasmDoctor::run();
 
     let verify_result = match doctor.binary_path.as_ref() {
-        Some(binary) => SemasmVerify::run(source_path, task_path, binary),
+        Some(binary) => SemasmVerify::run(source_path, contract_path, binary, target),
         None => Err(VerifyError::BinaryNotFound),
     };
 
@@ -369,7 +378,8 @@ fn verify_command(task_path: &Path, source_path: &Path, format: OutputFormat) ->
                 capability_match: Some(cm),
                 verify_report: None,
                 checks,
-                final_status: EvidenceStatus::Incomplete,
+                // No VerificationReport on stdout → Failed (not Incomplete).
+                final_status: EvidenceStatus::Failed,
                 summary: format!("Verification failed: {e}"),
             };
             return emit_evidence_report(&report, format);
@@ -585,6 +595,8 @@ mod tests {
             "task.vaa.toml",
             "--source",
             "candidate.asm",
+            "--contract",
+            "contract.sem.toml",
         ])
         .expect("parse");
         assert!(matches!(cli.command, Some(Commands::Verify { .. })));

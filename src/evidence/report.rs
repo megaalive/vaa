@@ -91,17 +91,17 @@ impl EvidenceAggregator {
         let required_failures: Vec<&CheckOutcome> =
             checks.iter().filter(|c| c.required && !c.passed).collect();
 
+        // Prefer the SemASM-mapped verify outcome when a report was parsed.
+        // `execution_denied` → Incomplete must not be collapsed to Violated.
         let final_status = if required_failures.is_empty() {
             EvidenceStatus::Verified
-        } else if required_failures
-            .iter()
-            .any(|c| c.check_name == "semasm_verification" && !c.passed)
-        {
-            EvidenceStatus::Violated
-        } else if checks.iter().any(|c| !c.passed) {
-            EvidenceStatus::Incomplete
+        } else if let Some(vr) = verify_report.as_ref() {
+            match vr.outcome {
+                EvidenceStatus::Verified => EvidenceStatus::Incomplete,
+                other => other,
+            }
         } else {
-            EvidenceStatus::Failed
+            EvidenceStatus::Incomplete
         };
 
         let summary = if final_status == EvidenceStatus::Verified {
@@ -232,16 +232,25 @@ mod tests {
     }
 
     #[test]
-    fn aggregator_incomplete_when_capability_missing() {
+    fn aggregator_preserves_execution_denied_as_incomplete() {
         let task = sample_locked_task();
         let report = EvidenceAggregator::build(
             &task,
             None,
-            None,
+            Some(VerifyReport {
+                outcome: EvidenceStatus::Incomplete,
+                raw_status: "execution_denied".to_owned(),
+                diagnostics: vec![],
+                target: Some("x86_64-pc-windows-msvc".to_owned()),
+                source_digest: Some("sha256:aa".to_owned()),
+                contract_digest: Some("sha256:bb".to_owned()),
+                tool_version: Some("semasm 0.1.0".to_owned()),
+                raw_json: "{}".to_owned(),
+            }),
             None,
             Some(CapabilityMatch {
-                compatible: false,
-                missing: vec!["target not recognized".to_owned()],
+                compatible: true,
+                missing: vec![],
                 insufficient: vec![],
             }),
         );
