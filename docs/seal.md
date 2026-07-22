@@ -91,10 +91,18 @@ Writes use:
 
 1. `evidence.*.tmp` / `seal.*.tmp`
 2. `sync_all` on temporary files
-3. rename evidence, then rename seal (seal rename = commit marker)
-4. best-effort parent-directory fsync
+3. rename evidence → `sync_all` final evidence → parent directory `sync_all`
+4. rename seal last (commit marker) → `sync_all` final seal → parent directory `sync_all`
 
-Accurate term: **atomic publication with a seal commit marker**.
+Parent-directory sync is **required on Unix**. On Windows, directory handles are
+opened with `FILE_FLAG_BACKUP_SEMANTICS` when possible, but `FlushFileBuffers` on
+directories frequently returns Access Denied without backup privilege — that
+step stays best-effort there. Final seal *files* are always reopened and
+`sync_all`'d after rename on both platforms.
 
-Not claimed: fully **crash-durable transactional pair** on every filesystem
-(especially where directory fsync is unavailable, e.g. typical Windows directory handles).
+Accurate term: **durable atomic publication with a seal commit marker**
+(file-durable everywhere; directory-durable on Unix).
+
+Still not claimed: a formal multi-file transaction on every filesystem (network
+FS, dishonest kernels), Windows directory-entry durability in all environments,
+or cryptographic authenticity of the publisher.

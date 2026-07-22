@@ -30,7 +30,7 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | PR-017 — Orchestrator state machine | **Done** | unit | Edges for repair |
 | **R1 — `vaa run` wired** | **Done** | unit | Fixture loop + SemASM verify; live SemASM not in CI |
 | **R2 — Seal + ingest** | **Done** | unit | integrity envelope; `vaa ingest`; `check-seal` |
-| **R2b — Seal hardening** | **Done** | unit | acceptance/envelope; atomic publish; per-candidate chain; `verify-bundle` |
+| **R2b — Seal hardening** | **Done** | unit | acceptance/envelope; durable atomic publish; per-candidate chain; `verify-bundle` |
 | **R2c — verify-chain + append-only** | **Done** | unit | `verify-chain`; full check details; exclusive candidate dirs; canonical vectors |
 | **S0 — Slice lock** | **Done** | docs | Next CI slice = `count_byte` Gate-1 Incomplete; `sum_i64` = SemASM epic |
 | **S2 — Gate-1 CI** | **Done** | CI | Windows job: live SemASM Incomplete + ingest `verify-chain` |
@@ -99,14 +99,15 @@ cargo run -q -- evidence verify-chain \
 - Append-only storage: exclusive candidate dirs + `create_new` writes.
 - Integrity ≠ authenticity: SHA-256 envelope detects drift; it does **not** prove a trusted VAA publisher (no signing yet). See [`docs/seal.md`](seal.md).
 - Canonicalization: [`docs/vaa-canonical-json-v1.md`](vaa-canonical-json-v1.md) + [`fixtures/canonical-json/`](../fixtures/canonical-json/).
-- Atomic publication with seal commit marker (not claimed fully crash-durable on all FS).
+- Atomic publication: temp `sync_all`, seal-last rename, post-rename file
+  `sync_all`, Unix parent-dir sync (Windows directory sync best-effort).
 - Positioning (honest): CryptOpt-like / Proof-Loop idea = candidates return to SemASM; acceptance digests sealed. Not a search engine or formal proof system.
 
 ### Still out of scope / later waves
 
 - Hardened ContainerBackend / generator FS isolation
 - Digital signature (Ed25519) authenticity
-- Fully crash-durable transactional pair (directory fsync everywhere)
+- Formal multi-file transactional seals on network / lying filesystems
 - Live model adapter
 - CryptOpt randomized search engine
 - Transparency log of digests (beyond CI artifact upload)
@@ -183,7 +184,14 @@ live read of SemASM `capabilities.toml` (pipeline maturity there may still be
 | **R4+R5** | Live status compare + doctor version JSON (merged) | **Done** |
 | **R6** | Gate CI doctor Available + Gate golden live_probe aligned | **Done** |
 
-Later (not this tranche): crash-durable seal fsync or Ed25519 authenticity.
+Later (not this tranche): Ed25519 seal authenticity if seals cross a trust
+boundary.
+
+### Next waves (D0) — seal durability
+
+| Wave | Focus | Status |
+|---|---|---|
+| **D0** | Post-rename file `sync_all` + Unix dir sync (Win dir best-effort) | **Done** |
 
 ## Documentation map
 

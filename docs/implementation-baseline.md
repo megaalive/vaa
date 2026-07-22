@@ -193,12 +193,13 @@ Until (1)–(3) exist, VAA PR-005 through PR-008 must implement **defensive mapp
 
 Per architecture plan §27 and live checklist in `docs/progress.md`:
 
-1. ~~PR-001…PR-008 / R1–R2c / S2–S4 / H0–H3 / N0–N4 / P0–P2 / R0–R6~~ **Done**
+1. ~~PR-001…PR-008 / R1–R2c / S2–S4 / H0–H3 / N0–N4 / P0–P2 / R0–R6 / D0~~ **Done**
    (see `docs/progress.md`).
-2. **Next (pick one):** crash-durable seal directory fsync, or Ed25519 seal
-   authenticity if seals cross a trust boundary.
+2. **Next:** Ed25519 seal authenticity if seals must cross a trust boundary;
+   otherwise transparency-log / append-only digest store, or ContainerBackend
+   harden.
 3. Later (explicitly deferred): live model adapter, CryptOpt search,
-   hardened ContainerBackend, `v0.1.0` release.
+   `v0.1.0` release.
 
 Do not implement live model adapters, Redis, Python services, or multi-crate splits in this phase.
 

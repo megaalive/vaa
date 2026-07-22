@@ -3,7 +3,7 @@
 //! See [`docs/seal.md`](../../docs/seal.md). Schema **0.2** separates
 //! `acceptance_digest` (technical truth) from `envelope_digest` (includes provenance).
 
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -330,9 +330,16 @@ fn cross_check_evidence(report: &EvidenceReport, envelope: &SealEnvelope) -> Res
 
 /// Atomic publication with a seal commit marker.
 ///
-/// Temporary files are `sync_all`'d before rename; seal is renamed last.
-/// Parent-directory fsync is best-effort (platform-dependent). This is **not**
-/// a fully crash-durable transactional pair across all filesystems.
+/// Order:
+/// 1. write + `sync_all` temporary evidence and seal files
+/// 2. rename evidence into place, then `sync_all` the final evidence file
+/// 3. rename seal last (commit marker), then `sync_all` the final seal file
+/// 4. parent-directory `sync_all` (required on Unix; best-effort on Windows —
+///    directory `FlushFileBuffers` often returns Access Denied without backup privilege)
+///
+/// Accurate claim: **durable atomic publication** of seal *file* bytes on local
+/// disks, plus Unix directory durability. Not claimed: formal multi-file TX on
+/// network FS, or Windows directory-entry durability in all environments.
 fn atomic_write_pair(
     evidence_path: &Path,
     evidence_bytes: &[u8],
@@ -360,25 +367,61 @@ fn atomic_write_pair(
         let _ = fs::remove_file(evidence_path);
     }
     fs::rename(&evidence_tmp, evidence_path).map_err(|e| SealError::Io(e.to_string()))?;
+    fsync_existing_file(evidence_path)?;
+    fsync_parent(evidence_path)?;
 
     if allow_replace {
         let _ = fs::remove_file(seal_path);
     }
     fs::rename(&seal_tmp, seal_path).map_err(|e| SealError::Io(e.to_string()))?;
-
-    // Best-effort durability of directory entries after rename.
-    let _ = fsync_parent(seal_path);
+    fsync_existing_file(seal_path)?;
+    fsync_parent(seal_path)?;
 
     Ok(())
 }
 
+fn fsync_existing_file(path: &Path) -> Result<(), SealError> {
+    // Write open: Windows FlushFileBuffers often Access Denied on read-only handles.
+    let file = OpenOptions::new()
+        .write(true)
+        .open(path)
+        .map_err(|e| SealError::Io(format!("reopen {} for sync: {e}", path.display())))?;
+    file.sync_all()
+        .map_err(|e| SealError::Io(format!("sync_all {}: {e}", path.display())))
+}
+
+#[allow(clippy::unnecessary_wraps)] // Windows path is best-effort `Ok(())`; Unix returns real I/O errors.
 fn fsync_parent(path: &Path) -> Result<(), SealError> {
     let Some(parent) = path.parent() else {
         return Ok(());
     };
-    match File::open(parent) {
-        Ok(dir) => dir.sync_all().map_err(|e| SealError::Io(e.to_string())),
-        Err(_) => Ok(()), // Windows often cannot open directories as File
+    let parent = if parent.as_os_str().is_empty() {
+        Path::new(".")
+    } else {
+        parent
+    };
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        // FILE_FLAG_BACKUP_SEMANTICS allows opening a directory handle on Windows.
+        const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+        if let Ok(dir) = OpenOptions::new()
+            .read(true)
+            .custom_flags(FILE_FLAG_BACKUP_SEMANTICS)
+            .open(parent)
+        {
+            // FlushFileBuffers on directories often Access Denied without backup privilege.
+            let _ = dir.sync_all();
+        }
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        let dir = File::open(parent)
+            .map_err(|e| SealError::Io(format!("open parent dir {}: {e}", parent.display())))?;
+        dir.sync_all()
+            .map_err(|e| SealError::Io(format!("sync_all parent {}: {e}", parent.display())))
     }
 }
 
@@ -572,6 +615,23 @@ mod tests {
         assert!(dir.join("evidence.seal.json").exists());
         assert!(!dir.join("evidence.json.tmp").exists());
         assert!(!dir.join("evidence.seal.json.tmp").exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn fsync_file_and_parent_after_seal_write() {
+        let (report, expect) = sample_report();
+        let dir = tempfile_dir("vaa_seal_fsync");
+        write_sealed_evidence(
+            &dir,
+            &report,
+            &expect,
+            build_input(GeneratorMeta::ingest("unit")),
+        )
+        .expect("durable seal write");
+        fsync_existing_file(&dir.join("evidence.seal.json")).expect("file sync");
+        // Parent sync is best-effort on Windows; must not panic.
+        let _ = fsync_parent(&dir.join("evidence.seal.json"));
         let _ = fs::remove_dir_all(&dir);
     }
 
