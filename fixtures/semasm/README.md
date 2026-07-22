@@ -9,9 +9,13 @@ schema **0.4**).
 |---|---|
 | `count_byte/count_byte.vaa.toml` | Locked VAA task (Win64 target) |
 | `count_byte/count_byte_win64.asm` | Candidate source (copied from SemASM) |
+| `count_byte/count_byte_linux.vaa.toml` | Locked VAA task (Linux sysv64) |
+| `count_byte/count_byte_linux.asm` | Candidate source (SysV / ELF) |
 | `count_byte/count_byte.sem.toml` | SemASM contract (copied from SemASM) |
 | `sum_i64/sum_i64.vaa.toml` | Locked VAA task for wrapping-sum leaf |
 | `sum_i64/sum_i64_win64.asm` | Candidate source (copied from SemASM) |
+| `sum_i64/sum_i64_linux.vaa.toml` | Locked VAA task (Linux sysv64) |
+| `sum_i64/sum_i64_linux.asm` | Candidate source (SysV / ELF) |
 | `sum_i64/sum_i64.sem.toml` | SemASM contract (weak `ensures: true`) |
 | `reports/verification-report-count_byte.execution_denied.json` | Golden report for unit parse tests |
 | `reports/verification-report-sum_i64.execution_denied.json` | Golden Incomplete report (`wrapping_sum_i64` v2) |

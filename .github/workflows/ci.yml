@@ -280,3 +280,147 @@ jobs:
           name: hlax64-gate1-transparency
           path: target/vaa-transparency/hlax64-gate1/
           if-no-files-found: error
+
+  # Gate-1 Linux: live SemASM Incomplete smoke (count_byte/sysv64, no --allow-execution).
+  # VAA+SemASM smoke on the pinned SemASM SHA — not a claim SemASM Linux is upstream CI-verified.
+  semasm-gate1-linux:
+    name: Gate-1 SemASM Incomplete (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v4
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v4
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
+          ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
+
+      - name: Install NASM and LLVM (ld.lld)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm lld
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        run: |
+          SEMASM_BIN="${GITHUB_WORKSPACE}/semasm/target/release"
+          test -x "${SEMASM_BIN}/semasm"
+          echo "${SEMASM_BIN}" >> "$GITHUB_PATH"
+          export PATH="${SEMASM_BIN}:$PATH"
+          command -v semasm
+          semasm --version
+
+      - name: Doctor + live status compare (R6)
+        run: |
+          chmod +x scripts/ci-doctor-live-probe.sh scripts/ci-gate-sign-setup.sh scripts/ci-gate-transparency.sh
+          ./scripts/ci-doctor-live-probe.sh
+
+      - name: Record tool versions
+        run: |
+          nasm --version
+          ld.lld --version || lld --version
+
+      - name: Gate-1 Linux signed ingest + Incomplete verify
+        run: |
+          mkdir -p target/vaa-transparency/gate1-linux
+          ./scripts/ci-gate-sign-setup.sh target/vaa-transparency/gate1-linux/public_key.txt
+          cargo test --test semasm_gate1_smoke linux -- --ignored --nocapture
+
+      - name: Export + verify-transparency (Gate-1 Linux)
+        run: |
+          ./scripts/ci-gate-transparency.sh \
+            --run-base target/vaa-gate1-linux-runs \
+            --out-dir target/vaa-transparency/gate1-linux \
+            --public-key-src target/vaa-transparency/gate1-linux/public_key.txt
+
+      - name: Upload Gate-1 Linux transparency artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate1-linux-transparency
+          path: target/vaa-transparency/gate1-linux/
+          if-no-files-found: error
+
+  # Gate-2 Linux: opt-in behavioral Verified (count_byte sysv64 + --allow-execution).
+  semasm-gate2-linux:
+    name: Gate-2 SemASM Verified (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v4
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v4
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
+          ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
+
+      - name: Install NASM and LLVM (ld.lld)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm lld
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        run: |
+          SEMASM_BIN="${GITHUB_WORKSPACE}/semasm/target/release"
+          test -x "${SEMASM_BIN}/semasm"
+          echo "${SEMASM_BIN}" >> "$GITHUB_PATH"
+          export PATH="${SEMASM_BIN}:$PATH"
+          command -v semasm
+          semasm --version
+
+      - name: Doctor + live status compare (R6)
+        run: |
+          chmod +x scripts/ci-doctor-live-probe.sh scripts/ci-gate-sign-setup.sh scripts/ci-gate-transparency.sh
+          ./scripts/ci-doctor-live-probe.sh
+
+      - name: Gate-2 Linux signed ingest + Verified
+        run: |
+          mkdir -p target/vaa-transparency/gate2-linux
+          ./scripts/ci-gate-sign-setup.sh target/vaa-transparency/gate2-linux/public_key.txt
+          cargo test --test semasm_gate2_smoke linux -- --ignored --nocapture
+
+      - name: Export + verify-transparency (Gate-2 Linux)
+        run: |
+          ./scripts/ci-gate-transparency.sh \
+            --run-base target/vaa-gate2-linux-runs \
+            --out-dir target/vaa-transparency/gate2-linux \
+            --public-key-src target/vaa-transparency/gate2-linux/public_key.txt
+
+      - name: Upload Gate-2 Linux transparency artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate2-linux-transparency
+          path: target/vaa-transparency/gate2-linux/
+          if-no-files-found: error

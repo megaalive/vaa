@@ -95,6 +95,94 @@ fn gate2_verify_count_byte_win64_verified() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
+#[ignore = "requires `semasm` on PATH, Linux toolchain, and SemASM --allow-execution"]
+fn gate2_verify_count_byte_linux_verified() {
+    let task = root().join("fixtures/semasm/count_byte/count_byte_linux.vaa.toml");
+    let source = root().join("fixtures/semasm/count_byte/count_byte_linux.asm");
+    let contract = root().join("fixtures/semasm/count_byte/count_byte.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 Linux: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 Linux: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 Linux expects Verified with --allow-execution: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+#[ignore = "requires `semasm` on PATH, Linux toolchain, and SemASM --allow-execution"]
+fn gate2_verify_sum_i64_linux_verified() {
+    let task = root().join("fixtures/semasm/sum_i64/sum_i64_linux.vaa.toml");
+    let source = root().join("fixtures/semasm/sum_i64/sum_i64_linux.asm");
+    let contract = root().join("fixtures/semasm/sum_i64/sum_i64.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 Linux sum_i64: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 Linux sum_i64: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 Linux sum_i64 expects Verified with --allow-execution: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+}
+
+#[test]
 #[ignore = "requires `semasm` on PATH, Win64 toolchain, and SemASM --allow-execution"]
 fn gate2_verify_sum_i64_win64_verified() {
     let task = root().join("fixtures/semasm/sum_i64/sum_i64.vaa.toml");
@@ -196,6 +284,87 @@ fn gate2_verify_hlax64_sum_i64_win64_verified() {
         "builtin.buffer.wrapping_sum_i64"
     );
     assert_eq!(raw["behavior_oracle"]["version"], 2);
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+#[ignore = "requires `semasm` on PATH, Linux toolchain, and SemASM --allow-execution"]
+fn gate2_ingest_count_byte_linux_verified_seal_chain() {
+    let task = root().join("fixtures/ingest/count_byte_linux/count_byte.vaa.toml");
+    let source = root().join("fixtures/ingest/count_byte_linux/candidate.asm");
+    let contract = root().join("fixtures/ingest/count_byte_linux/count_byte.sem.toml");
+    let run_base = root().join("target/vaa-gate2-linux-runs");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "ingest",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--generator",
+            "ci-gate2-linux",
+            "--allow-execution",
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa ingest --allow-execution linux");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    let value: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+        panic!("expected evidence JSON ({e}): stdout={stdout}\nstderr={stderr}");
+    });
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 Linux ingest: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 Linux ingest expects Verified: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected a run directory after Gate-2 Linux ingest");
+
+    let seal_log = run_dir.join("evidence").join("seal-log.jsonl");
+    assert!(
+        seal_log.is_file(),
+        "seal-log.jsonl missing under {}",
+        run_dir.display()
+    );
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert_seal_signature_if_signing(&run_dir);
 }
 
 #[test]

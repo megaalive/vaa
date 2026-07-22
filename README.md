@@ -90,8 +90,8 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-Linux Gate parity (**L1/L2**), E1 resume CI smoke (**E1b**), then release prep / checklist closeout.
-`vaa generate --run-dir … --command <prog> -- …` writes `staging/candidate.asm` (**G1**, not OS isolation).
+Release prep / checklist closeout (**R-notes**); git tag `v0.1.0` stays deferred until maintainer sign-off.
+Linux Gate (**L1/L2**) and G1/E1b are Done — see `docs/progress.md`.
 Deferred: live model, CryptOpt, Rekor/HSM, OS-level generator isolation, `v0.1.0` tag ceremony ([checklist](docs/release-v0.1-checklist.md)).
 
 ## License

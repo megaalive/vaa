@@ -20,7 +20,10 @@ authorization to `git tag v0.1.0` until every required row is explicitly signed 
 | Generator write barrier is logical (G0), not OS ACL | `docs/seal.md` |
 | `cargo deny check` in CI | `.github/workflows/ci.yml` `check` job |
 | Resume from sealed chain (**E1**) | `src/run/resume.rs` + `vaa run --resume` |
-| Next post-prep wave | **G1** external argv→staging, then Linux Gate / R-tag |
+| External argv → staging (**G1**) | `vaa generate --command` (not OS FS isolation) |
+| E1 resume smoke in Gate-1 CI (**E1b**) | `tests/semasm_gate1_smoke.rs` |
+| Linux Gate Incomplete + Verified (**L1/L2**) | `semasm-gate1-linux` / `semasm-gate2-linux` |
+| Next post-prep wave | **R-notes** / R-tag ceremony (tag deferred) |
 
 ## Explicit non-goals for `v0.1.0`
 
