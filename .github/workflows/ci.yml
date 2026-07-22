@@ -83,22 +83,20 @@ jobs:
           nasm --version
           lld-link --version
 
-      - name: Gate-1 verify Incomplete + ingest verify-chain
-        run: cargo test --test semasm_gate1_smoke -- --ignored --nocapture
-
-      - name: Export transparency from latest Gate-1 run
+      - name: Gate-1 signed ingest + Incomplete verify
         shell: pwsh
         run: |
-          $base = "target/vaa-gate1-runs"
-          $run = Get-ChildItem $base -Directory -ErrorAction Stop |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-          if (-not $run) { throw "no run under $base" }
-          $outDir = "target/vaa-transparency/gate1"
-          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-          cargo run --quiet -- evidence export-transparency $run.FullName -o "$outDir/transparency.json"
-          Copy-Item (Join-Path $run.FullName "evidence/seal-log.jsonl") "$outDir/seal-log.jsonl"
-          Write-Host "exported transparency from $($run.FullName)"
+          New-Item -ItemType Directory -Force -Path target/vaa-transparency/gate1 | Out-Null
+          ./scripts/ci-gate-sign-setup.ps1 -PublicKeyOut target/vaa-transparency/gate1/public_key.txt
+          cargo test --test semasm_gate1_smoke -- --ignored --nocapture
+
+      - name: Export + verify-transparency (Gate-1)
+        shell: pwsh
+        run: |
+          ./scripts/ci-gate-transparency.ps1 `
+            -RunBase target/vaa-gate1-runs `
+            -OutDir target/vaa-transparency/gate1 `
+            -PublicKeySrc target/vaa-transparency/gate1/public_key.txt
 
       - name: Upload Gate-1 transparency artifact
         uses: actions/upload-artifact@v4
@@ -238,23 +236,20 @@ jobs:
           Write-Host "candidate.asm matches HlaX64 emit"
 
       - name: Gate ingest + Gate-2 verify for hlax64 sum_i64
+        shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force -Path target/vaa-transparency/hlax64-gate1 | Out-Null
+          ./scripts/ci-gate-sign-setup.ps1 -PublicKeyOut target/vaa-transparency/hlax64-gate1/public_key.txt
           cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_sum_i64_verify_chain -- --ignored --nocapture
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_sum_i64_win64_verified -- --ignored --nocapture
 
-      - name: Export transparency from latest HlaX64 Gate-1 run
+      - name: Export + verify-transparency (HlaX64 Gate-1)
         shell: pwsh
         run: |
-          $base = "target/vaa-gate1-hlax64-runs"
-          $run = Get-ChildItem $base -Directory -ErrorAction Stop |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-          if (-not $run) { throw "no run under $base" }
-          $outDir = "target/vaa-transparency/hlax64-gate1"
-          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-          cargo run --quiet -- evidence export-transparency $run.FullName -o "$outDir/transparency.json"
-          Copy-Item (Join-Path $run.FullName "evidence/seal-log.jsonl") "$outDir/seal-log.jsonl"
-          Write-Host "exported transparency from $($run.FullName)"
+          ./scripts/ci-gate-transparency.ps1 `
+            -RunBase target/vaa-gate1-hlax64-runs `
+            -OutDir target/vaa-transparency/hlax64-gate1 `
+            -PublicKeySrc target/vaa-transparency/hlax64-gate1/public_key.txt
 
       - name: Upload HlaX64 Gate-1 transparency artifact
         uses: actions/upload-artifact@v4
