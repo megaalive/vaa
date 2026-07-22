@@ -250,8 +250,8 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 
 | Wave | Focus | Status |
 |---|---|---|
-| **R7** | Multi-candidate `vaa run` Gate smoke (`count_byte` wrong→repair) | Pending |
-| **A2** | Gate-2 signed seal + transparency parity | Pending |
+| **R7** | Multi-candidate `vaa run` Gate smoke (`count_byte` wrong→repair) | **Done** (Gate-1 ignored + CI) |
+| **A2** | Gate-2 signed ingest/seal + transparency parity | **Done** (CI; practice key ≠ trust root) |
 
 ### Next waves (C2…E1)
 
