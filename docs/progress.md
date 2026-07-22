@@ -213,6 +213,15 @@ boundary.
 
 Honesty: CI transparency artifact is **not** a remote immutable log. Container C0 is **not** “hardened isolation Done”.
 
+### Next waves (A1 + T1) — CI signed seals + verify-transparency
+
+| Wave | Focus | Status |
+|---|---|---|
+| **A1** | Ephemeral CI `keygen-seal` + `VAA_REQUIRE_SEAL_SIGNATURE` on Gate ingest | **Done** |
+| **T1** | `verify-transparency` after export; artifact includes practice public key | **Done** |
+
+Honesty: ephemeral CI signing key is **not** a trust root. `verify-transparency` does **not** make the artifact a remote immutable log.
+
 Later: remote transparency service, HSM, full PR-010 hardened sandbox, live model, CryptOpt, `v0.1.0`.
 
 ## Documentation map

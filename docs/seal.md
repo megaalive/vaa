@@ -20,14 +20,19 @@ the signature binds a known public key to technical acceptance.
 2. **Local seal digest log** — `evidence/seal-log.jsonl` appends each candidate’s
    `envelope_digest` / `acceptance_digest` (L0). Checked by `verify-chain` when
    present (L1). This is **not** an external transparency log.
-3. **External transparency export (T0)** — `vaa evidence export-transparency`
+3. **External transparency export (T0/T1)** — `vaa evidence export-transparency`
    writes a portable `vaa-transparency-v1` JSON document. Gate CI uploads that
-   file plus `seal-log.jsonl` as a workflow artifact. **CI artifact ≠ remote
+   file plus `seal-log.jsonl` (and ephemeral public key) as a workflow artifact,
+   then fail-closes with `verify-transparency`. **CI artifact ≠ remote
    immutable log** (not Rekor, not an append-only SaaS).
-4. **Digital signature (A0)** — VAA may sign `acceptance_digest` with Ed25519
+4. **Digital signature (A0/A1)** — VAA may sign `acceptance_digest` with Ed25519
    (seed file via `VAA_SEAL_SIGNING_KEY`; `vaa evidence keygen-seal --out <path>`).
+   Gate-1 / hlax64-bridge CI generates an **ephemeral** seed per job
+   (`scripts/ci-gate-sign-setup.ps1`) and sets `VAA_REQUIRE_SEAL_SIGNATURE=1`.
+   That key is a **practice key only — not a trust root**.
 
-Deferred: remote append-only transparency service, HSM / hardware keys, cosign.
+Deferred: remote append-only transparency service, HSM / hardware keys, cosign,
+committed production signing seeds.
 
 ## Seal schema 0.2
 
