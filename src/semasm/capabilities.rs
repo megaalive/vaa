@@ -281,8 +281,7 @@ mod tests {
         assert!(
             result.compatible,
             "insufficient={:?} missing={:?}",
-            result.insufficient,
-            result.missing
+            result.insufficient, result.missing
         );
     }
 
