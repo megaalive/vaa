@@ -193,12 +193,12 @@ Until (1)–(3) exist, VAA PR-005 through PR-008 must implement **defensive mapp
 
 Per architecture plan §27 and live checklist in `docs/progress.md`:
 
-1. ~~PR-001…PR-008 / R1–R2c / S2–S4 / H0–H3 / N0–N4 / P0–P2 / R0–R5~~ **Done**
+1. ~~PR-001…PR-008 / R1–R2c / S2–S4 / H0–H3 / N0–N4 / P0–P2 / R0–R6~~ **Done**
    (see `docs/progress.md`).
-2. **Next:** integrity **R6** — Gate CI asserts `vaa doctor` Available and
-   live status compare clean on the pinned SemASM tip (axis policy from R4+R5).
-3. Later (explicitly deferred): Ed25519 seals, crash-durable seal fsync, live
-   model adapter, CryptOpt search, `v0.1.0` release.
+2. **Next (pick one):** crash-durable seal directory fsync, or Ed25519 seal
+   authenticity if seals cross a trust boundary.
+3. Later (explicitly deferred): live model adapter, CryptOpt search,
+   hardened ContainerBackend, `v0.1.0` release.
 
 Do not implement live model adapters, Redis, Python services, or multi-crate splits in this phase.
 

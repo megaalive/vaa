@@ -73,6 +73,10 @@ jobs:
           Get-Command semasm | Format-List
           semasm --version
 
+      - name: Doctor + live status compare (R6)
+        shell: pwsh
+        run: ./scripts/ci-doctor-live-probe.ps1
+
       - name: Record tool versions
         shell: pwsh
         run: |
@@ -126,6 +130,10 @@ jobs:
           $env:PATH = "$semasmBin;$env:PATH"
           Get-Command semasm | Format-List
           semasm --version
+
+      - name: Doctor + live status compare (R6)
+        shell: pwsh
+        run: ./scripts/ci-doctor-live-probe.ps1
 
       - name: Gate-2 verify Verified with --allow-execution
         run: cargo test --test semasm_gate2_smoke -- --ignored --nocapture
@@ -187,6 +195,10 @@ jobs:
           $env:PATH = "$semasmBin;$env:PATH"
           Get-Command semasm | Format-List
           semasm --version
+
+      - name: Doctor + live status compare (R6)
+        shell: pwsh
+        run: ./scripts/ci-doctor-live-probe.ps1
 
       - name: Emit HlaX64 NASM and compare to fixture
         shell: pwsh

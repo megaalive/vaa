@@ -172,7 +172,7 @@ Honesty: VAA `capabilities` JSON is an **embedded agent-verify snapshot**, not a
 live read of SemASM `capabilities.toml` (pipeline maturity there may still be
 `partial` / `experimental` on some axes).
 
-### Next waves (R0–R5) — runner + SemASM JSON + process tree + live probe
+### Next waves (R0–R6) — runner + SemASM JSON + process tree + live probe
 
 | Wave | Focus | Status |
 |---|---|---|
@@ -181,9 +181,9 @@ live read of SemASM `capabilities.toml` (pipeline maturity there may still be
 | **R2** | SemASM `version`/`status --format json` | **Done** |
 | **R3** | Process-group / Job Object at spawn (PR-009c) | **Done** |
 | **R4+R5** | Live status compare + doctor version JSON (merged) | **Done** |
+| **R6** | Gate CI doctor Available + Gate golden live_probe aligned | **Done** |
 
-Later (not this tranche): Gate CI doctor/compare bind (R6); crash-durable seal
-fsync or Ed25519.
+Later (not this tranche): crash-durable seal fsync or Ed25519 authenticity.
 
 ## Documentation map
 
