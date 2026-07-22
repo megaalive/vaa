@@ -193,11 +193,9 @@ Until (1)–(3) exist, VAA PR-005 through PR-008 must implement **defensive mapp
 
 Per architecture plan §27 and live checklist in `docs/progress.md`:
 
-1. ~~PR-001…PR-008 / R1–R2c / S2–S4 / H0–H3 / N0–N4 / P0–P2 / R0–R6 / D0~~ **Done**
-   (see `docs/progress.md`).
-2. **Next:** Ed25519 seal authenticity if seals must cross a trust boundary;
-   otherwise transparency-log / append-only digest store, or ContainerBackend
-   harden.
+1. ~~PR-001… / R0–R6 / D0 / L0–L1 / B0~~ **Done** (see `docs/progress.md`).
+2. **Next:** Ed25519 seal authenticity if seals cross a trust boundary; or
+   external transparency log (CI/Git); or deeper ContainerBackend isolation.
 3. Later (explicitly deferred): live model adapter, CryptOpt search,
    `v0.1.0` release.
 

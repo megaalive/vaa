@@ -20,7 +20,7 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | Phase 1 exit (`vaa verify`) | **Done** | unit | Offline report; live SemASM smoke ignored |
 | PR-009 — Process runner | **Done** (streaming + tree kill) | unit | Byte cap; Win stdin EOF; Unix process group + Win Job Object (R3) |
 
-| PR-010 — Build sandbox backend | **Scaffold** | unit | Docker argv wrapper; not hardened isolation |
+| PR-010 — Build sandbox backend | **Scaffold** + B0 | unit | Docker argv: network none forced, `--cap-drop ALL`, digest image ref |
 | PR-011 — NASM/linker pipeline | **Done** | unit | Needs toolchain on PATH for live use |
 | PR-012 — Artifact inspection | **Done** | unit | `object` crate |
 | PR-013 — Harness templates | **Done** | unit | sysv64/win64 |
@@ -110,7 +110,7 @@ cargo run -q -- evidence verify-chain \
 - Formal multi-file transactional seals on network / lying filesystems
 - Live model adapter
 - CryptOpt randomized search engine
-- Transparency log of digests (beyond CI artifact upload)
+- Transparency log of digests beyond local `seal-log.jsonl` (CI/Git remote)
 
 ### Planned vertical-slice waves (after R2c)
 
@@ -192,6 +192,17 @@ boundary.
 | Wave | Focus | Status |
 |---|---|---|
 | **D0** | Post-rename file `sync_all` + Unix dir sync (Win dir best-effort) | **Done** |
+
+### Next waves (L0–L1 + B0) — local seal log + container argv
+
+| Wave | Focus | Status |
+|---|---|---|
+| **L0** | Append-only `evidence/seal-log.jsonl` on candidate seal | **Done** |
+| **L1** | `verify-chain` checks seal-log when present | **Done** |
+| **B0** | ContainerBackend fail-closed network/caps + digest image ref | **Done** |
+
+Later: Ed25519 authenticity, external transparency log, full container isolation,
+live model, CryptOpt, `v0.1.0`.
 
 ## Documentation map
 

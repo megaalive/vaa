@@ -1,5 +1,5 @@
 pub mod backend;
 pub mod exec;
 
-pub use backend::{LocalBackend, SandboxBackend, SandboxConfig, SandboxError};
+pub use backend::{ContainerBackend, LocalBackend, SandboxBackend, SandboxConfig, SandboxError};
 pub use exec::ExecutionSandbox;

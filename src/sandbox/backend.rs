@@ -81,6 +81,9 @@ impl SandboxBackend for LocalBackend {
     }
 }
 
+/// Docker/Podman argv wrapper. Still **not** hardened isolation (no seccomp
+/// profile, no verified rootfs mounts). B0 only fail-closes obvious holes:
+/// network always off, capabilities dropped, prefer image digest when set.
 pub struct ContainerBackend {
     pub runtime: String,
     pub image: String,
@@ -95,6 +98,32 @@ impl ContainerBackend {
             image: image.to_owned(),
             image_digest: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_image_digest(runtime: &str, image: &str, digest: impl Into<String>) -> Self {
+        Self {
+            runtime: runtime.to_owned(),
+            image: image.to_owned(),
+            image_digest: Some(digest.into()),
+        }
+    }
+
+    /// Image reference for `docker run`: `name@sha256:…` when digest is set.
+    #[must_use]
+    pub fn image_ref(&self) -> String {
+        let Some(digest) = &self.image_digest else {
+            return self.image.clone();
+        };
+        let digest = digest.trim();
+        let digest = if digest.starts_with("sha256:") {
+            digest.to_owned()
+        } else {
+            format!("sha256:{digest}")
+        };
+        // Strip tag from image name when pinning by digest.
+        let name = self.image.split(':').next().unwrap_or(&self.image);
+        format!("{name}@{digest}")
     }
 }
 
@@ -125,10 +154,12 @@ impl SandboxBackend for ContainerBackend {
     ) -> ProcessConfig {
         let mut wrapped = vec!["run".to_owned(), "--rm".to_owned()];
 
-        if config.network_disabled {
-            wrapped.push("--network".to_owned());
-            wrapped.push("none".to_owned());
-        }
+        // Fail-closed: never enable container network from this scaffold.
+        let _ = config.network_disabled;
+        wrapped.push("--network".to_owned());
+        wrapped.push("none".to_owned());
+        wrapped.push("--cap-drop".to_owned());
+        wrapped.push("ALL".to_owned());
 
         if let Some(mem) = config.memory_limit_bytes {
             wrapped.push("--memory".to_owned());
@@ -136,7 +167,7 @@ impl SandboxBackend for ContainerBackend {
         }
 
         wrapped.push("--init".to_owned());
-        wrapped.push(self.image.clone());
+        wrapped.push(self.image_ref());
         wrapped.push(program.to_owned());
         wrapped.extend(args.iter().cloned());
 
@@ -174,15 +205,35 @@ mod tests {
     }
 
     #[test]
-    fn container_backend_wraps_with_docker_args() {
+    fn container_backend_forces_network_none_and_cap_drop() {
         let backend = ContainerBackend::new("docker", "ubuntu:24.04");
-        let cfg = SandboxConfig::default();
+        let cfg = SandboxConfig {
+            network_disabled: false, // request ignored — fail-closed
+            ..SandboxConfig::default()
+        };
         let pc = backend.wrap_process("nasm", &["-v".to_owned()], &cfg);
         assert_eq!(pc.program.to_string_lossy(), "docker");
-        assert!(pc.args.contains(&"run".to_owned()));
         assert!(pc.args.contains(&"--network".to_owned()));
         assert!(pc.args.contains(&"none".to_owned()));
+        assert!(pc.args.contains(&"--cap-drop".to_owned()));
+        assert!(pc.args.contains(&"ALL".to_owned()));
         assert!(pc.args.contains(&"ubuntu:24.04".to_owned()));
         assert!(pc.args.contains(&"nasm".to_owned()));
+    }
+
+    #[test]
+    fn container_backend_prefers_image_digest_ref() {
+        let backend = ContainerBackend::with_image_digest(
+            "docker",
+            "ubuntu:24.04",
+            "sha256:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+        );
+        assert_eq!(
+            backend.image_ref(),
+            "ubuntu@sha256:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+        );
+        let pc = backend.wrap_process("true", &[], &SandboxConfig::default());
+        assert!(pc.args.iter().any(|a| a.starts_with("ubuntu@sha256:")));
+        assert!(!pc.args.iter().any(|a| a == "ubuntu:24.04"));
     }
 }

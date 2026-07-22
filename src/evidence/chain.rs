@@ -79,6 +79,7 @@ pub struct VerifyChainReport {
 /// - `provenance.candidate_index` matches the directory index
 /// - all candidates share the same chain identity (task/run/target/contract)
 /// - final seal's `envelope_digest` equals the last candidate's
+/// - when `evidence/seal-log.jsonl` exists, it matches candidate digests (L1)
 pub fn verify_chain(run_dir: &Path) -> Result<VerifyChainReport, SealError> {
     let candidates_root = run_dir.join("candidates");
     if !candidates_root.is_dir() {
@@ -102,6 +103,7 @@ pub fn verify_chain(run_dir: &Path) -> Result<VerifyChainReport, SealError> {
     let mut previous_digest: Option<String> = None;
     let mut identity: Option<ChainIdentity> = None;
     let mut last_envelope: Option<SealEnvelope> = None;
+    let mut envelope_digests: Vec<String> = Vec::new();
 
     for index in &indices {
         let cand_dir = candidates_root.join(format!("{index:04}"));
@@ -145,6 +147,7 @@ pub fn verify_chain(run_dir: &Path) -> Result<VerifyChainReport, SealError> {
             }
         }
 
+        envelope_digests.push(envelope.envelope_digest.clone());
         previous_digest = Some(envelope.envelope_digest.clone());
         last_envelope = Some(envelope);
     }
@@ -174,6 +177,15 @@ pub fn verify_chain(run_dir: &Path) -> Result<VerifyChainReport, SealError> {
         )));
     }
     identity.check_against(last.provenance.candidate_index, &final_env)?;
+
+    // Local transparency log (when present — older runs may omit it).
+    let evidence_dir = run_dir.join("evidence");
+    super::seal_log::verify_seal_log_against_digests(&evidence_dir, &envelope_digests).map_err(
+        |e| match e {
+            SealError::EvidenceMismatch(msg) => SealError::Chain(format!("seal-log: {msg}")),
+            other => other,
+        },
+    )?;
 
     let last_dir = candidates_root.join(format!("{:04}", indices[indices.len() - 1]));
     let last_seal_path = last_dir.join(BUNDLE_SEAL);

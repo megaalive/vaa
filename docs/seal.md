@@ -14,11 +14,15 @@ There is no secret key and no digital signature in the seal path today. That is
 intentional for early phases: process isolation plus an external transparency
 artifact (CI log, Git note, append-only store of `envelope_digest`) is enough.
 
-### Future authenticity options (not implemented)
+### Future authenticity options (partially implemented)
 
 1. **Filesystem isolation** — generators have no write access to the evidence directory.
-2. **External transparency log** — store `envelope_digest` / `acceptance_digest` in CI artifacts, Git notes, or an append-only log.
-3. **Digital signature** — VAA signs the acceptance digest (e.g. Ed25519). Signing dependencies are deferred.
+2. **Local seal digest log** — `evidence/seal-log.jsonl` appends each candidate’s
+   `envelope_digest` / `acceptance_digest` (L0). Checked by `verify-chain` when
+   present (L1). This is **not** an external transparency log and not authenticity.
+3. **External transparency log** — store digests in CI artifacts, Git notes, or a
+   remote append-only log (still deferred).
+4. **Digital signature** — VAA signs the acceptance digest (e.g. Ed25519). Deferred.
 
 ## Seal schema 0.2
 
@@ -79,11 +83,15 @@ candidates/0001/
   …
 evidence/final.json
 evidence/final.seal.json
+evidence/seal-log.jsonl   # L0 local digest log (one JSON object per candidate)
 ```
 
 Storage boundary: exclusive `create_dir` per candidate index, `create_new` file
 writes, and best-effort read-only permissions after seal. Reusing an index fails
 with `CandidateAlreadySealed`.
+
+`seal-log.jsonl` is created on ingest/run seal paths. Older runs without the file
+still pass `verify-chain`; when the file exists, digests must match the chain.
 
 ## Atomic publication
 

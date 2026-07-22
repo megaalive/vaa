@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 
 use crate::candidate::CandidateProtocol;
 use crate::evidence::{
-    materialize_bundle_files, sha256_digest_prefixed, write_final_sealed_evidence,
+    append_seal_log, materialize_bundle_files, sha256_digest_prefixed, write_final_sealed_evidence,
     write_sealed_evidence, EvidenceAggregator, EvidenceExpect, EvidenceReport, GeneratorMeta,
-    SealBuildInput, SealEnvelope,
+    SealBuildInput, SealEnvelope, SealLogEntry,
 };
 use crate::run::RunDir;
 use crate::semasm::{
@@ -120,7 +120,7 @@ pub fn verify_candidate_and_seal(
     let expect = EvidenceExpect::new(target, source_digest.clone(), contract_digest.clone());
     let evidence = EvidenceAggregator::build(
         input.locked,
-        Some(input.run_id),
+        Some(input.run_id.clone()),
         verify.clone(),
         Some(input.doctor),
         Some(input.capability_match),
@@ -142,6 +142,15 @@ pub fn verify_candidate_and_seal(
         },
     )
     .map_err(|e| VerifySealError::Seal(e.to_string()))?;
+
+    let log_entry = SealLogEntry::from_seal(
+        &input.run_id,
+        &input.locked.task().task_id,
+        evidence.final_status,
+        &seal,
+    );
+    append_seal_log(&input.run_dir.paths().evidence_dir, &log_entry)
+        .map_err(|e| VerifySealError::Seal(e.to_string()))?;
 
     write_final_sealed_evidence(&input.run_dir.paths().evidence_dir, &evidence, &seal)
         .map_err(|e| VerifySealError::Seal(e.to_string()))?;
