@@ -1,6 +1,6 @@
 //! Live Gate-1 smoke: SemASM Incomplete + ingest seal chain (ignored without toolchain).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn vaa_bin() -> PathBuf {
@@ -9,6 +9,47 @@ fn vaa_bin() -> PathBuf {
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn signing_key_configured() -> bool {
+    std::env::var_os("VAA_SEAL_SIGNING_KEY").is_some_and(|v| !v.is_empty())
+}
+
+/// When CI sets `VAA_SEAL_SIGNING_KEY`, seals must carry Ed25519 authenticity.
+fn assert_seal_signature_if_signing(run_dir: &Path) {
+    if !signing_key_configured() {
+        return;
+    }
+    let seal_path = run_dir.join("evidence").join("final.seal.json");
+    let raw = std::fs::read_to_string(&seal_path)
+        .unwrap_or_else(|e| panic!("read {}: {e}", seal_path.display()));
+    let value: serde_json::Value =
+        serde_json::from_str(&raw).unwrap_or_else(|e| panic!("parse seal: {e}"));
+    let sig = value
+        .get("signature")
+        .unwrap_or_else(|| panic!("expected signature on {}", seal_path.display()));
+    assert_eq!(
+        sig.get("alg").and_then(|v| v.as_str()),
+        Some("ed25519"),
+        "signature.alg: {sig}"
+    );
+    assert_eq!(
+        sig.get("signed_over").and_then(|v| v.as_str()),
+        Some("acceptance_digest"),
+        "signature.signed_over: {sig}"
+    );
+    assert!(
+        sig.get("public_key_b64")
+            .and_then(|v| v.as_str())
+            .is_some_and(|s| !s.is_empty()),
+        "signature.public_key_b64 missing"
+    );
+    assert!(
+        sig.get("sig_b64")
+            .and_then(|v| v.as_str())
+            .is_some_and(|s| !s.is_empty()),
+        "signature.sig_b64 missing"
+    );
 }
 
 #[test]
@@ -185,6 +226,7 @@ fn gate1_ingest_and_verify_chain() {
         chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
         "unexpected chain output: {chain_out}"
     );
+    assert_seal_signature_if_signing(&run_dir);
 }
 
 #[test]
@@ -252,4 +294,5 @@ fn gate1_ingest_hlax64_sum_i64_verify_chain() {
         chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
         "unexpected chain output: {chain_out}"
     );
+    assert_seal_signature_if_signing(&run_dir);
 }
