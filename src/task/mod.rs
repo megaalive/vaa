@@ -102,6 +102,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_zero_budget_negative_fixture() {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/negative/task_zero_budget.vaa.toml");
+        let error = load_locked_task(&path).expect_err("zero budget must fail");
+        assert!(
+            error.to_string().contains("max_candidates"),
+            "unexpected: {error}"
+        );
+    }
+
+    #[test]
     fn repair_cannot_silently_reuse_old_digest_after_policy_edit() {
         let locked = load_locked_task(fixture("sum_i64.vaa.toml")).expect("valid");
         let original_digest = locked.digest().clone();

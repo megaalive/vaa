@@ -263,6 +263,17 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **D2** | Doc sync honesty | **Done** |
 | **E1** | Resume from sealed chain + events | **Done** (unit; not multi-host) |
 
+### Next waves (G1…R-tag)
+
+| Wave | Focus | Status |
+|---|---|---|
+| **D3** | Doc/checklist sync pasca-E1 | **Done** |
+| **N6** | Negative corpus under `fixtures/negative/` | **Done** (not full fuzz) |
+| **G1** | External argv generator → `staging/` | Pending |
+| **E1b** | Resume smoke in Gate-1 CI | Pending |
+| **L1/L2** | Linux fixtures + ubuntu Gate jobs | Pending |
+| **R-notes** | CHANGELOG + checklist closeout (tag deferred) | Pending |
+
 ## Documentation map
 
 | Document | Role |
@@ -279,6 +290,7 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | `fixtures/ingest/count_byte/README.md` | R2 generator-agnostic ingest |
 | `fixtures/ingest/hlax64_sum_i64/README.md` | HlaX64 → VAA ingest bridge (`sum_i64`) |
 | `fixtures/semasm/README.md` | Handshake fixtures |
+| `fixtures/negative/` | N6 fail-closed validate/transparency vectors |
 
 ## Honesty constraints
 

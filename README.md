@@ -90,7 +90,8 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-Resume from sealed chain + events (**E1**). Deferred: live model, CryptOpt, Rekor/HSM, Linux Gate job, OS-level generator isolation, `v0.1.0` tag ceremony ([checklist](docs/release-v0.1-checklist.md)).
+External argv → `staging/` (**G1**), Linux Gate parity, then release prep / checklist closeout.
+Deferred: live model, CryptOpt, Rekor/HSM, OS-level generator isolation, `v0.1.0` tag ceremony ([checklist](docs/release-v0.1-checklist.md)).
 
 ## License
 

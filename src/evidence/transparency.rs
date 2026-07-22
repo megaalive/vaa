@@ -331,4 +331,14 @@ mod tests {
         );
         let _ = fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn negative_fixtures_reject_wrong_schema_and_garbage() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/negative");
+        let wrong =
+            read_transparency_file(&root.join("transparency_wrong_schema.json")).unwrap_err();
+        assert!(matches!(wrong, SealError::UnsupportedSchema(_)), "{wrong}");
+        let garbage = read_transparency_file(&root.join("transparency_garbage.json")).unwrap_err();
+        assert!(matches!(garbage, SealError::Json(_)), "{garbage}");
+    }
 }

@@ -19,7 +19,8 @@ authorization to `git tag v0.1.0` until every required row is explicitly signed 
 | Container: Scaffold only (C0/C1/C2) | `docs/progress.md` PR-010 |
 | Generator write barrier is logical (G0), not OS ACL | `docs/seal.md` |
 | `cargo deny check` in CI | `.github/workflows/ci.yml` `check` job |
-| Next post-v0.1-prep wave | **E1** resume (or explicitly deferred) |
+| Resume from sealed chain (**E1**) | `src/run/resume.rs` + `vaa run --resume` |
+| Next post-prep wave | **G1** external argv→staging, then Linux Gate / R-tag |
 
 ## Explicit non-goals for `v0.1.0`
 
