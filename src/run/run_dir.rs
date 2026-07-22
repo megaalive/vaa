@@ -1,8 +1,16 @@
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use crate::run::run_id::RunId;
+
+const PROTECTED_CANDIDATE_FILES: &[&str] = &[
+    "evidence.json",
+    "evidence.seal.json",
+    "final.json",
+    "final.seal.json",
+    "seal-log.jsonl",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunDirPaths {
@@ -12,6 +20,8 @@ pub struct RunDirPaths {
     pub candidates_dir: PathBuf,
     pub accepted_dir: PathBuf,
     pub evidence_dir: PathBuf,
+    /// Generator-writable workspace (logical barrier vs evidence).
+    pub staging_dir: PathBuf,
     pub event_log_path: PathBuf,
 }
 
@@ -39,6 +49,9 @@ pub enum RunDirError {
     #[error("path traversal detected in `{path}`")]
     PathTraversal { path: PathBuf },
 
+    #[error("protected evidence zone: refusing write to `{path}` via RunDir API")]
+    ProtectedZone { path: PathBuf },
+
     #[error("candidate index overflow")]
     CandidateOverflow,
 
@@ -56,6 +69,7 @@ impl RunDir {
             candidates_dir: root.join("candidates"),
             accepted_dir: root.join("accepted"),
             evidence_dir: root.join("evidence"),
+            staging_dir: root.join("staging"),
             event_log_path: root.join("events.jsonl"),
             root,
         };
@@ -67,6 +81,7 @@ impl RunDir {
             &paths.candidates_dir,
             &paths.accepted_dir,
             &paths.evidence_dir,
+            &paths.staging_dir,
         ];
 
         for dir in &dirs {
@@ -92,6 +107,68 @@ impl RunDir {
     #[must_use]
     pub fn event_log_path(&self) -> &Path {
         &self.paths.event_log_path
+    }
+
+    /// True for paths under `evidence/` or protected seal filenames under `candidates/`.
+    #[must_use]
+    pub fn is_protected_path(&self, path: &Path) -> bool {
+        if path.starts_with(&self.paths.evidence_dir) {
+            return true;
+        }
+        if path.starts_with(&self.paths.candidates_dir) {
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                if PROTECTED_CANDIDATE_FILES.contains(&name) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn reject_if_protected(&self, path: &Path) -> Result<(), RunDirError> {
+        if self.is_protected_path(path) {
+            return Err(RunDirError::ProtectedZone {
+                path: path.to_path_buf(),
+            });
+        }
+        Ok(())
+    }
+
+    /// Join a relative path under `staging/` (rejects `..` and absolute components).
+    pub fn staging_join(&self, relative: &str) -> Result<PathBuf, RunDirError> {
+        let rel = Path::new(relative);
+        if rel.is_absolute() {
+            return Err(RunDirError::PathTraversal {
+                path: rel.to_path_buf(),
+            });
+        }
+        for c in rel.components() {
+            match c {
+                Component::Normal(_) | Component::CurDir => {}
+                _ => {
+                    return Err(RunDirError::PathTraversal {
+                        path: rel.to_path_buf(),
+                    });
+                }
+            }
+        }
+        if relative.is_empty() {
+            return Err(RunDirError::PathTraversal {
+                path: self.paths.staging_dir.clone(),
+            });
+        }
+        let joined = self.paths.staging_dir.join(rel);
+        if !joined.starts_with(&self.paths.staging_dir) {
+            return Err(RunDirError::PathTraversal { path: joined });
+        }
+        Ok(joined)
+    }
+
+    /// Write bytes under `staging/` only.
+    pub fn write_staging(&self, relative: &str, data: &[u8]) -> Result<PathBuf, RunDirError> {
+        let path = self.staging_join(relative)?;
+        self.write_atomic(&path, data)?;
+        Ok(path)
     }
 
     pub fn candidate_dir(&self, index: u32) -> Result<PathBuf, RunDirError> {
@@ -136,6 +213,7 @@ impl RunDir {
                 path: path.to_path_buf(),
             });
         }
+        self.reject_if_protected(path)?;
         write_new_file(path, data).map_err(|source| RunDirError::Write {
             path: path.to_path_buf(),
             source,
@@ -176,6 +254,7 @@ impl RunDir {
                 path: path.to_path_buf(),
             });
         }
+        self.reject_if_protected(path)?;
 
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|source| RunDirError::Create {
@@ -215,11 +294,15 @@ impl RunDir {
         Ok(path)
     }
 
-    pub fn write_evidence_file(&self, filename: &str, data: &[u8]) -> Result<PathBuf, RunDirError> {
+    /// Removed shortcut: evidence writes must go through the seal module, not RunDir.
+    pub fn write_evidence_file(
+        &self,
+        filename: &str,
+        _data: &[u8],
+    ) -> Result<PathBuf, RunDirError> {
         let safe_name = sanitize_filename(filename);
         let path = self.paths.evidence_dir.join(safe_name);
-        self.write_atomic(&path, data)?;
-        Ok(path)
+        Err(RunDirError::ProtectedZone { path })
     }
 
     fn safe_join(base: &Path, component: &str) -> Result<PathBuf, RunDirError> {
@@ -309,6 +392,7 @@ mod tests {
         assert!(rundir.paths.candidates_dir.exists());
         assert!(rundir.paths.accepted_dir.exists());
         assert!(rundir.paths.evidence_dir.exists());
+        assert!(rundir.paths.staging_dir.exists());
 
         let _ = fs::remove_dir_all(&base);
     }
@@ -389,6 +473,70 @@ mod tests {
             RunDirError::PathTraversal { .. }
         ));
 
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn evidence_zone_writes_rejected() {
+        let base = temp_base();
+        let id = RunId::generate();
+        let rundir = RunDir::create(&base, &id).expect("create run dir");
+
+        let path = rundir.paths.evidence_dir.join("final.json");
+        let err = rundir.write_atomic(&path, b"{}").expect_err("protected");
+        assert!(matches!(err, RunDirError::ProtectedZone { .. }));
+
+        let err = rundir
+            .write_evidence_file("final.json", b"{}")
+            .expect_err("shortcut closed");
+        assert!(matches!(err, RunDirError::ProtectedZone { .. }));
+
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn protected_candidate_seal_filenames_rejected() {
+        let base = temp_base();
+        let id = RunId::generate();
+        let rundir = RunDir::create(&base, &id).expect("create run dir");
+        let cand = rundir.create_candidate_dir(0).expect("cand");
+        let seal = cand.join("evidence.seal.json");
+        let err = rundir
+            .write_new_file(&seal, b"{}")
+            .expect_err("protected seal name");
+        assert!(matches!(err, RunDirError::ProtectedZone { .. }));
+
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn staging_write_ok_and_candidate_asm_ok() {
+        let base = temp_base();
+        let id = RunId::generate();
+        let rundir = RunDir::create(&base, &id).expect("create run dir");
+
+        let staged = rundir
+            .write_staging("sum_i64.asm", b"xor eax, eax\n")
+            .expect("staging");
+        assert!(staged.starts_with(&rundir.paths.staging_dir));
+        assert_eq!(fs::read_to_string(&staged).unwrap(), "xor eax, eax\n");
+
+        let cand = rundir.create_candidate_dir(0).expect("cand");
+        let asm = cand.join("candidate.asm");
+        rundir
+            .write_new_file(&asm, b"ret\n")
+            .expect("candidate.asm allowed before seal");
+
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn staging_join_rejects_traversal() {
+        let base = temp_base();
+        let id = RunId::generate();
+        let rundir = RunDir::create(&base, &id).expect("create run dir");
+        let err = rundir.staging_join("../evidence/x").expect_err("traversal");
+        assert!(matches!(err, RunDirError::PathTraversal { .. }));
         let _ = fs::remove_dir_all(&base);
     }
 
