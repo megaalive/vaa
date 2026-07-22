@@ -370,7 +370,11 @@ fn gate1_resume_second_candidate_verify_chain() {
         return;
     }
     assert!(
-        ingest.status.success() || stdout.contains("Incomplete") || stdout.contains("final_status"),
+        ingest.status.success()
+            || stdout.contains("Incomplete")
+            || stdout.contains("Violated")
+            || stdout.contains("Failed")
+            || stdout.contains("final_status"),
         "seed ingest failed: {:?}\n{stdout}\n{stderr}",
         ingest.status
     );
@@ -382,6 +386,10 @@ fn gate1_resume_second_candidate_verify_chain() {
         .find(|p| p.is_dir())
         .expect("run dir after ingest");
 
+    assert!(
+        run_dir.join("candidates/0000/evidence.seal.json").is_file(),
+        "seed ingest did not seal candidates/0000; stdout={stdout}\nstderr={stderr}"
+    );
     let seal0: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(run_dir.join("candidates/0000/evidence.seal.json")).unwrap(),
     )

@@ -99,14 +99,18 @@ impl ArgvExternalGenerator {
         }
 
         let allowed_env = {
-            let mut vars = vec!["PATH".to_owned(), "HOME".to_owned(), "USER".to_owned()];
             #[cfg(windows)]
             {
+                let mut vars = vec!["PATH".to_owned(), "HOME".to_owned(), "USER".to_owned()];
                 for k in ["SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "PATHEXT", "COMSPEC"] {
                     vars.push(k.to_owned());
                 }
+                vars
             }
-            vars
+            #[cfg(not(windows))]
+            {
+                vec!["PATH".to_owned(), "HOME".to_owned(), "USER".to_owned()]
+            }
         };
 
         let extra_env = vec![
