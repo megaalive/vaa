@@ -49,8 +49,7 @@ impl LiveModelConfig {
             .unwrap_or_else(|_| "https://api.openai.com".to_owned())
             .trim_end_matches('/')
             .to_owned();
-        let model =
-            std::env::var("VAA_MODEL_NAME").unwrap_or_else(|_| "gpt-4o-mini".to_owned());
+        let model = std::env::var("VAA_MODEL_NAME").unwrap_or_else(|_| "gpt-4o-mini".to_owned());
         Ok(Self {
             base_url,
             model,
@@ -148,7 +147,10 @@ impl ModelAdapter for OpenAiCompatibleAdapter {
             target: target.to_owned(),
             model_name: self.config.model.clone(),
             generation_id: gen_id,
-            diagnostics: vec![format!("task_id={task_id}"), "provider=openai-compatible".into()],
+            diagnostics: vec![
+                format!("task_id={task_id}"),
+                "provider=openai-compatible".into(),
+            ],
         })
     }
 }
@@ -157,10 +159,7 @@ fn classify_ureq_error(err: ureq::Error) -> ModelError {
     match err {
         ureq::Error::Status(code, resp) => {
             let body = resp.into_string().unwrap_or_default();
-            ModelError::GenerationFailed(format!(
-                "HTTP {code}: {}",
-                truncate_for_diag(&body, 400)
-            ))
+            ModelError::GenerationFailed(format!("HTTP {code}: {}", truncate_for_diag(&body, 400)))
         }
         ureq::Error::Transport(t) => ModelError::GenerationFailed(format!("transport: {t}")),
     }
@@ -208,10 +207,7 @@ pub fn strip_code_fences(raw: &str) -> String {
     let mut lines = trimmed.lines();
     let _ = lines.next(); // opening fence
     let mut body: Vec<&str> = lines.collect();
-    if body
-        .last()
-        .is_some_and(|l| l.trim().starts_with("```"))
-    {
+    if body.last().is_some_and(|l| l.trim().starts_with("```")) {
         body.pop();
     }
     body.join("\n").trim().to_owned()
@@ -251,7 +247,8 @@ mod tests {
 
     #[test]
     fn extracts_plain_chat_content() {
-        let body = r#"{"choices":[{"message":{"role":"assistant","content":"xor eax, eax\nret\n"}}]}"#;
+        let body =
+            r#"{"choices":[{"message":{"role":"assistant","content":"xor eax, eax\nret\n"}}]}"#;
         assert_eq!(
             extract_chat_content(body).unwrap().trim(),
             "xor eax, eax\nret"

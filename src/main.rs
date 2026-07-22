@@ -377,7 +377,9 @@ fn print_status() {
     println!("task schema: {TASK_SCHEMA_VERSION}");
     println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, inspect");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
-    println!("model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY");
+    println!(
+        "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
+    );
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
     println!("evidence note: opt-in Ed25519 when VAA_SEAL_SIGNING_KEY is set (not a trust root)");
