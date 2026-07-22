@@ -15,6 +15,8 @@ authors = ["VAA contributors"]
 [features]
 default = ["local-cli"]
 local-cli = []
+# Opt-in OpenAI-compatible HTTP adapter (ureq). Default build stays offline.
+live-model = ["dep:ureq"]
 
 [dependencies]
 base64 = "0.22"
@@ -27,6 +29,7 @@ sha2 = "0.10"
 thiserror = "2.0"
 toml = { version = "0.8", default-features = false, features = ["parse", "display"] }
 object = { version = "0.36", default-features = false, features = ["read", "elf", "pe", "macho", "unaligned"] }
+ureq = { version = "2.12", optional = true, default-features = true, features = ["json"] }
 
 [target.'cfg(windows)'.dependencies]
 win32job = "2.0.3"

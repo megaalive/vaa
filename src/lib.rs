@@ -42,6 +42,8 @@ pub use model::{
     ArgvExternalGenerator, FixtureModelAdapter, ModelAdapter, ModelError, ModelResponse,
     DEFAULT_STAGING_OUTPUT,
 };
+#[cfg(feature = "live-model")]
+pub use model::{build_generation_prompt, LiveModelConfig, OpenAiCompatibleAdapter};
 pub use orchestrate::{MachineState, Orchestrator, StateTransition};
 pub use process::{ProcessConfig, ProcessError, ProcessOutput, ProcessRunner};
 pub use run::{

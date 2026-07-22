@@ -30,10 +30,28 @@ This document is the human-readable companion to `deny.toml`.
 | `rand` | CSPRNG for `vaa evidence keygen-seal` only |
 | `base64` | Encode/decode seal `public_key_b64` / `sig_b64` |
 | `win32job` (Windows only) | Job Object ownership so timeout/overflow kills the full process tree |
+| `ureq` (**optional**, feature `live-model`) | Sync OpenAI-compatible HTTP for PR-019 — never default |
+
+## Optional features
+
+```toml
+[features]
+default = ["local-cli"]
+local-cli = []
+live-model = ["dep:ureq"]
+```
+
+Default features remain offline and free of live provider SDKs. Enable live generate with:
+
+```bash
+cargo run --features live-model -- generate task.vaa.toml --output out.asm --live
+# requires VAA_MODEL_API_KEY; optional VAA_MODEL_BASE_URL / VAA_MODEL_NAME
+```
 
 ## License allow-list
 
 See `deny.toml` `[licenses].allow`. Dual-license crate choice should prefer MIT OR Apache-2.0 when available.
+`CDLA-Permissive-2.0` is allowed for `webpki-roots` (pulled by optional `ureq` / `live-model`).
 
 ## Review triggers
 
@@ -49,7 +67,7 @@ Any new dependency requires:
 ```toml
 [features]
 default = ["local-cli"]
-live-model = []
+live-model = []   # enabled: see above (ureq)
 sandbox-container = []
 sandbox-vm = []
 service = []

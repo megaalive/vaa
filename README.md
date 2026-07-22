@@ -25,7 +25,7 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa build <source.asm> [--target elf64] [--sandbox container]` | Available — NASM + linker; container = Scaffold |
 | `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |
 | `vaa sandbox status` | Available via `vaa status` |
-| Model generation / repair | **Fixture adapter only** |
+| Model generation / repair | **Fixture adapter** + opt-in **`--live`** (`live-model` feature) |
 | Assemble / link / sandbox execute | **Via toolchain on PATH** |
 
 This project does **not** claim safety, formal proof, zero overhead, or production readiness.
@@ -90,10 +90,10 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-**R-tag** (`git tag v0.1.0`) is deferred until maintainer sign-off — see
-[`docs/release-v0.1-checklist.md`](docs/release-v0.1-checklist.md) and [`CHANGELOG.md`](CHANGELOG.md).
-Prep surface (G1, E1b, Linux Gate, R-notes) is Done.
-Deferred products: live model, CryptOpt, Rekor/HSM, OS-level generator isolation.
+Architecture **Phase 5 / PR-019** (live OpenAI-compatible adapter) is landing; next is
+Phase 6 evidence hardening (cache / reproducibility) then Phase 7 alpha / **R-tag**.
+See [`docs/progress.md`](docs/progress.md) and [`CHANGELOG.md`](CHANGELOG.md).
+Deferred: CryptOpt, Rekor/HSM, OS-level generator isolation, auto-publish.
 
 ## License
 

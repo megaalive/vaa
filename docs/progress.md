@@ -110,9 +110,9 @@ cargo run -q -- evidence verify-chain \
 - Remote append-only transparency service / Rekor / Git notes automation
 - HSM / hardware keys / certificate chains
 - Formal multi-file transactional seals on network / lying filesystems
-- Live model adapter
 - CryptOpt randomized search engine
 - `v0.1.0` release tag ceremony
+- Content-addressed cache / reproducibility report (PR-020/021)
 
 ### Planned vertical-slice waves (after R2c)
 
@@ -274,7 +274,17 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **L1/L2** | Linux fixtures + ubuntu Gate jobs | **Done** (VAA+SemASM pin smoke; qemu for Linux Verified; not SemASM upstream Linux CI claim) |
 | **R-notes** | CHANGELOG + checklist closeout (tag deferred) | **Done** |
 
-## Documentation map
+### Next waves (Phase 5+) — architecture plan §26–§27
+
+| Wave | Focus | Status |
+|---|---|---|
+| **PR-019** | Live OpenAI-compatible adapter (`live-model` + `--live`) | **Done** (opt-in; CI stays offline-deterministic) |
+| **PR-020** | Content-addressed cache | Pending |
+| **PR-021** | Reproducibility report | Pending |
+| **PR-022** | Negative corpus + fuzz entry points | Partial (N5/N6; not full fuzz) |
+| **PR-023 / R-tag** | Alpha release gate + git tag | Pending (checklist ready; tag deferred) |
+
+Honesty: `--live` never runs in Gate CI; API keys are env-only and never sealed.
 
 | Document | Role |
 |---|---|

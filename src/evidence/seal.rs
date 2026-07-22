@@ -57,6 +57,16 @@ impl GeneratorMeta {
             generation_id,
         }
     }
+
+    /// Live OpenAI-compatible adapter attribution (API key never stored here).
+    #[must_use]
+    pub fn live(name: impl Into<String>, generation_id: Option<String>) -> Self {
+        Self {
+            kind: "live-openai-compatible".to_owned(),
+            name: name.into(),
+            generation_id,
+        }
+    }
 }
 
 /// Technical acceptance body — hashed into [`SealEnvelope::acceptance_digest`].
