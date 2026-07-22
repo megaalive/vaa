@@ -98,13 +98,16 @@ impl ArgvExternalGenerator {
             let _ = std::fs::remove_file(&out_path);
         }
 
-        let mut allowed_env = vec!["PATH".to_owned(), "HOME".to_owned(), "USER".to_owned()];
-        #[cfg(windows)]
-        {
-            for k in ["SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "PATHEXT", "COMSPEC"] {
-                allowed_env.push(k.to_owned());
+        let allowed_env = {
+            let mut vars = vec!["PATH".to_owned(), "HOME".to_owned(), "USER".to_owned()];
+            #[cfg(windows)]
+            {
+                for k in ["SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "PATHEXT", "COMSPEC"] {
+                    vars.push(k.to_owned());
+                }
             }
-        }
+            vars
+        };
 
         let extra_env = vec![
             (

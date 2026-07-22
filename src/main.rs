@@ -1344,6 +1344,30 @@ mod tests {
     }
 
     #[test]
+    fn clap_parses_run_resume() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "run",
+            "task.vaa.toml",
+            "--contract",
+            "c.sem.toml",
+            "--wrong",
+            "w.asm",
+            "--repaired",
+            "r.asm",
+            "--resume",
+            "target/vaa-runs/existing",
+        ])
+        .expect("parse");
+        match cli.command {
+            Some(Commands::Run {
+                resume: Some(path), ..
+            }) => assert!(path.ends_with("existing")),
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
     fn clap_parses_ingest() {
         let cli = Cli::try_parse_from([
             "vaa",

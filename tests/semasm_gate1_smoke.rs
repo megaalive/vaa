@@ -332,6 +332,121 @@ fn gate1_run_count_byte_multi_candidate_verify_chain() {
 
 #[test]
 #[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_resume_second_candidate_verify_chain() {
+    let task = root().join("fixtures/run/count_byte/count_byte.vaa.toml");
+    let contract = root().join("fixtures/run/count_byte/count_byte.sem.toml");
+    let wrong = root().join("fixtures/run/count_byte/01_wrong.asm");
+    let repaired = root().join("fixtures/run/count_byte/02_repaired.asm");
+    let run_base = root().join("target/vaa-gate1-resume-smokes");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let ingest = Command::new(vaa_bin())
+        .args([
+            "ingest",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            wrong.to_str().unwrap(),
+            "--generator",
+            "ci-e1b",
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("ingest seed");
+
+    let stdout = String::from_utf8_lossy(&ingest.stdout);
+    let stderr = String::from_utf8_lossy(&ingest.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+    assert!(
+        ingest.status.success() || stdout.contains("Incomplete") || stdout.contains("final_status"),
+        "seed ingest failed: {:?}\n{stdout}\n{stderr}",
+        ingest.status
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("run dir after ingest");
+
+    let seal0: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(run_dir.join("candidates/0000/evidence.seal.json")).unwrap(),
+    )
+    .unwrap();
+    let d0 = seal0["envelope_digest"].as_str().unwrap().to_owned();
+
+    let resume = Command::new(vaa_bin())
+        .args([
+            "run",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--wrong",
+            wrong.to_str().unwrap(),
+            "--repaired",
+            repaired.to_str().unwrap(),
+            "--resume",
+            run_dir.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("vaa run --resume");
+
+    let r_out = String::from_utf8_lossy(&resume.stdout);
+    let r_err = String::from_utf8_lossy(&resume.stderr);
+    if r_out.contains("semasm unavailable") || r_err.contains("semasm unavailable") {
+        eprintln!("skipping resume: SemASM unavailable\n{r_out}\n{r_err}");
+        return;
+    }
+    assert!(
+        resume.status.success()
+            || r_out.contains("Incomplete")
+            || r_out.contains("Candidates accepted"),
+        "resume failed: {:?}\n{r_out}\n{r_err}",
+        resume.status
+    );
+
+    assert!(
+        run_dir.join("candidates/0001").is_dir(),
+        "expected candidates/0001 after resume"
+    );
+    let seal1: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(run_dir.join("candidates/0001/evidence.seal.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        seal1["provenance"]["previous_seal_digest"].as_str(),
+        Some(d0.as_str())
+    );
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: {} {}",
+        String::from_utf8_lossy(&chain.stdout),
+        String::from_utf8_lossy(&chain.stderr)
+    );
+    assert_seal_signature_if_signing(&run_dir);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
 fn gate1_ingest_hlax64_sum_i64_verify_chain() {
     let task = root().join("fixtures/ingest/hlax64_sum_i64/sum_i64.vaa.toml");
     let source = root().join("fixtures/ingest/hlax64_sum_i64/candidate.asm");
