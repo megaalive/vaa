@@ -10,7 +10,18 @@ use serde::{Deserialize, Serialize};
 use super::capabilities::{CapabilityLevel, TargetCapabilities, CAPABILITY_SOURCE};
 
 /// SemASM agent maturity levels that can back VAA Gate-1/2 agent-verify.
-const GATE_USABLE_AGENT: &[&str] = &["verified_in_ci", "verified_in_unit_tests"];
+///
+/// `semasm status --format json` emits **display** spellings from SemASM
+/// `CapabilityLevel::as_str` (`CI-verified`, `unit-tested`), not TOML keys
+/// (`verified_in_ci`, …). Accept both so probes stay tolerant.
+const GATE_USABLE_AGENT: &[&str] = &[
+    "CI-verified",
+    "unit-tested",
+    "release-qualified",
+    "verified_in_ci",
+    "verified_in_unit_tests",
+    "release_qualified",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -149,10 +160,10 @@ mod tests {
                     id: "x86_64-pc-windows-msvc".into(),
                     decode: Some("partial".into()),
                     lower: Some("partial".into()),
-                    abi: Some("verified_in_unit_tests".into()),
-                    assemble: Some("verified_in_ci".into()),
-                    link: Some("verified_in_ci".into()),
-                    execute: Some("verified_in_ci".into()),
+                    abi: Some("unit-tested".into()),
+                    assemble: Some("CI-verified".into()),
+                    link: Some("CI-verified".into()),
+                    execute: Some("CI-verified".into()),
                     pipeline: Some("experimental".into()),
                     agent: Some(agent_win.into()),
                 },
@@ -160,10 +171,10 @@ mod tests {
                     id: "x86_64-unknown-linux-gnu".into(),
                     decode: Some("partial".into()),
                     lower: Some("partial".into()),
-                    abi: Some("verified_in_unit_tests".into()),
-                    assemble: Some("verified_in_ci".into()),
-                    link: Some("verified_in_ci".into()),
-                    execute: Some("verified_in_ci".into()),
+                    abi: Some("unit-tested".into()),
+                    assemble: Some("CI-verified".into()),
+                    link: Some("CI-verified".into()),
+                    execute: Some("CI-verified".into()),
                     pipeline: Some("experimental".into()),
                     agent: Some(agent_linux.into()),
                 },
@@ -179,18 +190,18 @@ mod tests {
             "version":"1.2.3",
             "capability_schema":"0.1",
             "workspace_crates":["semasm-cli"],
-            "targets":[{"id":"x86_64-pc-windows-msvc","agent":"verified_in_ci","extra_future":true}],
+            "targets":[{"id":"x86_64-pc-windows-msvc","agent":"CI-verified","extra_future":true}],
             "notes":["n"],
             "future_top": 1
         }"#;
         let doc = parse_status_json(raw).expect("parse");
         assert_eq!(doc.capability_schema.as_deref(), Some("0.1"));
-        assert_eq!(doc.targets[0].agent.as_deref(), Some("verified_in_ci"));
+        assert_eq!(doc.targets[0].agent.as_deref(), Some("CI-verified"));
     }
 
     #[test]
     fn aligned_when_agent_gate_usable_despite_pipeline_experimental() {
-        let live = sample_status("verified_in_ci", "verified_in_ci");
+        let live = sample_status("CI-verified", "CI-verified");
         let embedded = TargetCapabilities::for_target("x86_64-pc-windows-msvc");
         let cmp = compare_live_status("x86_64-pc-windows-msvc", &live, &embedded);
         assert_eq!(cmp.outcome, CompareOutcome::Aligned);
@@ -199,8 +210,16 @@ mod tests {
     }
 
     #[test]
+    fn aligned_when_agent_uses_toml_key_alias() {
+        let live = sample_status("verified_in_ci", "verified_in_ci");
+        let embedded = TargetCapabilities::for_target("x86_64-pc-windows-msvc");
+        let cmp = compare_live_status("x86_64-pc-windows-msvc", &live, &embedded);
+        assert_eq!(cmp.outcome, CompareOutcome::Aligned);
+    }
+
+    #[test]
     fn drift_when_live_agent_too_weak_for_gate_snapshot() {
-        let live = sample_status("experimental", "verified_in_ci");
+        let live = sample_status("experimental", "CI-verified");
         let embedded = TargetCapabilities::for_target("x86_64-pc-windows-msvc");
         let cmp = compare_live_status("x86_64-pc-windows-msvc", &live, &embedded);
         assert_eq!(cmp.outcome, CompareOutcome::Drift);
