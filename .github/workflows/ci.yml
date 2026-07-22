@@ -41,8 +41,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM T0–T6 tip (framed Win64 + sum_i64 oracle v2).
-          ref: 77b1703353483704f5364af638d1735fe2ddcd55
+          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
+          ref: 1d475a5cf5e60e5fe41dfae76562ad9d497fdc0a
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -95,8 +95,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM T0–T6 tip (framed Win64 + sum_i64 oracle v2).
-          ref: 77b1703353483704f5364af638d1735fe2ddcd55
+          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
+          ref: 1d475a5cf5e60e5fe41dfae76562ad9d497fdc0a
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -143,15 +143,16 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM T0–T6 tip (framed Win64 + sum_i64 oracle v2).
-          ref: 77b1703353483704f5364af638d1735fe2ddcd55
+          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
+          ref: 1d475a5cf5e60e5fe41dfae76562ad9d497fdc0a
 
       - name: Checkout HlaX64
         uses: actions/checkout@v4
         with:
           repository: megaalive/hlax64
           path: hlax64
-          ref: main
+          # Pin: sum_i64 SemASM/VAA bridge leaf example (H1).
+          ref: 4c797893e0714f64faf1ae2f67ddf26c44f06d91
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
