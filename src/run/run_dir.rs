@@ -537,6 +537,13 @@ mod tests {
         let rundir = RunDir::create(&base, &id).expect("create run dir");
         let err = rundir.staging_join("../evidence/x").expect_err("traversal");
         assert!(matches!(err, RunDirError::PathTraversal { .. }));
+        let err = rundir
+            .write_staging("..\\candidates\\0000\\evil.asm", b"ret\n")
+            .expect_err("staging write traversal");
+        assert!(matches!(
+            err,
+            RunDirError::PathTraversal { .. } | RunDirError::ProtectedZone { .. }
+        ));
         let _ = fs::remove_dir_all(&base);
     }
 

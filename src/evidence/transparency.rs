@@ -310,4 +310,25 @@ mod tests {
         assert!(matches!(err, SealError::EvidenceMismatch(_)));
         let _ = fs::remove_dir_all(&run);
     }
+
+    #[test]
+    fn verify_transparency_rejects_malformed_json() {
+        let dir = std::env::temp_dir().join(format!(
+            "vaa_transparency_malformed_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("bad.json");
+        fs::write(&path, b"{not-json").unwrap();
+        let err = read_transparency_file(&path).unwrap_err();
+        assert!(
+            matches!(err, SealError::Json(_)),
+            "expected SealError::Json for malformed transparency: {err}"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
 }
