@@ -42,7 +42,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: 1d475a5cf5e60e5fe41dfae76562ad9d497fdc0a
+          ref: 9e9304756db0de88d8c8c47a1cb17edb1986a518
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -96,7 +96,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: 1d475a5cf5e60e5fe41dfae76562ad9d497fdc0a
+          ref: 9e9304756db0de88d8c8c47a1cb17edb1986a518
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -144,7 +144,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: 1d475a5cf5e60e5fe41dfae76562ad9d497fdc0a
+          ref: 9e9304756db0de88d8c8c47a1cb17edb1986a518
 
       - name: Checkout HlaX64
         uses: actions/checkout@v4
