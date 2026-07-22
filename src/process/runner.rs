@@ -86,8 +86,6 @@ impl ProcessRunner {
             detail: e.to_string(),
         })?;
 
-        let pid = child.id();
-
         if config.stdin_null {
             if let Some(stdin) = child.stdin.take() {
                 drop(stdin);
@@ -127,7 +125,7 @@ impl ProcessRunner {
                 }
                 Ok(None) => {}
                 Err(error) => {
-                    kill_process(pid);
+                    kill_child(&mut child);
                     let _ = child.wait();
                     let _ = stdout_handle.join();
                     let _ = stderr_handle.join();
@@ -139,7 +137,7 @@ impl ProcessRunner {
             }
 
             if overflow.load(Ordering::Relaxed) {
-                kill_process(pid);
+                kill_child(&mut child);
                 let _ = child.wait();
                 let _ = stdout_handle.join();
                 let _ = stderr_handle.join();
@@ -149,7 +147,7 @@ impl ProcessRunner {
             }
 
             if Instant::now() >= deadline {
-                kill_process(pid);
+                kill_child(&mut child);
                 timed_out = true;
                 let _ = child.wait();
                 exit_code = None;
@@ -208,16 +206,17 @@ fn drain_capped(
     buf
 }
 
-fn kill_process(pid: u32) {
+fn kill_child(child: &mut std::process::Child) {
+    // Until R3 (process-group / Job Object at spawn), Unix children share the
+    // parent's PGID. Do not `kill -<pid>` (process *group*): that silently fails
+    // and leaves flood/timeout paths blocked forever on `child.wait()`.
     #[cfg(unix)]
     {
-        let _ = Command::new("kill")
-            .arg("-TERM")
-            .arg(format!("-{pid}"))
-            .output();
+        let _ = child.kill();
     }
     #[cfg(windows)]
     {
+        let pid = child.id();
         let _ = Command::new("taskkill")
             .args(["/F", "/T", "/PID"])
             .arg(pid.to_string())
@@ -261,10 +260,31 @@ mod tests {
         assert!(matches!(result, Err(ProcessError::Spawn { .. })));
     }
 
+    fn python_program() -> PathBuf {
+        if cfg!(windows) {
+            PathBuf::from("python")
+        } else {
+            PathBuf::from("python3")
+        }
+    }
+
+    fn python_allowed_env() -> Vec<String> {
+        vec![
+            "PATH".to_owned(),
+            "HOME".to_owned(),
+            "USER".to_owned(),
+            "SYSTEMROOT".to_owned(),
+            "WINDIR".to_owned(),
+            "SYSTEMDRIVE".to_owned(),
+            "PATHEXT".to_owned(),
+            "COMSPEC".to_owned(),
+        ]
+    }
+
     #[test]
     fn streaming_cap_rejects_flood_before_exit() {
         let cfg = ProcessConfig {
-            program: PathBuf::from("python"),
+            program: python_program(),
             args: vec![
                 "-c".to_owned(),
                 "import sys\nwhile True:\n sys.stdout.write('x'*4096); sys.stdout.flush()"
@@ -272,14 +292,7 @@ mod tests {
             ],
             timeout: Duration::from_secs(10),
             max_output_bytes: 64 * 1024,
-            allowed_env: vec![
-                "PATH".to_owned(),
-                "SYSTEMROOT".to_owned(),
-                "WINDIR".to_owned(),
-                "SYSTEMDRIVE".to_owned(),
-                "PATHEXT".to_owned(),
-                "COMSPEC".to_owned(),
-            ],
+            allowed_env: python_allowed_env(),
             ..ProcessConfig::default()
         };
         let result = ProcessRunner::run(&cfg);
@@ -292,21 +305,14 @@ mod tests {
     #[test]
     fn null_stdin_yields_immediate_eof() {
         let cfg = ProcessConfig {
-            program: PathBuf::from("python"),
+            program: python_program(),
             args: vec![
                 "-c".to_owned(),
                 "import sys; data=sys.stdin.buffer.read(); print(len(data))".to_owned(),
             ],
             timeout: Duration::from_secs(10),
             max_output_bytes: 1_048_576,
-            allowed_env: vec![
-                "PATH".to_owned(),
-                "SYSTEMROOT".to_owned(),
-                "WINDIR".to_owned(),
-                "SYSTEMDRIVE".to_owned(),
-                "PATHEXT".to_owned(),
-                "COMSPEC".to_owned(),
-            ],
+            allowed_env: python_allowed_env(),
             stdin_null: true,
             ..ProcessConfig::default()
         };
