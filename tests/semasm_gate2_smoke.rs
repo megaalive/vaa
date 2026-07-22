@@ -91,6 +91,15 @@ fn gate2_verify_sum_i64_win64_verified() {
         "Gate-2 sum_i64 expects Verified with --allow-execution: {value}"
     );
     assert_eq!(value["verify_report"]["raw_status"], "verified");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(
+        raw["behavior_oracle"]["id"],
+        "builtin.buffer.wrapping_sum_i64"
+    );
+    assert_eq!(raw["behavior_oracle"]["version"], 2);
 }
 
 #[test]
@@ -136,4 +145,13 @@ fn gate2_verify_hlax64_sum_i64_win64_verified() {
         "Gate-2 hlax64 sum_i64 expects Verified: {value}"
     );
     assert_eq!(value["verify_report"]["raw_status"], "verified");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(
+        raw["behavior_oracle"]["id"],
+        "builtin.buffer.wrapping_sum_i64"
+    );
+    assert_eq!(raw["behavior_oracle"]["version"], 2);
 }

@@ -12,6 +12,23 @@ fn root() -> PathBuf {
 }
 
 #[test]
+fn hlax64_sum_i64_candidate_is_framed_win64() {
+    let src = include_str!("../fixtures/ingest/hlax64_sum_i64/candidate.asm");
+    assert!(
+        src.contains("push rbp"),
+        "HlaX64 framed leaf must open a frame"
+    );
+    assert!(
+        src.contains("mov rsp, rbp") || src.contains("mov rsp,rbp"),
+        "HlaX64 framed leaf must restore rsp via rbp (SemASM T1 carve-out)"
+    );
+    assert!(
+        src.contains("[rbp-"),
+        "HlaX64 framed leaf must spill args to [rbp-disp]"
+    );
+}
+
+#[test]
 #[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
 fn gate1_verify_count_byte_win64_incomplete() {
     let task = root().join("fixtures/semasm/count_byte/count_byte.vaa.toml");
@@ -91,6 +108,15 @@ fn gate1_verify_sum_i64_win64_incomplete() {
         "Gate-1 sum_i64 expects Incomplete: {value}"
     );
     assert_eq!(value["verify_report"]["raw_status"], "execution_denied");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(
+        raw["behavior_oracle"]["id"],
+        "builtin.buffer.wrapping_sum_i64"
+    );
+    assert_eq!(raw["behavior_oracle"]["version"], 2);
 }
 
 #[test]
