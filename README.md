@@ -22,7 +22,7 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa evidence verify-bundle <dir>` | Available — re-hash task/contract/source/report vs seal |
 | `vaa evidence verify-chain <run-dir>` | Available — full candidate hash chain + final seal |
 | `vaa generate <task> --output <file.asm>` | Available — fixture model adapter |
-| `vaa build <source.asm> [--target elf64]` | Available — NASM + linker pipeline |
+| `vaa build <source.asm> [--target elf64] [--sandbox container]` | Available — NASM + linker; container = Scaffold |
 | `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |
 | `vaa sandbox status` | Available via `vaa status` |
 | Model generation / repair | **Fixture adapter only** |
@@ -73,7 +73,8 @@ Non-negotiable direction:
 - SemASM contract path is explicit: `--contract <*.sem.toml>` (distinct from the locked `*.vaa.toml` task);
 - `vaa run` wires the orchestrator with a **fixture** model queue (wrong→repair); live providers are out of scope;
 - `vaa ingest` accepts any external `.asm` (fixture, human, CryptOpt-like search, LLM dump) and always returns to SemASM verify + sealed evidence — generators do not move acceptance;
-- seals are **content integrity** envelopes (`acceptance_digest` / `envelope_digest`), not publisher authenticity (no signing yet); see [`docs/seal.md`](docs/seal.md).
+- seals are **content integrity** envelopes (`acceptance_digest` / `envelope_digest`); opt-in Ed25519 authenticity via `VAA_SEAL_SIGNING_KEY` (practice keys ≠ trust root); see [`docs/seal.md`](docs/seal.md);
+- `vaa build --sandbox container` wraps assemble/link via Docker/Podman (**Scaffold**, not hardened isolation); default image `ubuntu:24.04` (`VAA_CONTAINER_IMAGE`).
 
 ## Exit codes (partial)
 
@@ -83,8 +84,13 @@ Non-negotiable direction:
 | 2 | Invalid user input or task schema |
 | 3 | SemASM binary not found or version mismatch |
 | 4 | Verification produced violations or failures |
+| 7 | Task budget exhausted |
 
 Full table: architecture plan §19.3.
+
+## What's next
+
+Resume from sealed chain + events (**E1**). Deferred: live model, CryptOpt, Rekor/HSM, Linux Gate job, OS-level generator isolation, `v0.1.0` tag ceremony ([checklist](docs/release-v0.1-checklist.md)).
 
 ## License
 

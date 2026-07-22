@@ -16,8 +16,10 @@ authorization to `git tag v0.1.0` until every required row is explicitly signed 
 | Seal schema 0.2 documented | `docs/seal.md` |
 | Integrity vs authenticity honesty | `docs/seal.md` (A0/A1 practice key ≠ trust root) |
 | Transparency: CI artifact ≠ remote immutable log | T0/T1 |
-| Container: Scaffold only (C0/C1) | `docs/progress.md` PR-010 |
+| Container: Scaffold only (C0/C1/C2) | `docs/progress.md` PR-010 |
 | Generator write barrier is logical (G0), not OS ACL | `docs/seal.md` |
+| `cargo deny check` in CI | `.github/workflows/ci.yml` `check` job |
+| Next post-v0.1-prep wave | **E1** resume (or explicitly deferred) |
 
 ## Explicit non-goals for `v0.1.0`
 
