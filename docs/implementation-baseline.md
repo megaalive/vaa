@@ -191,11 +191,14 @@ Until (1)–(3) exist, VAA PR-005 through PR-008 must implement **defensive mapp
 
 ## 10. Next implementation step
 
-Per architecture plan §27 (ordered PR plan) and `docs/progress.md`:
+Per architecture plan §27 and live checklist in `docs/progress.md`:
 
-1. ~~Complete **PR-001** — Rust binary crate, licenses, style, CI, dependency policy, truthful README (no functional claims).~~ **Done**
-2. ~~**PR-002 / PR-003** — task schema 0.1, validation, locked digest.~~ **Done** (see `docs/task-schema.md`, `docs/progress.md`)
-3. **Next:** **PR-004** — run directory layout and event log; then SemASM doctor/adapters (PR-005+).
+1. ~~PR-001…PR-008 / R1–R2c / S2–S4 / H0–H3 / N0–N4~~ **Done** (see `docs/progress.md`).
+2. **Next:** stack integrity **P0–P2** — pin HlaX64 SHA; honesty docs; embed
+   capability snapshot source label (`vaa_embedded_agent_verify_snapshot`).
+3. Later (explicitly deferred): streaming output caps / process-group kill
+   (PR-009 remainder), Ed25519 seals, live model adapter, CryptOpt search,
+   `v0.1.0` release.
 
 Do not implement live model adapters, Redis, Python services, or multi-crate splits in this phase.
 

@@ -145,16 +145,32 @@ Do **not** call Gate-1 a “verified vertical slice”.
 ### Next waves (N0–N4) — SemASM tip pin + framed smoke
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
-`77b1703353483704f5364af638d1735fe2ddcd55`
-(T0–T6 tip: framed Win64 ABI + `wrapping_sum_i64` oracle v2).
+`1d475a5cf5e60e5fe41dfae76562ad9d497fdc0a`
+(T0–T6 tip + N4 docs pointer).
+
+HlaX64 pin (`hlax64-bridge` only):
+`4c797893e0714f64faf1ae2f67ddf26c44f06d91`
+(`examples: add sum_i64 SemASM/VAA bridge leaf`).
 
 | Wave | Focus | Status |
 |---|---|---|
-| **N0** | Push SemASM tip + CI green for T0–T6 | **Done** (pin SHA above) |
+| **N0** | Push SemASM tip + CI green for T0–T6 | **Done** |
 | **N1** | Pin SemASM SHA in VAA CI (not floating `main`) | **Done** |
 | **N2** | Refresh `sum_i64` consumer goldens (oracle v2) | **Done** |
 | **N3** | Framed `sum_i64` Gate smoke + fixture shape lock | **Done** |
 | **N4** | Honesty docs (this file + SemASM progress) | **Done** |
+
+### Next waves (P0–P2) — stack integrity
+
+| Wave | Focus | Status |
+|---|---|---|
+| **P0** | Pin HlaX64 SHA + refresh SemASM pin to tip | **Done** |
+| **P1** | Honesty docs sync (baseline / ROADMAP / progress) | **Done** |
+| **P2** | Capability claim bind (`source=vaa_embedded_agent_verify_snapshot`) | **Done** |
+
+Honesty: VAA `capabilities` JSON is an **embedded agent-verify snapshot**, not a
+live read of SemASM `capabilities.toml` (pipeline maturity there may still be
+`partial` / `experimental` on some axes).
 
 ## Documentation map
 
