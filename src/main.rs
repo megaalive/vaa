@@ -150,6 +150,12 @@ enum Commands {
         /// Run base directory: create a run and write default output under `staging/`.
         #[arg(long)]
         run_dir: Option<PathBuf>,
+        /// External generator program (G1). Requires `--run-dir`. Writes `candidate.asm` under staging.
+        #[arg(long)]
+        command: Option<PathBuf>,
+        /// Arguments forwarded to `--command` (use `--` before them).
+        #[arg(last = true)]
+        command_args: Vec<String>,
     },
     /// Assemble and link a source file.
     Build {
@@ -324,7 +330,15 @@ fn main() -> ExitCode {
             task,
             output,
             run_dir,
-        } => generate_command(&task, output.as_deref(), run_dir.as_deref()),
+            command,
+            command_args,
+        } => generate_command(
+            &task,
+            output.as_deref(),
+            run_dir.as_deref(),
+            command.as_deref(),
+            &command_args,
+        ),
         Commands::Build {
             source,
             output_dir,
@@ -971,6 +985,8 @@ fn generate_command(
     task_path: &Path,
     output_path: Option<&Path>,
     run_base: Option<&Path>,
+    command: Option<&Path>,
+    command_args: &[String],
 ) -> ExitCode {
     let locked = match load_locked_task(task_path) {
         Ok(t) => t,
@@ -980,6 +996,11 @@ fn generate_command(
             return VaaExitCode::InvalidInput.as_std();
         }
     };
+
+    if command.is_some() && run_base.is_none() {
+        eprintln!("error: `--command` requires `--run-dir` (G1 staging cwd)");
+        return VaaExitCode::InvalidInput.as_std();
+    }
 
     let rundir = match run_base {
         Some(base) => match RunDir::create(base, &RunId::generate()) {
@@ -994,6 +1015,43 @@ fn generate_command(
         },
         None => None,
     };
+
+    if let Some(prog) = command {
+        let rd = rundir.as_ref().expect("run-dir checked");
+        let relative = vaa::DEFAULT_STAGING_OUTPUT.to_owned();
+        let _ = output_path; // G1 always stages `candidate.asm`; explicit --output outside staging ignored.
+
+        let gen = vaa::ArgvExternalGenerator::new("external-argv", prog)
+            .with_args(command_args.to_vec())
+            .with_output_relative(relative.clone());
+
+        return match gen.generate_to_staging(
+            &rd.paths().staging_dir,
+            task_path,
+            &locked.task().task_id,
+            &locked.task().target,
+        ) {
+            Ok(resp) => match rd.write_staging(&relative, resp.source.as_bytes()) {
+                Ok(written) => {
+                    println!(
+                        "generated `{}` (model: {}, id: {}, kind: external-argv)",
+                        written.display(),
+                        resp.model_name,
+                        resp.generation_id
+                    );
+                    VaaExitCode::Success.as_std()
+                }
+                Err(e) => {
+                    eprintln!("error: staging write failed: {e}");
+                    VaaExitCode::ToolFailure.as_std()
+                }
+            },
+            Err(e) => {
+                eprintln!("error: external generator failed: {e}");
+                VaaExitCode::ToolFailure.as_std()
+            }
+        };
+    }
 
     let resolved_output: PathBuf = match (output_path, rundir.as_ref()) {
         (Some(path), Some(rd)) if rd.is_protected_path(path) => {
@@ -1419,6 +1477,34 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn clap_parses_generate_external_command() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "generate",
+            "task.vaa.toml",
+            "--run-dir",
+            "target/vaa-runs",
+            "--command",
+            "python",
+            "--",
+            "gen.py",
+        ])
+        .expect("parse");
+        match cli.command {
+            Some(Commands::Generate {
+                command: Some(cmd),
+                command_args,
+                run_dir: Some(_),
+                ..
+            }) => {
+                assert!(cmd.ends_with("python") || cmd == PathBuf::from("python"));
+                assert_eq!(command_args, vec!["gen.py".to_owned()]);
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
     }
 
     #[test]

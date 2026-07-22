@@ -90,7 +90,8 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-External argv → `staging/` (**G1**), Linux Gate parity, then release prep / checklist closeout.
+Linux Gate parity (**L1/L2**), E1 resume CI smoke (**E1b**), then release prep / checklist closeout.
+`vaa generate --run-dir … --command <prog> -- …` writes `staging/candidate.asm` (**G1**, not OS isolation).
 Deferred: live model, CryptOpt, Rekor/HSM, OS-level generator isolation, `v0.1.0` tag ceremony ([checklist](docs/release-v0.1-checklist.md)).
 
 ## License

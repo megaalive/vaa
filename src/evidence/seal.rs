@@ -48,6 +48,15 @@ impl GeneratorMeta {
             generation_id,
         }
     }
+
+    #[must_use]
+    pub fn external(name: impl Into<String>, generation_id: Option<String>) -> Self {
+        Self {
+            kind: "external-argv".to_owned(),
+            name: name.into(),
+            generation_id,
+        }
+    }
 }
 
 /// Technical acceptance body — hashed into [`SealEnvelope::acceptance_digest`].

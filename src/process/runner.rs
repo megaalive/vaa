@@ -15,6 +15,8 @@ pub struct ProcessConfig {
     pub args: Vec<String>,
     pub working_dir: Option<PathBuf>,
     pub allowed_env: Vec<String>,
+    /// Explicit env vars set after `env_clear` (G1 `VAA_*` inject).
+    pub extra_env: Vec<(String, String)>,
     pub timeout: Duration,
     pub max_output_bytes: u64,
     pub stdin_null: bool,
@@ -27,6 +29,7 @@ impl Default for ProcessConfig {
             args: Vec::new(),
             working_dir: None,
             allowed_env: vec!["PATH".to_owned(), "HOME".to_owned(), "USER".to_owned()],
+            extra_env: Vec::new(),
             timeout: Duration::from_secs(30),
             max_output_bytes: 1_048_576,
             stdin_null: true,
@@ -81,6 +84,9 @@ impl ProcessRunner {
             if let Ok(val) = std::env::var(var) {
                 cmd.env(var, val);
             }
+        }
+        for (k, v) in &config.extra_env {
+            cmd.env(k, v);
         }
 
         platform::configure(&mut cmd);

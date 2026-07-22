@@ -38,7 +38,10 @@ pub use evidence::{
 pub use exit_code::ExitCode as VaaExitCode;
 pub use harness::{HarnessConfig, HarnessTemplate};
 pub use inspect::{ArtifactInfo, ArtifactInspector};
-pub use model::{FixtureModelAdapter, ModelAdapter, ModelResponse};
+pub use model::{
+    ArgvExternalGenerator, FixtureModelAdapter, ModelAdapter, ModelError, ModelResponse,
+    DEFAULT_STAGING_OUTPUT,
+};
 pub use orchestrate::{MachineState, Orchestrator, StateTransition};
 pub use process::{ProcessConfig, ProcessError, ProcessOutput, ProcessRunner};
 pub use run::{

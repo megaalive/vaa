@@ -269,7 +269,7 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 |---|---|---|
 | **D3** | Doc/checklist sync pasca-E1 | **Done** |
 | **N6** | Negative corpus under `fixtures/negative/` | **Done** (not full fuzz) |
-| **G1** | External argv generator → `staging/` | Pending |
+| **G1** | External argv generator → `staging/` | **Done** (Scaffold; not OS FS isolation) |
 | **E1b** | Resume smoke in Gate-1 CI | Pending |
 | **L1/L2** | Linux fixtures + ubuntu Gate jobs | Pending |
 | **R-notes** | CHANGELOG + checklist closeout (tag deferred) | Pending |
