@@ -14,11 +14,11 @@ use clap::{Parser, Subcommand, ValueEnum};
 use vaa::exit_code::ExitCode as VaaExitCode;
 use vaa::task::{load_locked_task, TaskError};
 use vaa::{
-    ingest_candidate, run_fixture_loop, sha256_digest_prefixed, verify_bundle, verify_chain,
-    verify_seal, ArtifactInspector, BuildPipeline, EvidenceAggregator, EvidenceExpect,
-    EvidenceStatus, FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig, RunDir, RunId,
-    SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION,
-    VAA_VERSION,
+    ingest_candidate, probe_live_for_target, run_fixture_loop, sha256_digest_prefixed,
+    verify_bundle, verify_chain, verify_seal, ArtifactInspector, BuildPipeline, EvidenceAggregator,
+    EvidenceExpect, EvidenceStatus, FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig,
+    RunDir, RunId, SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError, MATURITY,
+    TASK_SCHEMA_VERSION, VAA_VERSION,
 };
 
 /// Verifiable Assembly Agent command-line interface.
@@ -373,6 +373,24 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                 println!("  version: {}", ver.version);
                 println!("  schema: {}", ver.schema_version);
             }
+            if let Some(probe) = &report.live_probe {
+                println!("  live_probe:");
+                if let Some(v) = &probe.semasm_version {
+                    println!("    semasm_version: {v}");
+                }
+                if let Some(s) = &probe.capability_schema {
+                    println!("    capability_schema: {s}");
+                }
+                for cmp in &probe.compares {
+                    println!(
+                        "    {}: {:?} agent={:?} pipeline={:?}",
+                        cmp.target_id, cmp.outcome, cmp.live_agent, cmp.live_pipeline
+                    );
+                    for axis in &cmp.axes {
+                        println!("      - {axis}");
+                    }
+                }
+            }
             for detail in &report.details {
                 println!("  {detail}");
             }
@@ -384,6 +402,7 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                 "version": report.version.as_ref().map(|v| v.version.clone()),
                 "schema_version": report.version.as_ref().map(|v| v.schema_version.clone()),
                 "details": report.details,
+                "live_probe": report.live_probe,
             });
             println!("{body}");
         }
@@ -399,6 +418,7 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
 
 fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
     let caps = TargetCapabilities::for_target(target);
+    let live = probe_live_for_target(target);
     match format {
         OutputFormat::Terminal => {
             println!("Target: {}", caps.target_id);
@@ -412,8 +432,30 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
             println!("  sandbox_run:    {:?}", caps.sandbox_run);
             println!("  digest: {}", caps.digest());
             println!("note: embedded agent-verify snapshot; not live SemASM capabilities.toml");
+            if let Some((doc, cmp)) = &live {
+                println!(
+                    "live_probe: schema={:?} version={:?} compare={:?} agent={:?} pipeline={:?}",
+                    doc.capability_schema,
+                    doc.version,
+                    cmp.outcome,
+                    cmp.live_agent,
+                    cmp.live_pipeline
+                );
+                for axis in &cmp.axes {
+                    println!("  - {axis}");
+                }
+            } else {
+                println!("live_probe: unavailable (semasm not on PATH or status JSON failed)");
+            }
         }
         OutputFormat::Json => {
+            let live_json = live.as_ref().map(|(doc, cmp)| {
+                serde_json::json!({
+                    "semasm_version": doc.version,
+                    "capability_schema": doc.capability_schema,
+                    "compare": cmp,
+                })
+            });
             let body = serde_json::json!({
                 "source": vaa::CAPABILITY_SOURCE,
                 "target_id": caps.target_id,
@@ -425,6 +467,7 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
                 "link": format!("{:?}", caps.link),
                 "sandbox_run": format!("{:?}", caps.sandbox_run),
                 "digest": caps.digest(),
+                "live_probe": live_json,
             });
             println!("{body}");
         }

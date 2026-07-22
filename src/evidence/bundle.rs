@@ -168,6 +168,7 @@ mod tests {
                     schema_version: "0.1".to_owned(),
                 }),
                 details: vec![],
+                live_probe: None,
             }),
             Some(CapabilityMatch {
                 compatible: true,
@@ -247,6 +248,7 @@ mod tests {
                     schema_version: "0.1".to_owned(),
                 }),
                 details: vec![],
+                live_probe: None,
             }),
             Some(CapabilityMatch {
                 compatible: true,
@@ -340,6 +342,7 @@ mod tests {
                     schema_version: "0.1".to_owned(),
                 }),
                 details: vec![],
+                live_probe: None,
             }),
             Some(CapabilityMatch {
                 compatible: true,

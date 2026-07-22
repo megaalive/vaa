@@ -5,6 +5,14 @@ use std::time::Duration;
 
 use crate::process::{ProcessConfig, ProcessError, ProcessRunner};
 
+use super::capabilities::TargetCapabilities;
+use super::status::{
+    compare_live_status, parse_status_json, CompareOutcome, LiveStatusCompare, SemasmStatusDocument,
+};
+
+/// Gate goldens probed when a live SemASM status document is available.
+const DOCTOR_COMPARE_TARGETS: &[&str] = &["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"];
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DoctorStatus {
     Available,
@@ -20,11 +28,20 @@ pub struct SemasmVersion {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LiveProbeSummary {
+    pub semasm_version: Option<String>,
+    pub capability_schema: Option<String>,
+    pub compares: Vec<LiveStatusCompare>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DoctorReport {
     pub status: DoctorStatus,
     pub binary_path: Option<PathBuf>,
     pub version: Option<SemasmVersion>,
     pub details: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub live_probe: Option<LiveProbeSummary>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -46,34 +63,71 @@ impl SemasmDoctor {
                 binary_path: None,
                 version: None,
                 details: vec!["semasm binary not found on PATH".to_owned()],
+                live_probe: None,
             };
         };
 
-        let version = match Self::read_version(&binary) {
-            Ok(v) => v,
+        let (version_str, version_notes) = match Self::read_version_string(&binary) {
+            Ok((v, notes)) => (v, notes),
             Err(e) => {
                 return DoctorReport {
                     status: DoctorStatus::Degraded,
                     binary_path: Some(binary),
                     version: None,
                     details: vec![format!("binary found but version check failed: {e}")],
+                    live_probe: None,
                 };
             }
         };
 
-        let details = vec![format!(
-            "semasm version {} schema {}",
-            version.version, version.schema_version
-        )];
+        let mut details = version_notes;
+        let (schema_version, live_probe, status_notes) = match Self::read_status(&binary) {
+            Ok(doc) => {
+                let probe = summarize_live_probe(&doc);
+                let schema = doc
+                    .capability_schema
+                    .clone()
+                    .unwrap_or_else(|| "missing".to_owned());
+                let mut notes = Vec::new();
+                for cmp in &probe.compares {
+                    if cmp.outcome == CompareOutcome::Drift {
+                        notes.push(format!(
+                            "live status drift on {}: {}",
+                            cmp.target_id,
+                            cmp.axes.join("; ")
+                        ));
+                    }
+                }
+                (schema, Some(probe), notes)
+            }
+            Err(e) => {
+                details.push(format!("status --format json failed: {e}"));
+                ("missing".to_owned(), None, Vec::new())
+            }
+        };
+        details.extend(status_notes);
 
-        // Capability/task negotiation schema advertised by SemASM (distinct from
-        // VerificationReport 0.4). Missing advertisement is fail-closed Degraded.
-        let status = if version.schema_version == "0.1" {
-            DoctorStatus::Available
-        } else if version.schema_version == "missing" {
+        details.push(format!(
+            "semasm version {version_str} capability_schema {schema_version}"
+        ));
+
+        let version = SemasmVersion {
+            version: version_str,
+            schema_version: schema_version.clone(),
+        };
+
+        let has_drift = live_probe.as_ref().is_some_and(|p| {
+            p.compares
+                .iter()
+                .any(|c| c.outcome == CompareOutcome::Drift)
+        });
+
+        let status = if schema_version != "0.1" && schema_version != "missing" {
+            DoctorStatus::Incompatible
+        } else if schema_version == "missing" || has_drift {
             DoctorStatus::Degraded
         } else {
-            DoctorStatus::Incompatible
+            DoctorStatus::Available
         };
 
         DoctorReport {
@@ -81,6 +135,7 @@ impl SemasmDoctor {
             binary_path: Some(binary),
             version: Some(version),
             details,
+            live_probe,
         }
     }
 
@@ -100,53 +155,144 @@ impl SemasmDoctor {
         None
     }
 
-    pub fn read_version(binary: &Path) -> Result<SemasmVersion, DoctorError> {
+    fn read_version_string(binary: &Path) -> Result<(String, Vec<String>), DoctorError> {
         let config = ProcessConfig {
             program: binary.to_path_buf(),
-            args: vec!["version".to_owned()],
+            args: vec![
+                "version".to_owned(),
+                "--format".to_owned(),
+                "json".to_owned(),
+            ],
             timeout: Duration::from_secs(15),
             max_output_bytes: 65_536,
+            allowed_env: doctor_allowed_env(),
             ..ProcessConfig::default()
         };
 
-        let output = ProcessRunner::run(&config).map_err(|e| match e {
-            ProcessError::Timeout { duration } => {
-                DoctorError::VersionCheck(format!("timed out after {duration:?}"))
+        match run_semasm(&config) {
+            Ok(stdout) => {
+                if let Ok(v) = parse_version_json(&stdout) {
+                    return Ok((v, vec!["version via --format json".to_owned()]));
+                }
+                let text = parse_version_text(&stdout);
+                Ok((
+                    text,
+                    vec!["version JSON parse failed; fell back to terminal text".to_owned()],
+                ))
             }
-            ProcessError::OutputOverflow { limit } => {
-                DoctorError::VersionCheck(format!("output exceeded {limit} bytes"))
+            Err(json_err) => {
+                // Older SemASM without --format json.
+                let config = ProcessConfig {
+                    program: binary.to_path_buf(),
+                    args: vec!["version".to_owned()],
+                    timeout: Duration::from_secs(15),
+                    max_output_bytes: 65_536,
+                    allowed_env: doctor_allowed_env(),
+                    ..ProcessConfig::default()
+                };
+                let stdout = run_semasm(&config).map_err(|_| json_err)?;
+                Ok((
+                    parse_version_text(&stdout),
+                    vec!["version --format json unavailable; used terminal version".to_owned()],
+                ))
             }
-            ProcessError::Spawn { detail, .. } => DoctorError::VersionCheck(detail),
-        })?;
-
-        if output.exit_code != Some(0) {
-            return Err(DoctorError::VersionCheck(format!(
-                "non-zero exit {:?}; stderr={}",
-                output.exit_code, output.stderr
-            )));
         }
-
-        // Parse stdout only — never concatenate stderr into version text.
-        let stdout = output.stdout;
-        let lines: Vec<&str> = stdout.lines().collect();
-        let version_line = lines.first().copied().unwrap_or("unknown").trim();
-
-        let version = version_line
-            .strip_prefix("semasm ")
-            .unwrap_or(version_line)
-            .to_owned();
-
-        let schema_version = lines
-            .iter()
-            .find(|l| l.to_ascii_lowercase().contains("schema"))
-            .and_then(|l| l.split_whitespace().last())
-            .map_or_else(|| "missing".to_owned(), ToOwned::to_owned);
-
-        Ok(SemasmVersion {
-            version,
-            schema_version,
-        })
     }
+
+    fn read_status(binary: &Path) -> Result<SemasmStatusDocument, DoctorError> {
+        let config = ProcessConfig {
+            program: binary.to_path_buf(),
+            args: vec![
+                "status".to_owned(),
+                "--format".to_owned(),
+                "json".to_owned(),
+            ],
+            timeout: Duration::from_secs(15),
+            max_output_bytes: 1_048_576,
+            allowed_env: doctor_allowed_env(),
+            ..ProcessConfig::default()
+        };
+        let stdout = run_semasm(&config)?;
+        parse_status_json(&stdout).map_err(|e| DoctorError::VersionCheck(e.to_string()))
+    }
+}
+
+fn doctor_allowed_env() -> Vec<String> {
+    vec![
+        "PATH".to_owned(),
+        "HOME".to_owned(),
+        "USER".to_owned(),
+        "SYSTEMROOT".to_owned(),
+        "WINDIR".to_owned(),
+        "SYSTEMDRIVE".to_owned(),
+        "PATHEXT".to_owned(),
+        "COMSPEC".to_owned(),
+    ]
+}
+
+fn run_semasm(config: &ProcessConfig) -> Result<String, DoctorError> {
+    let output = ProcessRunner::run(config).map_err(|e| match e {
+        ProcessError::Timeout { duration } => {
+            DoctorError::VersionCheck(format!("timed out after {duration:?}"))
+        }
+        ProcessError::OutputOverflow { limit } => {
+            DoctorError::VersionCheck(format!("output exceeded {limit} bytes"))
+        }
+        ProcessError::Spawn { detail, .. } => DoctorError::VersionCheck(detail),
+    })?;
+
+    if output.exit_code != Some(0) {
+        return Err(DoctorError::VersionCheck(format!(
+            "non-zero exit {:?}; stderr={}",
+            output.exit_code, output.stderr
+        )));
+    }
+    Ok(output.stdout)
+}
+
+fn parse_version_json(stdout: &str) -> Result<String, DoctorError> {
+    let value: serde_json::Value = serde_json::from_str(stdout.trim())
+        .map_err(|e| DoctorError::VersionCheck(format!("version JSON: {e}")))?;
+    value
+        .get("version")
+        .and_then(|v| v.as_str())
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| {
+            DoctorError::VersionCheck("version JSON missing string field `version`".into())
+        })
+}
+
+fn parse_version_text(stdout: &str) -> String {
+    let version_line = stdout.lines().next().unwrap_or("unknown").trim();
+    version_line
+        .strip_prefix("semasm ")
+        .unwrap_or(version_line)
+        .to_owned()
+}
+
+fn summarize_live_probe(doc: &SemasmStatusDocument) -> LiveProbeSummary {
+    let compares = DOCTOR_COMPARE_TARGETS
+        .iter()
+        .map(|target| {
+            let embedded = TargetCapabilities::for_target(target);
+            compare_live_status(target, doc, &embedded)
+        })
+        .collect();
+    LiveProbeSummary {
+        semasm_version: doc.version.clone(),
+        capability_schema: doc.capability_schema.clone(),
+        compares,
+    }
+}
+
+/// Probe live status for a single target (used by `vaa capabilities`).
+#[must_use]
+pub fn probe_live_for_target(target: &str) -> Option<(SemasmStatusDocument, LiveStatusCompare)> {
+    let binary = SemasmDoctor::find_binary()?;
+    let doc = SemasmDoctor::read_status(&binary).ok()?;
+    let embedded = TargetCapabilities::for_target(target);
+    let cmp = compare_live_status(target, &doc, &embedded);
+    Some((doc, cmp))
 }
 
 #[cfg(test)]
@@ -166,13 +312,26 @@ mod tests {
 
     #[test]
     fn doctor_report_is_unavailable_without_binary() {
+        let original_path = std::env::var_os("PATH");
+        std::env::set_var("PATH", "");
         let report = SemasmDoctor::run();
-        match report.status {
-            DoctorStatus::Available | DoctorStatus::Incompatible | DoctorStatus::Degraded => {}
-            DoctorStatus::Unavailable => {
-                assert!(report.binary_path.is_none());
-                assert!(report.version.is_none());
-            }
+        if let Some(path) = original_path {
+            std::env::set_var("PATH", path);
         }
+        assert_eq!(report.status, DoctorStatus::Unavailable);
+        assert!(report.binary_path.is_none());
+        assert!(report.version.is_none());
+        assert!(report.live_probe.is_none());
+    }
+
+    #[test]
+    fn parse_version_json_reads_version_field() {
+        let v = parse_version_json(r#"{"name":"semasm","version":"9.9.9"}"#).expect("json");
+        assert_eq!(v, "9.9.9");
+    }
+
+    #[test]
+    fn parse_version_text_strips_prefix() {
+        assert_eq!(parse_version_text("semasm 1.2.3\n"), "1.2.3");
     }
 }

@@ -12,8 +12,8 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | PR-002 — Task schema v0.1 | **Done** | unit+CI | Typed model, strict parse, fixtures |
 | PR-003 — Policy and immutable task digest | **Done** | unit+CI | Canonical JSON + SHA-256 |
 | PR-004 — Run directory and event log | **Done** | unit | RunId, RunDir, EventLog (restart resume = R2) |
-| PR-005 — SemASM doctor | **Done** | unit | ProcessRunner; missing schema → Degraded |
-| PR-006 — SemASM capabilities adapter | **Done** | unit | Embedded snapshot (not live SemASM) |
+| PR-005 — SemASM doctor | **Done** | unit | ProcessRunner; version JSON + live status probe (R4+R5) |
+| PR-006 — SemASM capabilities adapter | **Done** | unit | Embedded snapshot + optional live_probe compare |
 | PR-007 — SemASM verification adapter | **Done** | unit | stdout-only VerificationReport **0.4** |
 | PR-007b — Controller handshake | **Done** | unit | `--contract`, digests, golden fixture |
 | PR-008 — Evidence aggregator | **Done** | unit | fail-closed + identity cross-checks |
@@ -172,7 +172,7 @@ Honesty: VAA `capabilities` JSON is an **embedded agent-verify snapshot**, not a
 live read of SemASM `capabilities.toml` (pipeline maturity there may still be
 `partial` / `experimental` on some axes).
 
-### Next waves (R0–R3) — runner + SemASM JSON + process tree
+### Next waves (R0–R5) — runner + SemASM JSON + process tree + live probe
 
 | Wave | Focus | Status |
 |---|---|---|
@@ -180,9 +180,10 @@ live read of SemASM `capabilities.toml` (pipeline maturity there may still be
 | **R1** | ProcessRunner streaming byte cap + Win stdin EOF (PR-009b) | **Done** |
 | **R2** | SemASM `version`/`status --format json` | **Done** |
 | **R3** | Process-group / Job Object at spawn (PR-009c) | **Done** |
+| **R4+R5** | Live status compare + doctor version JSON (merged) | **Done** |
 
-Later (not this tranche): optional live SemASM status JSON vs embedded
-snapshot compare (R4).
+Later (not this tranche): Gate CI doctor/compare bind (R6); crash-durable seal
+fsync or Ed25519.
 
 ## Documentation map
 
