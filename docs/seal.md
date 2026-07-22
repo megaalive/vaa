@@ -19,6 +19,7 @@ the signature binds a known public key to technical acceptance.
 1. **Filesystem isolation (G0 logical)** — `RunDir` refuses writes into `evidence/`
    and protected seal filenames under `candidates/` via its public write API.
    Generators use `staging/`. This is **not** OS ACL / process sandbox isolation.
+   `vaa doctor` reports the same facts under `evidence_policy` (D1).
 2. **Local seal digest log** — `evidence/seal-log.jsonl` appends each candidate’s
    `envelope_digest` / `acceptance_digest` (L0). Checked by `verify-chain` when
    present (L1). This is **not** an external transparency log.

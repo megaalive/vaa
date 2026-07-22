@@ -20,7 +20,7 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | Phase 1 exit (`vaa verify`) | **Done** | unit | Offline report; live SemASM smoke ignored |
 | PR-009 — Process runner | **Done** (streaming + tree kill) | unit | Byte cap; Win stdin EOF; Unix process group + Win Job Object (R3) |
 
-| PR-010 — Build sandbox backend | **Scaffold** + B0/C0 | unit | Docker argv: network none, cap-drop ALL, no-new-privileges, nobody user, read-only + tmpfs; digest image ref. **Not** hardened isolation Done. |
+| PR-010 — Build sandbox backend | **Scaffold** + B0/C0/C1 | unit | Docker argv: network/caps/no-new-privs/nobody/read-only/tmpfs; C1 optional host bind `/work`+`/input`. **Not** hardened isolation Done. |
 | PR-011 — NASM/linker pipeline | **Done** | unit | Needs toolchain on PATH for live use |
 | PR-012 — Artifact inspection | **Done** | unit | `object` crate |
 | PR-013 — Harness templates | **Done** | unit | sysv64/win64 |
@@ -228,7 +228,15 @@ Honesty: ephemeral CI signing key is **not** a trust root. `verify-transparency`
 |---|---|---|
 | **G0** | `RunDir` ProtectedZone + `staging/`; `vaa generate --run-dir` | **Done** (logical API barrier ≠ OS isolation) |
 
-Later: remote transparency service, HSM, full PR-010 hardened sandbox, live model, CryptOpt, `v0.1.0`.
+### Next waves (C1 + D1 + R-prep)
+
+| Wave | Focus | Status |
+|---|---|---|
+| **C1** | ContainerBackend optional host bind mounts for `/work` + `/input` | **Done** (still Scaffold) |
+| **D1** | Doctor JSON/terminal `evidence_policy` (G0 honesty) | **Done** |
+| **R-prep** | [`docs/release-v0.1-checklist.md`](release-v0.1-checklist.md) | **Done** (no git tag) |
+
+Later: remote transparency service, HSM, full PR-010 hardened sandbox, live model, CryptOpt, `v0.1.0` **tag ceremony**.
 
 ## Documentation map
 
@@ -239,6 +247,7 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | `docs/task-schema.md` | Task schema 0.1 |
 | `docs/progress.md` | This file |
 | `docs/seal.md` | Integrity vs authenticity; seal schema 0.2; verify-chain |
+| `docs/release-v0.1-checklist.md` | Prep checklist before any `v0.1.0` git tag |
 | `docs/vaa-canonical-json-v1.md` | Named canonical JSON profile |
 | `fixtures/canonical-json/` | Cross-language conformance vectors |
 | `fixtures/run/count_byte/README.md` | R1 golden run |

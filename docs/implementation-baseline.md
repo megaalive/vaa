@@ -193,11 +193,12 @@ Until (1)–(3) exist, VAA PR-005 through PR-008 must implement **defensive mapp
 
 Per architecture plan §27 and live checklist in `docs/progress.md`:
 
-1. ~~PR-001… / R0–R6 / D0 / L0–L1 / B0 / T0 / A0 / C0 / A1 / T1 / G0~~ **Done** (see `docs/progress.md`).
+1. ~~PR-001… / R0–R6 / D0 / L0–L1 / B0 / T0 / A0 / C0 / A1 / T1 / G0 / C1 / D1 / R-prep~~ **Done** (see `docs/progress.md`).
 2. **Next:** remote append-only transparency if seals must leave CI artifacts; or
-   full hardened sandbox profile (OS-level); or HSM-backed keys.
-3. Later (explicitly deferred): live model adapter, CryptOpt search,
-   `v0.1.0` release.
+   full hardened sandbox profile (OS-level); or HSM-backed keys; or cut `v0.1.0` tag
+   per [`docs/release-v0.1-checklist.md`](release-v0.1-checklist.md).
+3. Later (explicitly deferred until checklist + maintainers): live model adapter,
+   CryptOpt search, signed `v0.1.0` tag ceremony.
 
 Do not implement live model adapters, Redis, Python services, or multi-crate splits in this phase.
 
