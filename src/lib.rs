@@ -45,7 +45,7 @@ pub use run::{
 pub use sandbox::{ExecutionSandbox, LocalBackend, SandboxBackend, SandboxConfig};
 pub use semasm::{
     compare_live_status, match_task_requirements, parse_status_json, probe_live_for_target,
-    CapabilityMatch, CompareOutcome, DoctorReport, DoctorStatus, LiveProbeSummary,
+    CapabilityMatch, CompareOutcome, DoctorReport, DoctorStatus, EvidencePolicy, LiveProbeSummary,
     LiveStatusCompare, SemasmDoctor, SemasmStatusDocument, SemasmVerify, TargetCapabilities,
     VerifyError, VerifyReport, CAPABILITY_SOURCE,
 };

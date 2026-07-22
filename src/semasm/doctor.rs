@@ -34,6 +34,31 @@ pub struct LiveProbeSummary {
     pub compares: Vec<LiveStatusCompare>,
 }
 
+/// Static honesty about VAA run-dir write policy (G0). Not OS isolation.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct EvidencePolicy {
+    /// Relative layout hint for generator output.
+    pub generator_staging: String,
+    /// Who may write sealed evidence files.
+    pub evidence_writes: String,
+    /// `RunDir` rejects protected-zone writes via its public API.
+    pub rundir_protected_zone: bool,
+    /// OS ACL / process sandbox for generators — still false.
+    pub os_fs_isolation: bool,
+}
+
+impl EvidencePolicy {
+    #[must_use]
+    pub fn vaa_g0() -> Self {
+        Self {
+            generator_staging: "run_dir/staging".to_owned(),
+            evidence_writes: "seal_module_only".to_owned(),
+            rundir_protected_zone: true,
+            os_fs_isolation: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DoctorReport {
     pub status: DoctorStatus,
@@ -328,6 +353,15 @@ mod tests {
     fn parse_version_json_reads_version_field() {
         let v = parse_version_json(r#"{"name":"semasm","version":"9.9.9"}"#).expect("json");
         assert_eq!(v, "9.9.9");
+    }
+
+    #[test]
+    fn evidence_policy_g0_is_honest() {
+        let p = EvidencePolicy::vaa_g0();
+        assert_eq!(p.generator_staging, "run_dir/staging");
+        assert_eq!(p.evidence_writes, "seal_module_only");
+        assert!(p.rundir_protected_zone);
+        assert!(!p.os_fs_isolation);
     }
 
     #[test]

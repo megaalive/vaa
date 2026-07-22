@@ -397,6 +397,7 @@ fn emit_validate_error(path: &Path, format: OutputFormat, error: &TaskError) {
 
 fn doctor_command(format: OutputFormat) -> ExitCode {
     let report = SemasmDoctor::run();
+    let evidence_policy = vaa::EvidencePolicy::vaa_g0();
     match format {
         OutputFormat::Terminal => {
             println!("VAA Doctor Report");
@@ -428,6 +429,20 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                     }
                 }
             }
+            println!("  evidence_policy:");
+            println!(
+                "    generator_staging: {}",
+                evidence_policy.generator_staging
+            );
+            println!("    evidence_writes: {}", evidence_policy.evidence_writes);
+            println!(
+                "    rundir_protected_zone: {}",
+                evidence_policy.rundir_protected_zone
+            );
+            println!(
+                "    os_fs_isolation: {} (logical G0 barrier only)",
+                evidence_policy.os_fs_isolation
+            );
             for detail in &report.details {
                 println!("  {detail}");
             }
@@ -440,6 +455,7 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                 "schema_version": report.version.as_ref().map(|v| v.schema_version.clone()),
                 "details": report.details,
                 "live_probe": report.live_probe,
+                "evidence_policy": evidence_policy,
             });
             println!("{body}");
         }
