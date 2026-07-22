@@ -26,6 +26,9 @@ This document is the human-readable companion to `deny.toml`.
 | `sha2` | SHA-256 task content digests |
 | `object` | Read ELF/PE/Mach-O for artifact inspection |
 | `thiserror` | Typed `TaskError` diagnostics |
+| `ed25519-dalek` | Optional Ed25519 seal authenticity (`acceptance_digest`) |
+| `rand` | CSPRNG for `vaa evidence keygen-seal` only |
+| `base64` | Encode/decode seal `public_key_b64` / `sig_b64` |
 | `win32job` (Windows only) | Job Object ownership so timeout/overflow kills the full process tree |
 
 ## License allow-list

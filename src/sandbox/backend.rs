@@ -81,9 +81,9 @@ impl SandboxBackend for LocalBackend {
     }
 }
 
-/// Docker/Podman argv wrapper. Still **not** hardened isolation (no seccomp
-/// profile, no verified rootfs mounts). B0 only fail-closes obvious holes:
-/// network always off, capabilities dropped, prefer image digest when set.
+/// Docker/Podman argv wrapper. Still **Scaffold** isolation — not a production
+/// hardened profile (no custom seccomp, no verified rootless daemon, no host
+/// volume mounts in this generic wrapper). C0 deepen argv only.
 pub struct ContainerBackend {
     pub runtime: String,
     pub image: String,
@@ -160,6 +160,17 @@ impl SandboxBackend for ContainerBackend {
         wrapped.push("none".to_owned());
         wrapped.push("--cap-drop".to_owned());
         wrapped.push("ALL".to_owned());
+        wrapped.push("--security-opt".to_owned());
+        wrapped.push("no-new-privileges".to_owned());
+        wrapped.push("--user".to_owned());
+        wrapped.push("65534:65534".to_owned());
+        wrapped.push("--read-only".to_owned());
+        wrapped.push("--tmpfs".to_owned());
+        wrapped.push("/tmp:rw,noexec,nosuid,size=64m".to_owned());
+        wrapped.push("--tmpfs".to_owned());
+        wrapped.push("/work:rw,size=256m".to_owned());
+        wrapped.push("--workdir".to_owned());
+        wrapped.push("/work".to_owned());
 
         if let Some(mem) = config.memory_limit_bytes {
             wrapped.push("--memory".to_owned());
@@ -217,6 +228,18 @@ mod tests {
         assert!(pc.args.contains(&"none".to_owned()));
         assert!(pc.args.contains(&"--cap-drop".to_owned()));
         assert!(pc.args.contains(&"ALL".to_owned()));
+        assert!(pc.args.contains(&"--security-opt".to_owned()));
+        assert!(pc.args.contains(&"no-new-privileges".to_owned()));
+        assert!(pc.args.contains(&"--user".to_owned()));
+        assert!(pc.args.contains(&"65534:65534".to_owned()));
+        assert!(pc.args.contains(&"--read-only".to_owned()));
+        assert!(pc.args.contains(&"--tmpfs".to_owned()));
+        assert!(pc
+            .args
+            .contains(&"/tmp:rw,noexec,nosuid,size=64m".to_owned()));
+        assert!(pc.args.contains(&"/work:rw,size=256m".to_owned()));
+        assert!(pc.args.contains(&"--workdir".to_owned()));
+        assert!(pc.args.contains(&"/work".to_owned()));
         assert!(pc.args.contains(&"ubuntu:24.04".to_owned()));
         assert!(pc.args.contains(&"nasm".to_owned()));
     }

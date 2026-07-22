@@ -8,21 +8,26 @@ attestation of publisher identity.
 | Property | Supported today? | Meaning |
 |---|---|---|
 | **Content integrity** | Yes | Detect drift or corruption between `evidence.json` and the sealed digests, and (via `verify-bundle` / `verify-chain`) between digests and on-disk artifacts. |
-| **Authenticity** | No | Does **not** prove a trusted VAA instance issued the acceptance. Anyone who can write both evidence and seal files can rewrite the payload and recompute SHA-256. |
+| **Authenticity** | Opt-in | Optional Ed25519 signature over `acceptance_digest` when `VAA_SEAL_SIGNING_KEY` is set. Not a certificate chain / HSM / Sigstore. |
 
-There is no secret key and no digital signature in the seal path today. That is
-intentional for early phases: process isolation plus an external transparency
-artifact (CI log, Git note, append-only store of `envelope_digest`) is enough.
+Unsigned seals remain valid unless `VAA_REQUIRE_SEAL_SIGNATURE=1`. Anyone who can
+rewrite both evidence and seal without a signing key can still re-hash digests;
+the signature binds a known public key to technical acceptance.
 
-### Future authenticity options (partially implemented)
+### Transparency layers
 
-1. **Filesystem isolation** — generators have no write access to the evidence directory.
+1. **Filesystem isolation** — generators have no write access to the evidence directory (deferred hardening).
 2. **Local seal digest log** — `evidence/seal-log.jsonl` appends each candidate’s
    `envelope_digest` / `acceptance_digest` (L0). Checked by `verify-chain` when
-   present (L1). This is **not** an external transparency log and not authenticity.
-3. **External transparency log** — store digests in CI artifacts, Git notes, or a
-   remote append-only log (still deferred).
-4. **Digital signature** — VAA signs the acceptance digest (e.g. Ed25519). Deferred.
+   present (L1). This is **not** an external transparency log.
+3. **External transparency export (T0)** — `vaa evidence export-transparency`
+   writes a portable `vaa-transparency-v1` JSON document. Gate CI uploads that
+   file plus `seal-log.jsonl` as a workflow artifact. **CI artifact ≠ remote
+   immutable log** (not Rekor, not an append-only SaaS).
+4. **Digital signature (A0)** — VAA may sign `acceptance_digest` with Ed25519
+   (seed file via `VAA_SEAL_SIGNING_KEY`; `vaa evidence keygen-seal --out <path>`).
+
+Deferred: remote append-only transparency service, HSM / hardware keys, cosign.
 
 ## Seal schema 0.2
 
@@ -32,6 +37,7 @@ artifact (CI log, Git note, append-only store of `envelope_digest`) is enough.
 - `envelope_digest` — SHA-256 over canonical JSON of `{acceptance, provenance}`. Changes when `run_id`, generator attribution, candidate index, or seal-chain link changes.
 - `canonicalization` = `vaa-canonical-json-v1`
 - `digest_algorithm` = `sha256`
+- `signature` (optional) — `{ alg: "ed25519", public_key_b64, sig_b64, signed_over: "acceptance_digest" }`. Not included in either digest hash body.
 
 Generator metadata lives only under `provenance.generator` and is **not** part of
 `acceptance_digest`.
@@ -68,6 +74,20 @@ Validates the full Proof Loop history:
 
 Allowed to change across candidates: `source_digest`, SemASM report digest, `final_status`,
 `checks`, generator attribution, `candidate_index`, `previous_seal_digest`.
+
+### `vaa evidence export-transparency <run-dir> -o <file.json>`
+
+Builds a `vaa-transparency-v1` document (digests + identity) from a verified run.
+`exported_at` is UTC unix epoch seconds as a decimal string (no calendar crate).
+
+### `vaa evidence verify-transparency <file.json> --against <run-dir>`
+
+Re-exports from the live run and fail-closes on digest / identity drift.
+
+### `vaa evidence keygen-seal --out <path>`
+
+Writes a 32-byte hex Ed25519 seed file. Set `VAA_SEAL_SIGNING_KEY` to that path
+to sign new seals. Public key hex/b64 are printed for operators.
 
 ## Layout (append-only)
 

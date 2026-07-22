@@ -20,7 +20,7 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | Phase 1 exit (`vaa verify`) | **Done** | unit | Offline report; live SemASM smoke ignored |
 | PR-009 — Process runner | **Done** (streaming + tree kill) | unit | Byte cap; Win stdin EOF; Unix process group + Win Job Object (R3) |
 
-| PR-010 — Build sandbox backend | **Scaffold** + B0 | unit | Docker argv: network none forced, `--cap-drop ALL`, digest image ref |
+| PR-010 — Build sandbox backend | **Scaffold** + B0/C0 | unit | Docker argv: network none, cap-drop ALL, no-new-privileges, nobody user, read-only + tmpfs; digest image ref. **Not** hardened isolation Done. |
 | PR-011 — NASM/linker pipeline | **Done** | unit | Needs toolchain on PATH for live use |
 | PR-012 — Artifact inspection | **Done** | unit | `object` crate |
 | PR-013 — Harness templates | **Done** | unit | sysv64/win64 |
@@ -97,7 +97,8 @@ cargo run -q -- evidence verify-chain \
 - `verify-bundle` = re-hash one candidate's artifacts.
 - `verify-chain` = contiguous hash chain + final seal + chain-wide identity (task/run/target/contract); deleting a predecessor fails verification.
 - Append-only storage: exclusive candidate dirs + `create_new` writes.
-- Integrity ≠ authenticity: SHA-256 envelope detects drift; it does **not** prove a trusted VAA publisher (no signing yet). See [`docs/seal.md`](seal.md).
+- Integrity ≠ authenticity by default: SHA-256 envelope detects drift; opt-in Ed25519
+  binds `acceptance_digest` when `VAA_SEAL_SIGNING_KEY` is set. See [`docs/seal.md`](seal.md).
 - Canonicalization: [`docs/vaa-canonical-json-v1.md`](vaa-canonical-json-v1.md) + [`fixtures/canonical-json/`](../fixtures/canonical-json/).
 - Atomic publication: temp `sync_all`, seal-last rename, post-rename file
   `sync_all`, Unix parent-dir sync (Windows directory sync best-effort).
@@ -105,12 +106,13 @@ cargo run -q -- evidence verify-chain \
 
 ### Still out of scope / later waves
 
-- Hardened ContainerBackend / generator FS isolation
-- Digital signature (Ed25519) authenticity
+- Full hardened sandbox (custom seccomp, verified rootless, generator FS isolation)
+- Remote append-only transparency service / Rekor / Git notes automation
+- HSM / hardware keys / certificate chains
 - Formal multi-file transactional seals on network / lying filesystems
 - Live model adapter
 - CryptOpt randomized search engine
-- Transparency log of digests beyond local `seal-log.jsonl` (CI/Git remote)
+- `v0.1.0` release tag ceremony
 
 ### Planned vertical-slice waves (after R2c)
 
@@ -201,8 +203,17 @@ boundary.
 | **L1** | `verify-chain` checks seal-log when present | **Done** |
 | **B0** | ContainerBackend fail-closed network/caps + digest image ref | **Done** |
 
-Later: Ed25519 authenticity, external transparency log, full container isolation,
-live model, CryptOpt, `v0.1.0`.
+### Next waves (T0 + A0 + C0) — transparency export, Ed25519, deeper container argv
+
+| Wave | Focus | Status |
+|---|---|---|
+| **T0** | `vaa-transparency-v1` export/verify + Gate CI artifact upload | **Done** |
+| **A0** | Opt-in Ed25519 over `acceptance_digest` + `keygen-seal` | **Done** |
+| **C0** | Deeper ContainerBackend argv (read-only/tmpfs/user/no-new-privs) | **Done** (still Scaffold) |
+
+Honesty: CI transparency artifact is **not** a remote immutable log. Container C0 is **not** “hardened isolation Done”.
+
+Later: remote transparency service, HSM, full PR-010 hardened sandbox, live model, CryptOpt, `v0.1.0`.
 
 ## Documentation map
 

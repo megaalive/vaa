@@ -86,6 +86,27 @@ jobs:
       - name: Gate-1 verify Incomplete + ingest verify-chain
         run: cargo test --test semasm_gate1_smoke -- --ignored --nocapture
 
+      - name: Export transparency from latest Gate-1 run
+        shell: pwsh
+        run: |
+          $base = "target/vaa-gate1-runs"
+          $run = Get-ChildItem $base -Directory -ErrorAction Stop |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $run) { throw "no run under $base" }
+          $outDir = "target/vaa-transparency/gate1"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          cargo run --quiet -- evidence export-transparency $run.FullName -o "$outDir/transparency.json"
+          Copy-Item (Join-Path $run.FullName "evidence/seal-log.jsonl") "$outDir/seal-log.jsonl"
+          Write-Host "exported transparency from $($run.FullName)"
+
+      - name: Upload Gate-1 transparency artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate1-transparency
+          path: target/vaa-transparency/gate1/
+          if-no-files-found: error
+
   # Gate-2: opt-in behavioral Verified (count_byte Win64 + --allow-execution).
   semasm-gate2:
     name: Gate-2 SemASM Verified (Win64)
@@ -220,3 +241,24 @@ jobs:
         run: |
           cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_sum_i64_verify_chain -- --ignored --nocapture
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_sum_i64_win64_verified -- --ignored --nocapture
+
+      - name: Export transparency from latest HlaX64 Gate-1 run
+        shell: pwsh
+        run: |
+          $base = "target/vaa-gate1-hlax64-runs"
+          $run = Get-ChildItem $base -Directory -ErrorAction Stop |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $run) { throw "no run under $base" }
+          $outDir = "target/vaa-transparency/hlax64-gate1"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          cargo run --quiet -- evidence export-transparency $run.FullName -o "$outDir/transparency.json"
+          Copy-Item (Join-Path $run.FullName "evidence/seal-log.jsonl") "$outDir/seal-log.jsonl"
+          Write-Host "exported transparency from $($run.FullName)"
+
+      - name: Upload HlaX64 Gate-1 transparency artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlax64-gate1-transparency
+          path: target/vaa-transparency/hlax64-gate1/
+          if-no-files-found: error

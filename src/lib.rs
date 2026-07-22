@@ -26,9 +26,11 @@ pub use build::{BuildManifest, BuildOutcome, BuildPipeline, PipelineConfig};
 pub use candidate::{CandidateProtocol, CandidateSubmission, SubmissionOutcome};
 pub use canonical_json::{CANONICALIZATION_ID, DIGEST_ALGORITHM_ID};
 pub use evidence::{
-    sha256_digest_prefixed, verify_bundle, verify_chain, verify_seal, write_sealed_evidence,
+    export_transparency, keygen_seal, sha256_digest_prefixed, verify_bundle, verify_chain,
+    verify_seal, verify_transparency_against_run, write_sealed_evidence, write_transparency_file,
     ChainIdentity, CheckOutcome, EvidenceAggregator, EvidenceExpect, EvidenceReport,
-    EvidenceStatus, GeneratorMeta, SealEnvelope, SealError, VerifyChainReport,
+    EvidenceStatus, GeneratorMeta, SealEnvelope, SealError, SealSignature, TransparencyDocument,
+    VerifyChainReport, TRANSPARENCY_SCHEMA_VERSION,
 };
 pub use exit_code::ExitCode as VaaExitCode;
 pub use harness::{HarnessConfig, HarnessTemplate};

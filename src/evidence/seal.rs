@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::canonical_json::{canonical_json_bytes, CANONICALIZATION_ID, DIGEST_ALGORITHM_ID};
 
 use super::report::{sha256_digest_prefixed, CheckOutcome, EvidenceExpect, EvidenceReport};
+use super::seal_sign::{maybe_sign_envelope, verify_envelope_signature, SealSignature};
 use super::status::EvidenceStatus;
 
 /// Seal schema version (acceptance / envelope split).
@@ -83,6 +84,9 @@ pub struct SealEnvelope {
     pub envelope_digest: String,
     pub acceptance: AcceptanceBody,
     pub provenance: ProvenanceBody,
+    /// Optional Ed25519 authenticity over `acceptance_digest` (not hashed into digests).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature: Option<SealSignature>,
 }
 
 #[derive(Debug, Serialize)]
@@ -111,6 +115,8 @@ pub enum SealError {
     Chain(String),
     #[error("already sealed: {0}")]
     AlreadySealed(String),
+    #[error("signature: {0}")]
+    Signature(String),
 }
 
 /// Inputs for building a seal envelope.
@@ -185,6 +191,7 @@ pub fn seal_envelope(acceptance: AcceptanceBody, provenance: ProvenanceBody) -> 
         envelope_digest,
         acceptance,
         provenance,
+        signature: None,
     }
 }
 
@@ -205,7 +212,8 @@ pub fn write_sealed_evidence(
         return Err(SealError::AlreadySealed(evidence_dir.display().to_string()));
     }
 
-    let envelope = build_seal_envelope(report, expect, input);
+    let mut envelope = build_seal_envelope(report, expect, input);
+    maybe_sign_envelope(&mut envelope)?;
     let evidence_body =
         serde_json::to_string_pretty(report).map_err(|e| SealError::Json(e.to_string()))?;
     let seal_body =
@@ -272,6 +280,8 @@ pub fn verify_seal(evidence_path: &Path, seal_path: &Path) -> Result<(), SealErr
     if envelope_digest != envelope.envelope_digest {
         return Err(SealError::EnvelopeDigestMismatch);
     }
+
+    verify_envelope_signature(&envelope)?;
 
     let evidence_raw =
         fs::read_to_string(evidence_path).map_err(|e| SealError::Io(e.to_string()))?;

@@ -14,11 +14,12 @@ use clap::{Parser, Subcommand, ValueEnum};
 use vaa::exit_code::ExitCode as VaaExitCode;
 use vaa::task::{load_locked_task, TaskError};
 use vaa::{
-    ingest_candidate, probe_live_for_target, run_fixture_loop, sha256_digest_prefixed,
-    verify_bundle, verify_chain, verify_seal, ArtifactInspector, BuildPipeline, EvidenceAggregator,
-    EvidenceExpect, EvidenceStatus, FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig,
-    RunDir, RunId, SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError, MATURITY,
-    TASK_SCHEMA_VERSION, VAA_VERSION,
+    ingest_candidate, keygen_seal, probe_live_for_target, run_fixture_loop, sha256_digest_prefixed,
+    verify_bundle, verify_chain, verify_seal, verify_transparency_against_run,
+    write_transparency_file, ArtifactInspector, BuildPipeline, EvidenceAggregator, EvidenceExpect,
+    EvidenceStatus, FixtureModelAdapter, ModelAdapter, PipelineConfig, RunConfig, RunDir, RunId,
+    SemasmDoctor, SemasmVerify, TargetCapabilities, VerifyError, MATURITY, TASK_SCHEMA_VERSION,
+    VAA_VERSION,
 };
 
 /// Verifiable Assembly Agent command-line interface.
@@ -187,6 +188,28 @@ enum EvidenceCommands {
         /// Run directory containing `candidates/` and `evidence/final*.json`.
         run_dir: PathBuf,
     },
+    /// Export digests for external storage (CI artifact / Git note).
+    ExportTransparency {
+        /// Run directory.
+        run_dir: PathBuf,
+        /// Output JSON path (`vaa-transparency-v1`).
+        #[arg(short, long)]
+        output: PathBuf,
+    },
+    /// Verify an exported transparency file against a live run directory.
+    VerifyTransparency {
+        /// Path to transparency JSON.
+        file: PathBuf,
+        /// Run directory to compare against.
+        #[arg(long)]
+        against: PathBuf,
+    },
+    /// Generate a 32-byte hex Ed25519 seed file for optional seal signing.
+    KeygenSeal {
+        /// Output path for the hex seed file.
+        #[arg(long)]
+        out: PathBuf,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -260,6 +283,13 @@ fn main() -> ExitCode {
             EvidenceCommands::CheckSeal { evidence, seal } => check_seal_command(&evidence, &seal),
             EvidenceCommands::VerifyBundle { bundle_dir } => verify_bundle_command(&bundle_dir),
             EvidenceCommands::VerifyChain { run_dir } => verify_chain_command(&run_dir),
+            EvidenceCommands::ExportTransparency { run_dir, output } => {
+                export_transparency_command(&run_dir, &output)
+            }
+            EvidenceCommands::VerifyTransparency { file, against } => {
+                verify_transparency_command(&file, &against)
+            }
+            EvidenceCommands::KeygenSeal { out } => keygen_seal_command(&out),
         },
         Commands::Generate { task, output } => generate_command(&task, &output),
         Commands::Build {
@@ -744,6 +774,54 @@ fn verify_chain_command(run_dir: &Path) -> ExitCode {
     }
 }
 
+fn export_transparency_command(run_dir: &Path, output: &Path) -> ExitCode {
+    match write_transparency_file(run_dir, output) {
+        Ok(doc) => {
+            println!(
+                "ok: transparency exported ({} entries) → {}",
+                doc.entries.len(),
+                output.display()
+            );
+            println!("  schema: {}", doc.schema_version);
+            println!("  final_envelope_digest: {}", doc.final_envelope_digest);
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: transparency export failed: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn verify_transparency_command(file: &Path, against: &Path) -> ExitCode {
+    match verify_transparency_against_run(file, against) {
+        Ok(()) => {
+            println!("ok: transparency matches run digests");
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: transparency verify failed: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn keygen_seal_command(out: &Path) -> ExitCode {
+    match keygen_seal(out) {
+        Ok((pk_hex, pk_b64)) => {
+            println!("ok: wrote Ed25519 seed → {}", out.display());
+            println!("  public_key_hex: {pk_hex}");
+            println!("  public_key_b64: {pk_b64}");
+            println!("  set VAA_SEAL_SIGNING_KEY={}", out.display());
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: keygen-seal failed: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
 fn emit_evidence_report(report: &vaa::EvidenceReport, format: OutputFormat) -> ExitCode {
     match format {
         OutputFormat::Terminal => {
@@ -1028,6 +1106,56 @@ mod tests {
             cli.command,
             Some(Commands::Evidence {
                 command: EvidenceCommands::VerifyChain { .. }
+            })
+        ));
+    }
+
+    #[test]
+    fn clap_parses_evidence_export_transparency() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "evidence",
+            "export-transparency",
+            "target/vaa-runs/run-1",
+            "-o",
+            "transparency.json",
+        ])
+        .expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Evidence {
+                command: EvidenceCommands::ExportTransparency { .. }
+            })
+        ));
+    }
+
+    #[test]
+    fn clap_parses_evidence_verify_transparency() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "evidence",
+            "verify-transparency",
+            "transparency.json",
+            "--against",
+            "target/vaa-runs/run-1",
+        ])
+        .expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Evidence {
+                command: EvidenceCommands::VerifyTransparency { .. }
+            })
+        ));
+    }
+
+    #[test]
+    fn clap_parses_evidence_keygen_seal() {
+        let cli = Cli::try_parse_from(["vaa", "evidence", "keygen-seal", "--out", "seal.seed"])
+            .expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Evidence {
+                command: EvidenceCommands::KeygenSeal { .. }
             })
         ));
     }
