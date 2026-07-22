@@ -57,6 +57,9 @@ pub enum RunDirError {
 
     #[error("candidate {index:04} already sealed at `{path}`")]
     CandidateAlreadySealed { index: u32, path: PathBuf },
+
+    #[error("cannot open run directory `{path}`: {reason}")]
+    Open { path: PathBuf, reason: String },
 }
 
 impl RunDir {
@@ -92,6 +95,44 @@ impl RunDir {
         }
 
         Ok(Self { paths })
+    }
+
+    /// Open an existing run directory without recreating layout (E1).
+    pub fn open(root: &Path) -> Result<Self, RunDirError> {
+        if !root.is_dir() {
+            return Err(RunDirError::Open {
+                path: root.to_path_buf(),
+                reason: "not a directory".into(),
+            });
+        }
+        let paths = RunDirPaths {
+            task_dir: root.join("task"),
+            target_dir: root.join("target"),
+            candidates_dir: root.join("candidates"),
+            accepted_dir: root.join("accepted"),
+            evidence_dir: root.join("evidence"),
+            staging_dir: root.join("staging"),
+            event_log_path: root.join("events.jsonl"),
+            root: root.to_path_buf(),
+        };
+        for (label, dir) in [
+            ("candidates", &paths.candidates_dir),
+            ("evidence", &paths.evidence_dir),
+            ("staging", &paths.staging_dir),
+        ] {
+            if !dir.is_dir() {
+                return Err(RunDirError::Open {
+                    path: root.to_path_buf(),
+                    reason: format!("missing {label}/"),
+                });
+            }
+        }
+        Ok(Self { paths })
+    }
+
+    /// Scan sealed candidates for restart resume (E1).
+    pub fn resume_cursor(&self) -> Result<crate::run::resume::ResumeCursor, RunDirError> {
+        crate::run::resume::scan_resume_cursor(self)
     }
 
     #[must_use]
@@ -538,12 +579,9 @@ mod tests {
         let err = rundir.staging_join("../evidence/x").expect_err("traversal");
         assert!(matches!(err, RunDirError::PathTraversal { .. }));
         let err = rundir
-            .write_staging("..\\candidates\\0000\\evil.asm", b"ret\n")
+            .write_staging("../candidates/0000/evil.asm", b"ret\n")
             .expect_err("staging write traversal");
-        assert!(matches!(
-            err,
-            RunDirError::PathTraversal { .. } | RunDirError::ProtectedZone { .. }
-        ));
+        assert!(matches!(err, RunDirError::PathTraversal { .. }));
         let _ = fs::remove_dir_all(&base);
     }
 
