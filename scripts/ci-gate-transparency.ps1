@@ -47,7 +47,16 @@ if (-not (Test-Path $sealLog)) {
 Copy-Item $sealLog (Join-Path $OutDir "seal-log.jsonl")
 
 if ($PublicKeySrc -and (Test-Path $PublicKeySrc)) {
-    Copy-Item $PublicKeySrc (Join-Path $OutDir "public_key.txt") -Force
+    $destPk = Join-Path $OutDir "public_key.txt"
+    $srcFull = (Resolve-Path $PublicKeySrc).Path
+    $destParent = Split-Path -Parent $destPk
+    if (-not (Test-Path $destParent)) {
+        New-Item -ItemType Directory -Force -Path $destParent | Out-Null
+    }
+    # Skip when already written into OutDir by sign-setup.
+    if ($srcFull -ne (Join-Path (Resolve-Path $OutDir).Path "public_key.txt")) {
+        Copy-Item $PublicKeySrc $destPk -Force
+    }
 }
 
 & $vaa evidence verify-transparency $transparency --against $run.FullName
