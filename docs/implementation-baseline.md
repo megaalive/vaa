@@ -193,11 +193,11 @@ Until (1)–(3) exist, VAA PR-005 through PR-008 must implement **defensive mapp
 
 Per architecture plan §27 and live checklist in `docs/progress.md`:
 
-1. ~~PR-001…PR-008 / R1–R2c / S2–S4 / H0–H3 / N0–N4~~ **Done** (see `docs/progress.md`).
-2. **Next:** stack integrity **P0–P2** — pin HlaX64 SHA; honesty docs; embed
-   capability snapshot source label (`vaa_embedded_agent_verify_snapshot`).
-3. Later (explicitly deferred): streaming output caps / process-group kill
-   (PR-009 remainder), Ed25519 seals, live model adapter, CryptOpt search,
+1. ~~PR-001…PR-008 / R1–R2c / S2–S4 / H0–H3 / N0–N4 / P0–P2~~ **Done** (see `docs/progress.md`).
+2. **Next:** integrity **R0–R2** — docs closeout; VAA streaming ProcessRunner +
+   Win stdin EOF; SemASM `version`/`status --format json`.
+3. Later (explicitly deferred): process-group spawn (R3), live capability
+   compare (R4), Ed25519 seals, live model adapter, CryptOpt search,
    `v0.1.0` release.
 
 Do not implement live model adapters, Redis, Python services, or multi-crate splits in this phase.
