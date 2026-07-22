@@ -686,7 +686,14 @@ fn run_command(
         }
         Err(e) => {
             eprintln!("error: {e}");
-            VaaExitCode::ToolFailure.as_std()
+            if matches!(
+                e,
+                vaa::RunError::BudgetExhausted(_)
+            ) {
+                VaaExitCode::BudgetExhausted.as_std()
+            } else {
+                VaaExitCode::ToolFailure.as_std()
+            }
         }
     }
 }
@@ -717,6 +724,17 @@ fn ingest_command(
         }
     };
 
+    let mut events = vaa::EventLog::new(run_dir.event_log_path().to_path_buf());
+    let _ = events.record(vaa::EventKind::RunStarted {
+        task_id: locked.task().task_id.clone(),
+        task_digest: locked.digest().prefixed(),
+    });
+    let _ = events.record(vaa::EventKind::CandidateSubmitted {
+        index: 0,
+        source_path: source_path.display().to_string(),
+    });
+    let _ = events.record(vaa::EventKind::VerificationStarted);
+
     match ingest_candidate(
         &locked,
         task_path,
@@ -725,10 +743,20 @@ fn ingest_command(
         &run_dir,
         run_id.as_str(),
         generator,
-        4,
+        locked.task().budgets.max_candidates.max(1),
         allow_execution,
     ) {
         Ok(outcome) => {
+            let _ = events.record(vaa::EventKind::CandidateAccepted {
+                index: outcome.candidate_index,
+            });
+            let _ = events.record(vaa::EventKind::VerificationCompleted {
+                outcome: format!("{:?}", outcome.evidence.final_status),
+            });
+            let _ = events.record(vaa::EventKind::RunFinished {
+                outcome: format!("{:?}", outcome.evidence.final_status),
+                candidate_count: 1,
+            });
             if format == OutputFormat::Terminal {
                 println!("Run root: {}", run_dir.root().display());
                 println!("Candidate dir: {}", outcome.candidate_dir.display());
@@ -742,6 +770,9 @@ fn ingest_command(
             emit_evidence_report(&outcome.evidence, format)
         }
         Err(e) => {
+            let _ = events.record(vaa::EventKind::Error {
+                message: e.to_string(),
+            });
             eprintln!("error: {e}");
             VaaExitCode::ToolFailure.as_std()
         }
