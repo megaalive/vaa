@@ -1524,7 +1524,7 @@ mod tests {
                 run_dir: Some(_),
                 ..
             }) => {
-                assert!(cmd.ends_with("python") || cmd == PathBuf::from("python"));
+                assert!(cmd.ends_with("python"));
                 assert_eq!(command_args, vec!["gen.py".to_owned()]);
             }
             other => panic!("unexpected: {other:?}"),

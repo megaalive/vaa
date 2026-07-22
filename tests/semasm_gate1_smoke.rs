@@ -332,6 +332,7 @@ fn gate1_run_count_byte_multi_candidate_verify_chain() {
 
 #[test]
 #[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+#[allow(clippy::too_many_lines)]
 fn gate1_resume_second_candidate_verify_chain() {
     let task = root().join("fixtures/run/count_byte/count_byte.vaa.toml");
     let contract = root().join("fixtures/run/count_byte/count_byte.sem.toml");
