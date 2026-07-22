@@ -25,6 +25,9 @@ thiserror = "2.0"
 toml = { version = "0.8", default-features = false, features = ["parse", "display"] }
 object = { version = "0.36", default-features = false, features = ["read", "elf", "pe", "macho", "unaligned"] }
 
+[target.'cfg(windows)'.dependencies]
+win32job = "2.0.3"
+
 [lints.rust]
 unsafe_code = "forbid"
 

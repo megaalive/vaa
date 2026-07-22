@@ -7,6 +7,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use super::platform;
+
 #[derive(Debug, Clone)]
 pub struct ProcessConfig {
     pub program: PathBuf,
@@ -81,9 +83,20 @@ impl ProcessRunner {
             }
         }
 
+        platform::configure(&mut cmd);
+
         let mut child = cmd.spawn().map_err(|e| ProcessError::Spawn {
             program: program_str.clone(),
             detail: e.to_string(),
+        })?;
+
+        let mut process_tree = platform::ProcessTree::attach(&child).map_err(|detail| {
+            let _ = child.kill();
+            let _ = child.wait();
+            ProcessError::Spawn {
+                program: program_str.clone(),
+                detail: format!("failed to establish process-tree ownership: {detail}"),
+            }
         })?;
 
         if config.stdin_null {
@@ -125,7 +138,7 @@ impl ProcessRunner {
                 }
                 Ok(None) => {}
                 Err(error) => {
-                    kill_child(&mut child);
+                    process_tree.terminate(&mut child);
                     let _ = child.wait();
                     let _ = stdout_handle.join();
                     let _ = stderr_handle.join();
@@ -137,7 +150,7 @@ impl ProcessRunner {
             }
 
             if overflow.load(Ordering::Relaxed) {
-                kill_child(&mut child);
+                process_tree.terminate(&mut child);
                 let _ = child.wait();
                 let _ = stdout_handle.join();
                 let _ = stderr_handle.join();
@@ -147,7 +160,7 @@ impl ProcessRunner {
             }
 
             if Instant::now() >= deadline {
-                kill_child(&mut child);
+                process_tree.terminate(&mut child);
                 timed_out = true;
                 let _ = child.wait();
                 exit_code = None;
@@ -156,6 +169,9 @@ impl ProcessRunner {
 
             thread::sleep(Duration::from_millis(5));
         }
+
+        // Drop Job Object / release group handle after natural exit too.
+        drop(process_tree);
 
         let stdout = stdout_rx.recv().unwrap_or_default();
         let stderr = stderr_rx.recv().unwrap_or_default();
@@ -206,27 +222,10 @@ fn drain_capped(
     buf
 }
 
-fn kill_child(child: &mut std::process::Child) {
-    // Until R3 (process-group / Job Object at spawn), Unix children share the
-    // parent's PGID. Do not `kill -<pid>` (process *group*): that silently fails
-    // and leaves flood/timeout paths blocked forever on `child.wait()`.
-    #[cfg(unix)]
-    {
-        let _ = child.kill();
-    }
-    #[cfg(windows)]
-    {
-        let pid = child.id();
-        let _ = Command::new("taskkill")
-            .args(["/F", "/T", "/PID"])
-            .arg(pid.to_string())
-            .output();
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use std::time::Duration;
 
     #[test]
@@ -318,5 +317,92 @@ mod tests {
         };
         let output = ProcessRunner::run(&cfg).expect("python stdin EOF");
         assert_eq!(output.stdout.trim(), "0");
+    }
+
+    fn pid_alive(pid: u32) -> bool {
+        #[cfg(unix)]
+        {
+            Command::new("kill")
+                .args(["-0", &pid.to_string()])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok_and(|status| status.success())
+        }
+        #[cfg(windows)]
+        {
+            Command::new("tasklist")
+                .args(["/FI", &format!("PID eq {pid}"), "/NH"])
+                .stdin(Stdio::null())
+                .output()
+                .is_ok_and(|out| {
+                    let text = String::from_utf8_lossy(&out.stdout);
+                    text.contains(&pid.to_string())
+                })
+        }
+    }
+
+    #[test]
+    fn timeout_kills_grandchild_tree() {
+        let dir = std::env::temp_dir().join(format!("vaa_process_tree_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("temp dir");
+        let pid_path = dir.join("grandchild.pid");
+
+        let grandchild_cmd = if cfg!(windows) {
+            "['ping', '-n', '60', '127.0.0.1']"
+        } else {
+            "['sleep', '60']"
+        };
+        let script = format!(
+            concat!(
+                "import subprocess, sys, time\n",
+                "path = sys.argv[1]\n",
+                "p = subprocess.Popen({grandchild_cmd})\n",
+                "with open(path, 'w', encoding='utf-8') as f:\n",
+                "    f.write(str(p.pid))\n",
+                "    f.flush()\n",
+                "time.sleep(120)\n"
+            ),
+            grandchild_cmd = grandchild_cmd
+        );
+
+        let cfg = ProcessConfig {
+            program: python_program(),
+            args: vec![
+                "-c".to_owned(),
+                script,
+                pid_path.to_string_lossy().into_owned(),
+            ],
+            timeout: Duration::from_secs(2),
+            max_output_bytes: 1_048_576,
+            allowed_env: python_allowed_env(),
+            ..ProcessConfig::default()
+        };
+        let started = Instant::now();
+        let result = ProcessRunner::run(&cfg);
+        assert!(
+            matches!(result, Err(ProcessError::Timeout { .. })),
+            "expected Timeout, got {result:?}"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "tree kill took too long: {:?}",
+            started.elapsed()
+        );
+
+        let grandchild_pid = fs::read_to_string(&pid_path)
+            .unwrap_or_else(|e| panic!("grandchild pid file missing after run: {e}"))
+            .trim()
+            .parse::<u32>()
+            .expect("grandchild pid");
+        thread::sleep(Duration::from_millis(300));
+        assert!(
+            !pid_alive(grandchild_pid),
+            "grandchild pid {grandchild_pid} still alive after tree kill"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
     }
 }

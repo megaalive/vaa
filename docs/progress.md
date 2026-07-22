@@ -18,7 +18,7 @@ called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 | PR-007b — Controller handshake | **Done** | unit | `--contract`, digests, golden fixture |
 | PR-008 — Evidence aggregator | **Done** | unit | fail-closed + identity cross-checks |
 | Phase 1 exit (`vaa verify`) | **Done** | unit | Offline report; live SemASM smoke ignored |
-| PR-009 — Process runner | **Done** (streaming + Win stdin) | unit | Byte cap while draining; process-group spawn = later R3 |
+| PR-009 — Process runner | **Done** (streaming + tree kill) | unit | Byte cap; Win stdin EOF; Unix process group + Win Job Object (R3) |
 
 | PR-010 — Build sandbox backend | **Scaffold** | unit | Docker argv wrapper; not hardened isolation |
 | PR-011 — NASM/linker pipeline | **Done** | unit | Needs toolchain on PATH for live use |
@@ -104,7 +104,6 @@ cargo run -q -- evidence verify-chain \
 
 ### Still out of scope / later waves
 
-- Process-group / Job Object at spawn (R3 / PR-009c)
 - Hardened ContainerBackend / generator FS isolation
 - Digital signature (Ed25519) authenticity
 - Fully crash-durable transactional pair (directory fsync everywhere)
@@ -173,16 +172,17 @@ Honesty: VAA `capabilities` JSON is an **embedded agent-verify snapshot**, not a
 live read of SemASM `capabilities.toml` (pipeline maturity there may still be
 `partial` / `experimental` on some axes).
 
-### Next waves (R0–R2) — runner + SemASM JSON
+### Next waves (R0–R3) — runner + SemASM JSON + process tree
 
 | Wave | Focus | Status |
 |---|---|---|
 | **R0** | Honesty docs: P* closed; next = R* | **Done** |
 | **R1** | ProcessRunner streaming byte cap + Win stdin EOF (PR-009b) | **Done** |
 | **R2** | SemASM `version`/`status --format json` | **Done** |
+| **R3** | Process-group / Job Object at spawn (PR-009c) | **Done** |
 
-Later (not this tranche): process-group spawn at create (R3); optional live
-SemASM status JSON vs embedded snapshot compare (R4).
+Later (not this tranche): optional live SemASM status JSON vs embedded
+snapshot compare (R4).
 
 ## Documentation map
 

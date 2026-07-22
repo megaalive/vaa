@@ -24,7 +24,9 @@ This document is the human-readable companion to `deny.toml`.
 | `serde_json` | Canonical JSON for digests and `--format json` CLI output |
 | `toml` | Parse `task.vaa.toml` |
 | `sha2` | SHA-256 task content digests |
+| `object` | Read ELF/PE/Mach-O for artifact inspection |
 | `thiserror` | Typed `TaskError` diagnostics |
+| `win32job` (Windows only) | Job Object ownership so timeout/overflow kills the full process tree |
 
 ## License allow-list
 
