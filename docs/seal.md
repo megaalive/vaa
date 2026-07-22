@@ -16,7 +16,9 @@ the signature binds a known public key to technical acceptance.
 
 ### Transparency layers
 
-1. **Filesystem isolation** — generators have no write access to the evidence directory (deferred hardening).
+1. **Filesystem isolation (G0 logical)** — `RunDir` refuses writes into `evidence/`
+   and protected seal filenames under `candidates/` via its public write API.
+   Generators use `staging/`. This is **not** OS ACL / process sandbox isolation.
 2. **Local seal digest log** — `evidence/seal-log.jsonl` appends each candidate’s
    `envelope_digest` / `acceptance_digest` (L0). Checked by `verify-chain` when
    present (L1). This is **not** an external transparency log.
@@ -32,7 +34,7 @@ the signature binds a known public key to technical acceptance.
    That key is a **practice key only — not a trust root**.
 
 Deferred: remote append-only transparency service, HSM / hardware keys, cosign,
-committed production signing seeds.
+committed production signing seeds, **OS-level** generator FS isolation.
 
 ## Seal schema 0.2
 

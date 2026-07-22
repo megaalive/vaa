@@ -106,7 +106,7 @@ cargo run -q -- evidence verify-chain \
 
 ### Still out of scope / later waves
 
-- Full hardened sandbox (custom seccomp, verified rootless, generator FS isolation)
+- Full hardened sandbox (custom seccomp, verified rootless, **OS-level** generator FS isolation)
 - Remote append-only transparency service / Rekor / Git notes automation
 - HSM / hardware keys / certificate chains
 - Formal multi-file transactional seals on network / lying filesystems
@@ -221,6 +221,12 @@ Honesty: CI transparency artifact is **not** a remote immutable log. Container C
 | **T1** | `verify-transparency` after export; artifact includes practice public key | **Done** |
 
 Honesty: ephemeral CI signing key is **not** a trust root. `verify-transparency` does **not** make the artifact a remote immutable log.
+
+### Next waves (G0) — logical evidence write barrier
+
+| Wave | Focus | Status |
+|---|---|---|
+| **G0** | `RunDir` ProtectedZone + `staging/`; `vaa generate --run-dir` | **Done** (logical API barrier ≠ OS isolation) |
 
 Later: remote transparency service, HSM, full PR-010 hardened sandbox, live model, CryptOpt, `v0.1.0`.
 
