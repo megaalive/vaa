@@ -274,6 +274,44 @@ mod tests {
     }
 
     #[test]
+    fn golden_sum_i64_execution_denied_report_deserializes() {
+        let json = include_str!(
+            "../../fixtures/semasm/reports/verification-report-sum_i64.execution_denied.json"
+        );
+        let report = SemasmVerify::parse_report(json).expect("sum_i64 golden parse");
+        assert_eq!(report.outcome, EvidenceStatus::Incomplete);
+        assert_eq!(report.raw_status, "execution_denied");
+        let raw: serde_json::Value =
+            serde_json::from_str(&report.raw_json).expect("raw_json is JSON");
+        assert_eq!(
+            raw["behavior_oracle"]["id"],
+            "builtin.buffer.wrapping_sum_i64"
+        );
+        assert_eq!(raw["behavior_oracle"]["version"], 2);
+        assert_eq!(raw["behavior_oracle"]["proof_basis"], "oracle_and_vectors");
+        assert_eq!(
+            raw["behavior_oracle"]["contract_ensures"],
+            serde_json::json!(["true"])
+        );
+    }
+
+    #[test]
+    fn golden_sum_i64_verified_report_deserializes() {
+        let json =
+            include_str!("../../fixtures/semasm/reports/verification-report-sum_i64.verified.json");
+        let report = SemasmVerify::parse_report(json).expect("sum_i64 verified golden parse");
+        assert_eq!(report.outcome, EvidenceStatus::Verified);
+        assert_eq!(report.raw_status, "verified");
+        let raw: serde_json::Value =
+            serde_json::from_str(&report.raw_json).expect("raw_json is JSON");
+        assert_eq!(
+            raw["behavior_oracle"]["id"],
+            "builtin.buffer.wrapping_sum_i64"
+        );
+        assert_eq!(raw["behavior_oracle"]["version"], 2);
+    }
+
+    #[test]
     fn stderr_noise_must_not_be_concatenated_for_parse() {
         let stdout = minimal("execution_denied");
         let with_stderr_prefix = format!("execution denied: human message\n{stdout}");
