@@ -12,6 +12,10 @@ pub struct SandboxConfig {
     pub timeout: Duration,
     pub max_output_bytes: u64,
     pub allowed_env: Vec<String>,
+    /// Host directory bind-mounted at `/work` (rw). When set, replaces tmpfs `/work`.
+    pub host_work_dir: Option<PathBuf>,
+    /// Host directory bind-mounted at `/input` (ro).
+    pub host_input_ro: Option<PathBuf>,
 }
 
 impl Default for SandboxConfig {
@@ -24,6 +28,8 @@ impl Default for SandboxConfig {
             timeout: Duration::from_secs(60),
             max_output_bytes: 1_048_576,
             allowed_env: vec!["PATH".to_owned(), "HOME".to_owned()],
+            host_work_dir: None,
+            host_input_ro: None,
         }
     }
 }
@@ -82,8 +88,8 @@ impl SandboxBackend for LocalBackend {
 }
 
 /// Docker/Podman argv wrapper. Still **Scaffold** isolation — not a production
-/// hardened profile (no custom seccomp, no verified rootless daemon, no host
-/// volume mounts in this generic wrapper). C0 deepen argv only.
+/// hardened profile (no custom seccomp, no verified rootless daemon). C1 adds
+/// optional host bind mounts for `/work` and `/input`.
 pub struct ContainerBackend {
     pub runtime: String,
     pub image: String,
@@ -167,8 +173,26 @@ impl SandboxBackend for ContainerBackend {
         wrapped.push("--read-only".to_owned());
         wrapped.push("--tmpfs".to_owned());
         wrapped.push("/tmp:rw,noexec,nosuid,size=64m".to_owned());
-        wrapped.push("--tmpfs".to_owned());
-        wrapped.push("/work:rw,size=256m".to_owned());
+
+        if let Some(input) = &config.host_input_ro {
+            wrapped.push("--mount".to_owned());
+            wrapped.push(format!(
+                "type=bind,src={},dst=/input,ro=true",
+                input.display()
+            ));
+        }
+
+        if let Some(work) = &config.host_work_dir {
+            wrapped.push("--mount".to_owned());
+            wrapped.push(format!(
+                "type=bind,src={},dst=/work,ro=false",
+                work.display()
+            ));
+        } else {
+            wrapped.push("--tmpfs".to_owned());
+            wrapped.push("/work:rw,size=256m".to_owned());
+        }
+
         wrapped.push("--workdir".to_owned());
         wrapped.push("/work".to_owned());
 
@@ -242,6 +266,30 @@ mod tests {
         assert!(pc.args.contains(&"/work".to_owned()));
         assert!(pc.args.contains(&"ubuntu:24.04".to_owned()));
         assert!(pc.args.contains(&"nasm".to_owned()));
+    }
+
+    #[test]
+    fn container_backend_bind_mounts_replace_work_tmpfs() {
+        let backend = ContainerBackend::new("docker", "ubuntu:24.04");
+        let cfg = SandboxConfig {
+            host_work_dir: Some(PathBuf::from("/host/work")),
+            host_input_ro: Some(PathBuf::from("/host/input")),
+            ..SandboxConfig::default()
+        };
+        let pc = backend.wrap_process("nasm", &["-v".to_owned()], &cfg);
+        assert!(pc.args.contains(&"--mount".to_owned()));
+        assert!(pc
+            .args
+            .iter()
+            .any(|a| a.contains("dst=/input") && a.contains("ro=true")));
+        assert!(pc
+            .args
+            .iter()
+            .any(|a| a.contains("dst=/work") && a.contains("ro=false")));
+        assert!(!pc.args.contains(&"/work:rw,size=256m".to_owned()));
+        assert!(pc
+            .args
+            .contains(&"/tmp:rw,noexec,nosuid,size=64m".to_owned()));
     }
 
     #[test]
