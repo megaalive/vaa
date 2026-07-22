@@ -90,9 +90,10 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-Release prep / checklist closeout (**R-notes**); git tag `v0.1.0` stays deferred until maintainer sign-off.
-Linux Gate (**L1/L2**) and G1/E1b are Done — see `docs/progress.md`.
-Deferred: live model, CryptOpt, Rekor/HSM, OS-level generator isolation, `v0.1.0` tag ceremony ([checklist](docs/release-v0.1-checklist.md)).
+**R-tag** (`git tag v0.1.0`) is deferred until maintainer sign-off — see
+[`docs/release-v0.1-checklist.md`](docs/release-v0.1-checklist.md) and [`CHANGELOG.md`](CHANGELOG.md).
+Prep surface (G1, E1b, Linux Gate, R-notes) is Done.
+Deferred products: live model, CryptOpt, Rekor/HSM, OS-level generator isolation.
 
 ## License
 

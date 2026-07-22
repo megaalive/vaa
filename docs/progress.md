@@ -271,8 +271,8 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **N6** | Negative corpus under `fixtures/negative/` | **Done** (not full fuzz) |
 | **G1** | External argv generator → `staging/` | **Done** (Scaffold; not OS FS isolation) |
 | **E1b** | Resume smoke in Gate-1 CI | **Done** |
-| **L1/L2** | Linux fixtures + ubuntu Gate jobs | **Done** (VAA+SemASM pin smoke; not SemASM upstream Linux CI claim) |
-| **R-notes** | CHANGELOG + checklist closeout (tag deferred) | Pending |
+| **L1/L2** | Linux fixtures + ubuntu Gate jobs | **Done** (VAA+SemASM pin smoke; qemu for Linux Verified; not SemASM upstream Linux CI claim) |
+| **R-notes** | CHANGELOG + checklist closeout (tag deferred) | **Done** |
 
 ## Documentation map
 
@@ -284,6 +284,8 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | `docs/progress.md` | This file |
 | `docs/seal.md` | Integrity vs authenticity; seal schema 0.2; verify-chain |
 | `docs/release-v0.1-checklist.md` | Prep checklist before any `v0.1.0` git tag |
+| `CHANGELOG.md` | Release notes (Unreleased + crate 0.1.0 prep) |
+| `scripts/release-prep-check.*` | Local fmt/clippy/test prep (never tags) |
 | `docs/vaa-canonical-json-v1.md` | Named canonical JSON profile |
 | `fixtures/canonical-json/` | Cross-language conformance vectors |
 | `fixtures/run/count_byte/README.md` | R1 golden run |
