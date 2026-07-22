@@ -42,15 +42,18 @@ impl TargetCapabilities {
     #[must_use]
     pub fn for_target(target: &str) -> Self {
         match target {
+            // Agent-verify golden path is exercised in VAA Gate-1/2 CI (Win64)
+            // and SemASM e2e (SysV). Snapshot must not under-claim Supported
+            // levels required by locked tasks with require_* = true.
             "x86_64-unknown-linux-gnu" | "x86_64-pc-windows-msvc" => Self {
                 target_id: target.to_owned(),
-                decode: CapabilityLevel::Partial,
-                lower: CapabilityLevel::Partial,
-                abi_check: CapabilityLevel::Partial,
-                object_inspect: CapabilityLevel::Experimental,
-                assemble: CapabilityLevel::Experimental,
-                link: CapabilityLevel::Experimental,
-                sandbox_run: CapabilityLevel::Unavailable,
+                decode: CapabilityLevel::Supported,
+                lower: CapabilityLevel::Supported,
+                abi_check: CapabilityLevel::Supported,
+                object_inspect: CapabilityLevel::Supported,
+                assemble: CapabilityLevel::Supported,
+                link: CapabilityLevel::Supported,
+                sandbox_run: CapabilityLevel::Supported,
             },
             "aarch64-unknown-linux-gnu" => Self {
                 target_id: target.to_owned(),
@@ -235,10 +238,20 @@ mod tests {
     }
 
     #[test]
-    fn x86_64_linux_capabilities_are_partial() {
+    fn x86_64_win64_capabilities_support_gate2_requirements() {
+        let caps = TargetCapabilities::for_target("x86_64-pc-windows-msvc");
+        assert_eq!(caps.lower, CapabilityLevel::Supported);
+        assert_eq!(caps.abi_check, CapabilityLevel::Supported);
+        assert_eq!(caps.object_inspect, CapabilityLevel::Supported);
+        assert_eq!(caps.sandbox_run, CapabilityLevel::Supported);
+    }
+
+    #[test]
+    fn x86_64_linux_capabilities_support_agent_verify() {
         let caps = TargetCapabilities::for_target("x86_64-unknown-linux-gnu");
-        assert_eq!(caps.decode, CapabilityLevel::Partial);
-        assert_eq!(caps.assemble, CapabilityLevel::Experimental);
+        assert_eq!(caps.decode, CapabilityLevel::Supported);
+        assert_eq!(caps.assemble, CapabilityLevel::Supported);
+        assert_eq!(caps.sandbox_run, CapabilityLevel::Supported);
     }
 
     #[test]
@@ -250,10 +263,27 @@ mod tests {
     #[test]
     fn capability_match_rejects_insufficient_lower() {
         let task = sample_task();
-        let caps = TargetCapabilities::for_target("x86_64-unknown-linux-gnu");
+        let mut caps = TargetCapabilities::for_target("x86_64-unknown-linux-gnu");
+        caps.lower = CapabilityLevel::Partial;
         let result = match_task_requirements(&task, &caps);
         assert!(!result.compatible);
         assert!(result.insufficient.iter().any(|s| s.contains("lower")));
+    }
+
+    #[test]
+    fn capability_match_accepts_x86_win64_gate_tasks() {
+        let mut task = sample_task();
+        task.target = "x86_64-pc-windows-msvc".to_owned();
+        task.verification.require_behavioral_tests = true;
+        task.verification.require_object_inspection = true;
+        let caps = TargetCapabilities::for_target("x86_64-pc-windows-msvc");
+        let result = match_task_requirements(&task, &caps);
+        assert!(
+            result.compatible,
+            "insufficient={:?} missing={:?}",
+            result.insufficient,
+            result.missing
+        );
     }
 
     #[test]
@@ -262,7 +292,10 @@ mod tests {
         task.verification.require_complete_lowering = false;
         task.verification.require_abi_check = false;
         task.verification.require_object_inspection = false;
-        let caps = TargetCapabilities::for_target("x86_64-unknown-linux-gnu");
+        let mut caps = TargetCapabilities::for_target("x86_64-unknown-linux-gnu");
+        caps.lower = CapabilityLevel::Partial;
+        caps.abi_check = CapabilityLevel::Partial;
+        caps.object_inspect = CapabilityLevel::Experimental;
         let result = match_task_requirements(&task, &caps);
         assert!(result.compatible);
     }
