@@ -625,11 +625,24 @@ fn verify_command(
             return VaaExitCode::ToolFailure.as_std();
         }
     };
-    let expect = EvidenceExpect::new(
+    let mut expect = EvidenceExpect::new(
         target.clone(),
         sha256_digest_prefixed(&source_bytes),
         sha256_digest_prefixed(&contract_bytes),
     );
+    if locked.task().verification.require_object_inspection {
+        let inspect_dir = std::env::temp_dir().join(format!(
+            "vaa_verify_inspect_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_nanos())
+        ));
+        let _ = std::fs::create_dir_all(&inspect_dir);
+        expect.object_inspection =
+            Some(vaa::assemble_and_inspect(source_path, &inspect_dir, target));
+        let _ = std::fs::remove_dir_all(&inspect_dir);
+    }
 
     let report = EvidenceAggregator::build(
         &locked,
@@ -686,10 +699,7 @@ fn run_command(
         }
         Err(e) => {
             eprintln!("error: {e}");
-            if matches!(
-                e,
-                vaa::RunError::BudgetExhausted(_)
-            ) {
+            if matches!(e, vaa::RunError::BudgetExhausted(_)) {
                 VaaExitCode::BudgetExhausted.as_std()
             } else {
                 VaaExitCode::ToolFailure.as_std()

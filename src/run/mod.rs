@@ -9,6 +9,6 @@ pub use event::{Event, EventKind, EventLog};
 pub use run_dir::{RunDir, RunDirError, RunDirPaths};
 pub use run_id::RunId;
 pub use verify_seal::{
-    doctor_and_capabilities, ingest_candidate, verify_candidate_and_seal, VerifySealError,
-    VerifySealInput, VerifySealOutcome,
+    assemble_and_inspect, doctor_and_capabilities, ingest_candidate, verify_candidate_and_seal,
+    VerifySealError, VerifySealInput, VerifySealOutcome,
 };

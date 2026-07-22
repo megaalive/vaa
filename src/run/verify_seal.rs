@@ -120,7 +120,11 @@ pub fn verify_candidate_and_seal(
         Err(_) => None,
     };
 
-    let mut expect = EvidenceExpect::new(target.clone(), source_digest.clone(), contract_digest.clone());
+    let mut expect = EvidenceExpect::new(
+        target.clone(),
+        source_digest.clone(),
+        contract_digest.clone(),
+    );
     if input.locked.task().verification.require_object_inspection {
         expect.object_inspection = Some(assemble_and_inspect(&source_path, &cand_dir, &target));
     }
@@ -194,7 +198,8 @@ fn nasm_format_for_target(target: &str) -> &'static str {
 }
 
 /// Assemble candidate to `.o` and run [`ArtifactInspector`] (I0).
-fn assemble_and_inspect(
+#[must_use]
+pub fn assemble_and_inspect(
     source_path: &Path,
     out_dir: &Path,
     target: &str,

@@ -66,7 +66,8 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
     let target = locked.task().target.clone();
     let task_id = locked.task().task_id.clone();
     let budgets = locked.task().budgets.clone();
-    let wall_deadline = Instant::now() + std::time::Duration::from_secs(budgets.max_wall_time_seconds);
+    let wall_deadline =
+        Instant::now() + std::time::Duration::from_secs(budgets.max_wall_time_seconds);
 
     let run_id = RunId::generate();
     let run_dir =
@@ -221,7 +222,9 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
         // Progress = status improved toward Verified, or first candidate.
         let progressed = match (last_progress_status, status) {
             (None, _) => true,
-            (Some(prev), cur) if prev != EvidenceStatus::Verified && cur == EvidenceStatus::Verified => {
+            (Some(prev), cur)
+                if prev != EvidenceStatus::Verified && cur == EvidenceStatus::Verified =>
+            {
                 true
             }
             (Some(prev), cur) if prev != cur => true,
@@ -334,7 +337,14 @@ mod tests {
     fn budget_exhausted_on_wall_candidates_and_no_progress() {
         let start = Instant::now();
         assert_eq!(
-            budget_exhausted(start + Duration::from_secs(2), start + Duration::from_secs(1), 0, 4, 0, 2),
+            budget_exhausted(
+                start + Duration::from_secs(2),
+                start + Duration::from_secs(1),
+                0,
+                4,
+                0,
+                2
+            ),
             Some("max_wall_time_seconds exceeded")
         );
         assert_eq!(
