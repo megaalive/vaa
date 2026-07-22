@@ -9,6 +9,8 @@ pub struct SandboxConfig {
     pub network_disabled: bool,
     pub memory_limit_bytes: Option<u64>,
     pub cpu_quota: Option<f64>,
+    /// Optional Docker/Podman `--pids-limit` (Scaffold; not a security claim).
+    pub pids_limit: Option<u32>,
     pub timeout: Duration,
     pub max_output_bytes: u64,
     pub allowed_env: Vec<String>,
@@ -25,6 +27,7 @@ impl Default for SandboxConfig {
             network_disabled: true,
             memory_limit_bytes: None,
             cpu_quota: None,
+            pids_limit: None,
             timeout: Duration::from_secs(60),
             max_output_bytes: 1_048_576,
             allowed_env: vec!["PATH".to_owned(), "HOME".to_owned()],
@@ -201,6 +204,16 @@ impl SandboxBackend for ContainerBackend {
             wrapped.push(format!("{mem}"));
         }
 
+        if let Some(cpus) = config.cpu_quota {
+            wrapped.push("--cpus".to_owned());
+            wrapped.push(format!("{cpus}"));
+        }
+
+        if let Some(pids) = config.pids_limit {
+            wrapped.push("--pids-limit".to_owned());
+            wrapped.push(format!("{pids}"));
+        }
+
         wrapped.push("--init".to_owned());
         wrapped.push(self.image_ref());
         wrapped.push(program.to_owned());
@@ -306,5 +319,20 @@ mod tests {
         let pc = backend.wrap_process("true", &[], &SandboxConfig::default());
         assert!(pc.args.iter().any(|a| a.starts_with("ubuntu@sha256:")));
         assert!(!pc.args.iter().any(|a| a == "ubuntu:24.04"));
+    }
+
+    #[test]
+    fn container_backend_honors_cpu_quota_and_pids_limit() {
+        let backend = ContainerBackend::new("docker", "ubuntu:24.04");
+        let cfg = SandboxConfig {
+            cpu_quota: Some(1.5),
+            pids_limit: Some(256),
+            ..SandboxConfig::default()
+        };
+        let pc = backend.wrap_process("nasm", &["-v".to_owned()], &cfg);
+        assert!(pc.args.contains(&"--cpus".to_owned()));
+        assert!(pc.args.contains(&"1.5".to_owned()));
+        assert!(pc.args.contains(&"--pids-limit".to_owned()));
+        assert!(pc.args.contains(&"256".to_owned()));
     }
 }

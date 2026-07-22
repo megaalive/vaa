@@ -1,9 +1,14 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+use crate::evidence::sha256_digest_prefixed;
 use crate::process::{ProcessConfig, ProcessRunner};
+use crate::sandbox::{ContainerBackend, SandboxBackend, SandboxConfig};
+
+/// Default container image for `vaa build --sandbox container` (Scaffold).
+pub const DEFAULT_CONTAINER_IMAGE: &str = "ubuntu:24.04";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildManifest {
@@ -29,6 +34,16 @@ pub struct BuildOutcome {
     pub exit_code: Option<i32>,
 }
 
+/// Optional container wrap for assemble/link (C2 Scaffold — not hardened isolation).
+#[derive(Debug, Clone)]
+pub struct ContainerBuildOpts {
+    pub runtime: String,
+    pub image: String,
+    pub image_digest: Option<String>,
+    pub cpu_quota: Option<f64>,
+    pub pids_limit: Option<u32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct PipelineConfig {
     pub assembler_path: PathBuf,
@@ -40,6 +55,7 @@ pub struct PipelineConfig {
     pub extra_ld_args: Vec<String>,
     pub timeout: Duration,
     pub max_output_bytes: u64,
+    pub container: Option<ContainerBuildOpts>,
 }
 
 impl Default for PipelineConfig {
@@ -54,6 +70,7 @@ impl Default for PipelineConfig {
             extra_ld_args: Vec::new(),
             timeout: Duration::from_secs(60),
             max_output_bytes: 1_048_576,
+            container: None,
         }
     }
 }
@@ -91,13 +108,8 @@ impl BuildPipeline {
         ];
         as_args.extend(config.extra_as_args.clone());
 
-        let as_cfg = ProcessConfig {
-            program: config.assembler_path.clone(),
-            args: as_args,
-            timeout: config.timeout,
-            max_output_bytes: config.max_output_bytes,
-            ..ProcessConfig::default()
-        };
+        let as_cfg =
+            maybe_wrap_container(&config.assembler_path.to_string_lossy(), &as_args, config);
 
         let as_result = ProcessRunner::run(&as_cfg);
 
@@ -110,6 +122,9 @@ impl BuildPipeline {
             Err(e) => (String::new(), format!("{e}"), false),
         };
 
+        let assembler_digest = tool_digest(&config.assembler_path);
+        let linker_digest = tool_digest(&config.linker_path);
+
         if !as_ok {
             return BuildOutcome {
                 success: false,
@@ -121,8 +136,8 @@ impl BuildPipeline {
                     binary_path,
                     assembler_args: as_cfg.args,
                     linker_args: Vec::new(),
-                    assembler_digest: None,
-                    linker_digest: None,
+                    assembler_digest,
+                    linker_digest,
                 },
                 assembler_stdout: as_stdout,
                 assembler_stderr: as_stderr,
@@ -139,13 +154,7 @@ impl BuildPipeline {
         ];
         ld_args.extend(config.extra_ld_args.clone());
 
-        let ld_cfg = ProcessConfig {
-            program: config.linker_path.clone(),
-            args: ld_args,
-            timeout: config.timeout,
-            max_output_bytes: config.max_output_bytes,
-            ..ProcessConfig::default()
-        };
+        let ld_cfg = maybe_wrap_container(&config.linker_path.to_string_lossy(), &ld_args, config);
 
         let ld_result = ProcessRunner::run(&ld_cfg);
 
@@ -169,8 +178,8 @@ impl BuildPipeline {
                 binary_path,
                 assembler_args: as_cfg.args,
                 linker_args: ld_cfg.args,
-                assembler_digest: None,
-                linker_digest: None,
+                assembler_digest,
+                linker_digest,
             },
             assembler_stdout: as_stdout,
             assembler_stderr: as_stderr,
@@ -181,10 +190,76 @@ impl BuildPipeline {
     }
 }
 
+fn maybe_wrap_container(program: &str, args: &[String], config: &PipelineConfig) -> ProcessConfig {
+    let Some(opts) = &config.container else {
+        return ProcessConfig {
+            program: PathBuf::from(program),
+            args: args.to_vec(),
+            timeout: config.timeout,
+            max_output_bytes: config.max_output_bytes,
+            ..ProcessConfig::default()
+        };
+    };
+
+    let backend = match &opts.image_digest {
+        Some(d) => ContainerBackend::with_image_digest(&opts.runtime, &opts.image, d),
+        None => ContainerBackend::new(&opts.runtime, &opts.image),
+    };
+    let sandbox = SandboxConfig {
+        cpu_quota: opts.cpu_quota,
+        pids_limit: opts.pids_limit,
+        timeout: config.timeout,
+        max_output_bytes: config.max_output_bytes,
+        ..SandboxConfig::default()
+    };
+    backend.wrap_process(program, args, &sandbox)
+}
+
+/// SHA-256 of a resolved toolchain binary (B1). Returns `None` if unresolved.
+#[must_use]
+pub fn tool_digest(program: &Path) -> Option<String> {
+    let resolved = resolve_tool_path(program)?;
+    let bytes = std::fs::read(&resolved).ok()?;
+    Some(sha256_digest_prefixed(&bytes))
+}
+
+fn resolve_tool_path(program: &Path) -> Option<PathBuf> {
+    if program.is_file() {
+        return Some(program.to_path_buf());
+    }
+    let name = program.to_str()?;
+    let path_var = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_var) {
+        let candidate = dir.join(name);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+        #[cfg(windows)]
+        {
+            let with_exe = dir.join(format!("{name}.exe"));
+            if with_exe.is_file() {
+                return Some(with_exe);
+            }
+        }
+    }
+    None
+}
+
+/// Probe `docker` then `podman` via `--version` (C2).
+#[must_use]
+pub fn probe_container_runtime() -> Option<String> {
+    for runtime in ["docker", "podman"] {
+        if ContainerBackend::new(runtime, DEFAULT_CONTAINER_IMAGE).is_available() {
+            return Some(runtime.to_owned());
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
+    use std::io::Write;
 
     #[test]
     fn build_nonexistent_source_fails() {
@@ -196,5 +271,45 @@ mod tests {
         };
         let outcome = BuildPipeline::build(&config);
         assert!(!outcome.success);
+    }
+
+    #[test]
+    fn tool_digest_hashes_existing_file() {
+        let dir = std::env::temp_dir().join(format!(
+            "vaa_tool_digest_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let fake = dir.join("fake-nasm.bin");
+        {
+            let mut f = std::fs::File::create(&fake).unwrap();
+            f.write_all(b"nasm-fake-bytes").unwrap();
+        }
+        let digest = tool_digest(&fake).expect("digest");
+        assert!(digest.starts_with("sha256:"));
+        assert_eq!(digest, tool_digest(&fake).unwrap());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn container_wrap_rewrites_program_to_runtime() {
+        let config = PipelineConfig {
+            container: Some(ContainerBuildOpts {
+                runtime: "docker".into(),
+                image: DEFAULT_CONTAINER_IMAGE.into(),
+                image_digest: None,
+                cpu_quota: Some(0.5),
+                pids_limit: Some(128),
+            }),
+            ..PipelineConfig::default()
+        };
+        let pc = maybe_wrap_container("nasm", &["-v".into()], &config);
+        assert_eq!(pc.program.to_string_lossy(), "docker");
+        assert!(pc.args.contains(&"--cpus".to_owned()));
+        assert!(pc.args.contains(&"0.5".to_owned()));
     }
 }

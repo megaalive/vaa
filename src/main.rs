@@ -158,6 +158,21 @@ enum Commands {
         /// Target format.
         #[arg(long, default_value = "elf64")]
         target: String,
+        /// Sandbox backend: `local` (default) or `container` (Docker/Podman Scaffold).
+        #[arg(long, value_enum, default_value_t = BuildSandboxMode::Local)]
+        sandbox: BuildSandboxMode,
+        /// Container image (default `ubuntu:24.04`). Also `VAA_CONTAINER_IMAGE`.
+        #[arg(long, env = "VAA_CONTAINER_IMAGE")]
+        container_image: Option<String>,
+        /// Optional image digest pin (`sha256:…`). Also `VAA_CONTAINER_IMAGE_DIGEST`.
+        #[arg(long, env = "VAA_CONTAINER_IMAGE_DIGEST")]
+        container_image_digest: Option<String>,
+        /// Container runtime binary (`docker` or `podman`). Also `VAA_CONTAINER_RUNTIME`.
+        #[arg(long, env = "VAA_CONTAINER_RUNTIME")]
+        container_runtime: Option<String>,
+        /// Docker/Podman `--cpus` quota when `--sandbox container`.
+        #[arg(long)]
+        cpu_quota: Option<f64>,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -213,6 +228,12 @@ enum EvidenceCommands {
         #[arg(long)]
         out: PathBuf,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum BuildSandboxMode {
+    Local,
+    Container,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -303,13 +324,29 @@ fn main() -> ExitCode {
             source,
             output_dir,
             target,
+            sandbox,
+            container_image,
+            container_image_digest,
+            container_runtime,
+            cpu_quota,
             format,
-        } => build_command(&source, &output_dir, &target, format),
+        } => build_command(
+            &source,
+            &output_dir,
+            &target,
+            sandbox,
+            container_image.as_deref(),
+            container_image_digest.as_deref(),
+            container_runtime.as_deref(),
+            cpu_quota,
+            format,
+        ),
         Commands::Inspect { artifact, format } => inspect_command(&artifact, format),
     }
 }
 
 fn print_status() {
+    let container = vaa::probe_container_runtime();
     println!("vaa {VAA_VERSION}");
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
@@ -319,9 +356,13 @@ fn print_status() {
     println!("model adapter: fixture adapter with queued wrong→repair responses");
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
-    println!("evidence note: seal is content integrity, not cryptographic authenticity");
+    println!("evidence note: opt-in Ed25519 when VAA_SEAL_SIGNING_KEY is set (not a trust root)");
     println!("SemASM execution: default static-only; pass --allow-execution for Gate-2 Verified");
-    println!("build pipeline: nasm + ld (needs toolchain on PATH)");
+    println!("build pipeline: nasm + ld (needs toolchain on PATH); --sandbox container = Scaffold");
+    println!(
+        "container_runtime: {}",
+        container.as_deref().unwrap_or("unavailable")
+    );
     println!("note: absence of errors here is not evidence that any assembly is verified");
 }
 
@@ -398,6 +439,7 @@ fn emit_validate_error(path: &Path, format: OutputFormat, error: &TaskError) {
 fn doctor_command(format: OutputFormat) -> ExitCode {
     let report = SemasmDoctor::run();
     let evidence_policy = vaa::EvidencePolicy::vaa_g0();
+    let container_runtime = vaa::probe_container_runtime();
     match format {
         OutputFormat::Terminal => {
             println!("VAA Doctor Report");
@@ -429,6 +471,10 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                     }
                 }
             }
+            println!(
+                "  container_runtime: {} (Scaffold; not hardened isolation)",
+                container_runtime.as_deref().unwrap_or("unavailable")
+            );
             println!("  evidence_policy:");
             println!(
                 "    generator_staging: {}",
@@ -455,6 +501,7 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                 "schema_version": report.version.as_ref().map(|v| v.schema_version.clone()),
                 "details": report.details,
                 "live_probe": report.live_probe,
+                "container_runtime": container_runtime,
                 "evidence_policy": evidence_policy,
             });
             println!("{body}");
@@ -1033,11 +1080,42 @@ fn generate_command(
     }
 }
 
-fn build_command(source: &Path, output_dir: &Path, target: &str, format: OutputFormat) -> ExitCode {
+#[allow(clippy::too_many_arguments)]
+fn build_command(
+    source: &Path,
+    output_dir: &Path,
+    target: &str,
+    sandbox: BuildSandboxMode,
+    container_image: Option<&str>,
+    container_image_digest: Option<&str>,
+    container_runtime: Option<&str>,
+    cpu_quota: Option<f64>,
+    format: OutputFormat,
+) -> ExitCode {
+    let container = match sandbox {
+        BuildSandboxMode::Local => None,
+        BuildSandboxMode::Container => {
+            let runtime = container_runtime
+                .map(str::to_owned)
+                .or_else(vaa::probe_container_runtime)
+                .unwrap_or_else(|| "docker".to_owned());
+            Some(vaa::ContainerBuildOpts {
+                runtime,
+                image: container_image
+                    .unwrap_or(vaa::DEFAULT_CONTAINER_IMAGE)
+                    .to_owned(),
+                image_digest: container_image_digest.map(str::to_owned),
+                cpu_quota,
+                pids_limit: Some(256),
+            })
+        }
+    };
+
     let config = PipelineConfig {
         source_path: source.to_path_buf(),
         output_dir: output_dir.to_path_buf(),
         target: target.to_owned(),
+        container,
         ..PipelineConfig::default()
     };
 
@@ -1049,6 +1127,12 @@ fn build_command(source: &Path, output_dir: &Path, target: &str, format: OutputF
                 println!("Build succeeded");
                 println!("  object: {}", outcome.manifest.object_path.display());
                 println!("  binary: {}", outcome.manifest.binary_path.display());
+                if let Some(d) = &outcome.manifest.assembler_digest {
+                    println!("  assembler_digest: {d}");
+                }
+                if let Some(d) = &outcome.manifest.linker_digest {
+                    println!("  linker_digest: {d}");
+                }
             } else {
                 eprintln!("Build failed");
                 if !outcome.assembler_stderr.is_empty() {

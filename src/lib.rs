@@ -22,7 +22,10 @@ pub mod sandbox;
 pub mod semasm;
 pub mod task;
 
-pub use build::{BuildManifest, BuildOutcome, BuildPipeline, PipelineConfig};
+pub use build::{
+    probe_container_runtime, BuildManifest, BuildOutcome, BuildPipeline, ContainerBuildOpts,
+    PipelineConfig, DEFAULT_CONTAINER_IMAGE,
+};
 pub use candidate::{CandidateProtocol, CandidateSubmission, SubmissionOutcome};
 pub use canonical_json::{CANONICALIZATION_ID, DIGEST_ALGORITHM_ID};
 pub use evidence::{
@@ -42,7 +45,9 @@ pub use run::{
     assemble_and_inspect, ingest_candidate, run_fixture_loop, EventKind, EventLog, RunConfig,
     RunDir, RunDirPaths, RunError, RunId, RunOutcome, VerifySealOutcome,
 };
-pub use sandbox::{ExecutionSandbox, LocalBackend, SandboxBackend, SandboxConfig};
+pub use sandbox::{
+    ContainerBackend, ExecutionSandbox, LocalBackend, SandboxBackend, SandboxConfig,
+};
 pub use semasm::{
     compare_live_status, match_task_requirements, parse_status_json, probe_live_for_target,
     CapabilityMatch, CompareOutcome, DoctorReport, DoctorStatus, EvidencePolicy, LiveProbeSummary,
