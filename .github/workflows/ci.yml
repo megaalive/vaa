@@ -65,7 +65,11 @@ jobs:
         shell: pwsh
         run: |
           $semasmBin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          if (-not (Test-Path (Join-Path $semasmBin "semasm.exe"))) {
+            throw "semasm.exe missing under $semasmBin"
+          }
           echo $semasmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$semasmBin;$env:PATH"
           Get-Command semasm | Format-List
           semasm --version
 
@@ -115,7 +119,12 @@ jobs:
         shell: pwsh
         run: |
           $semasmBin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          if (-not (Test-Path (Join-Path $semasmBin "semasm.exe"))) {
+            throw "semasm.exe missing under $semasmBin"
+          }
           echo $semasmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$semasmBin;$env:PATH"
+          Get-Command semasm | Format-List
           semasm --version
 
       - name: Gate-2 verify Verified with --allow-execution
@@ -170,7 +179,12 @@ jobs:
         shell: pwsh
         run: |
           $semasmBin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          if (-not (Test-Path (Join-Path $semasmBin "semasm.exe"))) {
+            throw "semasm.exe missing under $semasmBin"
+          }
           echo $semasmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$semasmBin;$env:PATH"
+          Get-Command semasm | Format-List
           semasm --version
 
       - name: Emit HlaX64 NASM and compare to fixture
