@@ -41,8 +41,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin to main tip; SemASM S0/S1 are on main.
-          ref: main
+          # Pin: SemASM T0–T6 tip (framed Win64 + sum_i64 oracle v2).
+          ref: 77b1703353483704f5364af638d1735fe2ddcd55
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -91,7 +91,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          ref: main
+          # Pin: SemASM T0–T6 tip (framed Win64 + sum_i64 oracle v2).
+          ref: 77b1703353483704f5364af638d1735fe2ddcd55
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -133,7 +134,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          ref: main
+          # Pin: SemASM T0–T6 tip (framed Win64 + sum_i64 oracle v2).
+          ref: 77b1703353483704f5364af638d1735fe2ddcd55
 
       - name: Checkout HlaX64
         uses: actions/checkout@v4
