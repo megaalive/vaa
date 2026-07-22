@@ -43,7 +43,7 @@ pub use run::{
 pub use sandbox::{ExecutionSandbox, LocalBackend, SandboxBackend, SandboxConfig};
 pub use semasm::{
     match_task_requirements, CapabilityMatch, DoctorReport, DoctorStatus, SemasmDoctor,
-    SemasmVerify, TargetCapabilities, VerifyError, VerifyReport,
+    SemasmVerify, TargetCapabilities, VerifyError, VerifyReport, CAPABILITY_SOURCE,
 };
 pub use task::{load_locked_task, load_task_file, LockedTask, Task, TaskError};
 

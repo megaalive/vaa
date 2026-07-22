@@ -1,4 +1,14 @@
+//! Embedded target capability snapshot for VAA task gating.
+//!
+//! This is **not** a live read of SemASM `capabilities.toml`. Levels here
+//! describe what VAA requires for the **agent-verify Gate** path (Win64/SysV
+//! golden leaves). SemASM's own pipeline maturity fields may still report
+//! `partial` / `experimental` for broader assemble/link/status axes.
+
 use crate::Task;
+
+/// Provenance label emitted by `vaa capabilities` (JSON + terminal).
+pub const CAPABILITY_SOURCE: &str = "vaa_embedded_agent_verify_snapshot";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CapabilityLevel {
@@ -297,6 +307,11 @@ mod tests {
         caps.object_inspect = CapabilityLevel::Experimental;
         let result = match_task_requirements(&task, &caps);
         assert!(result.compatible);
+    }
+
+    #[test]
+    fn capability_source_label_is_stable() {
+        assert_eq!(CAPABILITY_SOURCE, "vaa_embedded_agent_verify_snapshot");
     }
 
     #[test]

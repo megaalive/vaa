@@ -402,6 +402,7 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
     match format {
         OutputFormat::Terminal => {
             println!("Target: {}", caps.target_id);
+            println!("  source:         {}", vaa::CAPABILITY_SOURCE);
             println!("  decode:         {:?}", caps.decode);
             println!("  lower:          {:?}", caps.lower);
             println!("  abi_check:      {:?}", caps.abi_check);
@@ -410,9 +411,11 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
             println!("  link:           {:?}", caps.link);
             println!("  sandbox_run:    {:?}", caps.sandbox_run);
             println!("  digest: {}", caps.digest());
+            println!("note: embedded agent-verify snapshot; not live SemASM capabilities.toml");
         }
         OutputFormat::Json => {
             let body = serde_json::json!({
+                "source": vaa::CAPABILITY_SOURCE,
                 "target_id": caps.target_id,
                 "decode": format!("{:?}", caps.decode),
                 "lower": format!("{:?}", caps.lower),
