@@ -142,6 +142,20 @@ Honesty: HlaX64 `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete ≠ Verified
 
 Do **not** call Gate-1 a “verified vertical slice”.
 
+### Next waves (N0–N4) — SemASM tip pin + framed smoke
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`77b1703353483704f5364af638d1735fe2ddcd55`
+(T0–T6 tip: framed Win64 ABI + `wrapping_sum_i64` oracle v2).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **N0** | Push SemASM tip + CI green for T0–T6 | **Done** (pin SHA above) |
+| **N1** | Pin SemASM SHA in VAA CI (not floating `main`) | **Done** |
+| **N2** | Refresh `sum_i64` consumer goldens (oracle v2) | **Done** |
+| **N3** | Framed `sum_i64` Gate smoke + fixture shape lock | **Done** |
+| **N4** | Honesty docs (this file + SemASM progress) | **Done** |
+
 ## Documentation map
 
 | Document | Role |
