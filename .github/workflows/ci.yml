@@ -154,8 +154,27 @@ jobs:
         shell: pwsh
         run: ./scripts/ci-doctor-live-probe.ps1
 
-      - name: Gate-2 verify Verified with --allow-execution
-        run: cargo test --test semasm_gate2_smoke -- --ignored --nocapture
+      - name: Gate-2 signed ingest + Verified
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path target/vaa-transparency/gate2 | Out-Null
+          ./scripts/ci-gate-sign-setup.ps1 -PublicKeyOut target/vaa-transparency/gate2/public_key.txt
+          cargo test --test semasm_gate2_smoke -- --ignored --nocapture
+
+      - name: Export + verify-transparency (Gate-2)
+        shell: pwsh
+        run: |
+          ./scripts/ci-gate-transparency.ps1 `
+            -RunBase target/vaa-gate2-runs `
+            -OutDir target/vaa-transparency/gate2 `
+            -PublicKeySrc target/vaa-transparency/gate2/public_key.txt
+
+      - name: Upload Gate-2 transparency artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate2-transparency
+          path: target/vaa-transparency/gate2/
+          if-no-files-found: error
 
   # H3: live HlaX64 emit must match committed candidate, then Gate smokes.
   hlax64-bridge:
