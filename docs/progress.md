@@ -238,6 +238,31 @@ Honesty: ephemeral CI signing key is **not** a trust root. `verify-transparency`
 
 Later: remote transparency service, HSM, full PR-010 hardened sandbox, live model, CryptOpt, `v0.1.0` **tag ceremony**.
 
+### Next waves (I0 + E0 + B2) — policy truth
+
+| Wave | Focus | Status |
+|---|---|---|
+| **I0** | Honor `require_object_inspection` via `ArtifactInspector` on verify/seal | **Done** (unit; not all object formats claimed) |
+| **E0** | Persist `events.jsonl` on `vaa run` / `ingest` lifecycle | **Done** (unit; crash resume = E1) |
+| **B2** | Enforce task `Budgets` (candidates / wall / no-progress) → exit 7 | **Done** (unit; not token/cost accounting) |
+
+### Next waves (R7 + A2) — Gate parity
+
+| Wave | Focus | Status |
+|---|---|---|
+| **R7** | Multi-candidate `vaa run` Gate smoke (`count_byte` wrong→repair) | Pending |
+| **A2** | Gate-2 signed seal + transparency parity | Pending |
+
+### Next waves (C2…E1)
+
+| Wave | Focus | Status |
+|---|---|---|
+| **C2/C2b** | Wire `ContainerBackend` + honor `cpu_quota` | Pending (Scaffold) |
+| **B1** | Build tool digests in manifest | Pending |
+| **N5** | `cargo deny` + light negatives | Pending |
+| **D2** | Doc sync honesty | Pending |
+| **E1** | Resume from sealed chain + events | Pending |
+
 ## Documentation map
 
 | Document | Role |
