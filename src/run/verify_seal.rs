@@ -6,14 +6,17 @@ use crate::candidate::CandidateProtocol;
 use crate::evidence::{
     append_seal_log, materialize_bundle_files, sha256_digest_prefixed, write_final_sealed_evidence,
     write_sealed_evidence, EvidenceAggregator, EvidenceExpect, EvidenceReport, GeneratorMeta,
-    SealBuildInput, SealEnvelope, SealLogEntry,
+    ObjectInspectionOutcome, SealBuildInput, SealEnvelope, SealLogEntry,
 };
+use crate::inspect::ArtifactInspector;
+use crate::process::{ProcessConfig, ProcessRunner};
 use crate::run::RunDir;
 use crate::semasm::{
     match_task_requirements, CapabilityMatch, DoctorReport, SemasmDoctor, SemasmVerify,
     TargetCapabilities, VerifyError, VerifyReport,
 };
 use crate::task::LockedTask;
+use std::time::Duration;
 
 /// Outcome of verifying one candidate and sealing evidence.
 #[derive(Debug)]
@@ -117,7 +120,11 @@ pub fn verify_candidate_and_seal(
         Err(_) => None,
     };
 
-    let expect = EvidenceExpect::new(target, source_digest.clone(), contract_digest.clone());
+    let mut expect = EvidenceExpect::new(target.clone(), source_digest.clone(), contract_digest.clone());
+    if input.locked.task().verification.require_object_inspection {
+        expect.object_inspection = Some(assemble_and_inspect(&source_path, &cand_dir, &target));
+    }
+
     let evidence = EvidenceAggregator::build(
         input.locked,
         Some(input.run_id.clone()),
@@ -176,6 +183,68 @@ pub fn doctor_and_capabilities(locked: &LockedTask) -> (DoctorReport, Capability
     let caps = TargetCapabilities::for_target(target);
     let cm = match_task_requirements(locked.task(), &caps);
     (SemasmDoctor::run(), cm)
+}
+
+fn nasm_format_for_target(target: &str) -> &'static str {
+    if target.contains("windows") {
+        "win64"
+    } else {
+        "elf64"
+    }
+}
+
+/// Assemble candidate to `.o` and run [`ArtifactInspector`] (I0).
+fn assemble_and_inspect(
+    source_path: &Path,
+    out_dir: &Path,
+    target: &str,
+) -> ObjectInspectionOutcome {
+    let object_path = out_dir.join("candidate.o");
+    let fmt = nasm_format_for_target(target);
+    let cfg = ProcessConfig {
+        program: PathBuf::from("nasm"),
+        args: vec![
+            "-f".to_owned(),
+            fmt.to_owned(),
+            "-o".to_owned(),
+            object_path.to_string_lossy().to_string(),
+            source_path.to_string_lossy().to_string(),
+        ],
+        timeout: Duration::from_secs(60),
+        max_output_bytes: 1_048_576,
+        ..ProcessConfig::default()
+    };
+    match ProcessRunner::run(&cfg) {
+        Ok(out) if out.exit_code == Some(0) => match ArtifactInspector::inspect(&object_path) {
+            Ok(info) => ObjectInspectionOutcome {
+                error: None,
+                has_wxorx: info.has_wxorx,
+                has_executable_stack: info.has_executable_stack,
+                format: info.format,
+            },
+            Err(e) => ObjectInspectionOutcome {
+                error: Some(format!("inspect failed: {e}")),
+                has_wxorx: false,
+                has_executable_stack: false,
+                format: "unknown".into(),
+            },
+        },
+        Ok(out) => ObjectInspectionOutcome {
+            error: Some(format!(
+                "nasm failed code={:?} stderr={}",
+                out.exit_code, out.stderr
+            )),
+            has_wxorx: false,
+            has_executable_stack: false,
+            format: "none".into(),
+        },
+        Err(e) => ObjectInspectionOutcome {
+            error: Some(format!("nasm invoke failed: {e}")),
+            has_wxorx: false,
+            has_executable_stack: false,
+            format: "none".into(),
+        },
+    }
 }
 
 /// Ingest a single external candidate (no model adapter).

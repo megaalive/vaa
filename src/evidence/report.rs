@@ -45,6 +45,17 @@ pub struct EvidenceExpect {
     pub expected_source_digest: String,
     /// `sha256:` digest of the SemASM contract file bytes.
     pub expected_contract_digest: String,
+    /// Result of optional object inspection (I0), when policy requires it.
+    pub object_inspection: Option<ObjectInspectionOutcome>,
+}
+
+/// Outcome of assembling + inspecting a candidate object (I0).
+#[derive(Debug, Clone)]
+pub struct ObjectInspectionOutcome {
+    pub error: Option<String>,
+    pub has_wxorx: bool,
+    pub has_executable_stack: bool,
+    pub format: String,
 }
 
 impl EvidenceExpect {
@@ -58,6 +69,7 @@ impl EvidenceExpect {
             expected_target: expected_target.into(),
             expected_source_digest: expected_source_digest.into(),
             expected_contract_digest: expected_contract_digest.into(),
+            object_inspection: None,
         }
     }
 }
@@ -225,6 +237,38 @@ impl EvidenceAggregator {
             }),
         }
 
+        if task.task().verification.require_object_inspection {
+            match &expect.object_inspection {
+                None => checks.push(CheckOutcome {
+                    check_name: "object_inspection".to_owned(),
+                    required: true,
+                    passed: false,
+                    details: Some("required but not performed".to_owned()),
+                }),
+                Some(oi) => {
+                    if let Some(err) = &oi.error {
+                        checks.push(CheckOutcome {
+                            check_name: "object_inspection".to_owned(),
+                            required: true,
+                            passed: false,
+                            details: Some(err.clone()),
+                        });
+                    } else {
+                        let clean = !oi.has_wxorx && !oi.has_executable_stack;
+                        checks.push(CheckOutcome {
+                            check_name: "object_inspection".to_owned(),
+                            required: true,
+                            passed: clean,
+                            details: Some(format!(
+                                "format={} wxorx={} exec_stack={}",
+                                oi.format, oi.has_wxorx, oi.has_executable_stack
+                            )),
+                        });
+                    }
+                }
+            }
+        }
+
         let required_failures: Vec<&CheckOutcome> =
             checks.iter().filter(|c| c.required && !c.passed).collect();
 
@@ -384,7 +428,15 @@ mod tests {
     #[test]
     fn aggregator_verified_when_all_pass() {
         let task = sample_locked_task();
-        let expect = expect_for(&task);
+        let mut expect = expect_for(&task);
+        if task.task().verification.require_object_inspection {
+            expect.object_inspection = Some(ObjectInspectionOutcome {
+                error: None,
+                has_wxorx: false,
+                has_executable_stack: false,
+                format: "Elf".into(),
+            });
+        }
         let report = EvidenceAggregator::build(
             &task,
             None,
@@ -399,6 +451,36 @@ mod tests {
         );
         assert_eq!(report.final_status, EvidenceStatus::Verified);
         assert!(report.summary.contains("Accepted"));
+    }
+
+    #[test]
+    fn aggregator_object_inspection_fails_on_wxorx() {
+        let task = sample_locked_task();
+        assert!(task.task().verification.require_object_inspection);
+        let mut expect = expect_for(&task);
+        expect.object_inspection = Some(ObjectInspectionOutcome {
+            error: None,
+            has_wxorx: true,
+            has_executable_stack: false,
+            format: "Elf".into(),
+        });
+        let report = EvidenceAggregator::build(
+            &task,
+            None,
+            Some(ok_verify(&task, &expect)),
+            Some(available_doctor()),
+            Some(CapabilityMatch {
+                compatible: true,
+                missing: vec![],
+                insufficient: vec![],
+            }),
+            &expect,
+        );
+        assert_ne!(report.final_status, EvidenceStatus::Verified);
+        assert!(report
+            .checks
+            .iter()
+            .any(|c| c.check_name == "object_inspection" && !c.passed));
     }
 
     #[test]
