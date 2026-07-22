@@ -298,10 +298,11 @@ jobs:
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
           ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
 
-      - name: Install NASM and LLVM (ld.lld)
+      - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
           sudo apt-get update
-          sudo apt-get install -y nasm lld
+          sudo apt-get install -y nasm lld qemu-user
+          command -v qemu-x86_64
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -335,11 +336,15 @@ jobs:
         run: |
           nasm --version
           ld.lld --version || lld --version
+          qemu-x86_64 --version | head -n1
 
       - name: Gate-1 Linux signed ingest + Incomplete verify
         run: |
           mkdir -p target/vaa-transparency/gate1-linux
-          ./scripts/ci-gate-sign-setup.sh target/vaa-transparency/gate1-linux/public_key.txt
+          # Source so VAA_SEAL_* exports apply to cargo test in this step
+          # (GITHUB_ENV only affects subsequent steps).
+          # shellcheck disable=SC1091
+          source ./scripts/ci-gate-sign-setup.sh target/vaa-transparency/gate1-linux/public_key.txt
           cargo test --test semasm_gate1_smoke linux -- --ignored --nocapture
 
       - name: Export + verify-transparency (Gate-1 Linux)
@@ -372,10 +377,11 @@ jobs:
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
           ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
 
-      - name: Install NASM and LLVM (ld.lld)
+      - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
           sudo apt-get update
-          sudo apt-get install -y nasm lld
+          sudo apt-get install -y nasm lld qemu-user
+          command -v qemu-x86_64
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -408,7 +414,10 @@ jobs:
       - name: Gate-2 Linux signed ingest + Verified
         run: |
           mkdir -p target/vaa-transparency/gate2-linux
-          ./scripts/ci-gate-sign-setup.sh target/vaa-transparency/gate2-linux/public_key.txt
+          # Source so VAA_SEAL_* exports apply to cargo test in this step.
+          # qemu-x86_64 is preferred over broken SemASM __native__ on Linux.
+          # shellcheck disable=SC1091
+          source ./scripts/ci-gate-sign-setup.sh target/vaa-transparency/gate2-linux/public_key.txt
           cargo test --test semasm_gate2_smoke linux -- --ignored --nocapture
 
       - name: Export + verify-transparency (Gate-2 Linux)
