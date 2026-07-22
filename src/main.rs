@@ -105,6 +105,9 @@ enum Commands {
         /// Forward `--allow-execution` to SemASM (opt-in behavioral verify).
         #[arg(long, default_value_t = false)]
         allow_execution: bool,
+        /// Resume an existing run directory (E1); skips already-sealed candidates.
+        #[arg(long)]
+        resume: Option<PathBuf>,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -276,6 +279,7 @@ fn main() -> ExitCode {
             wrong,
             repaired,
             allow_execution,
+            resume,
             format,
         } => run_command(
             &task,
@@ -284,6 +288,7 @@ fn main() -> ExitCode {
             &wrong,
             &repaired,
             allow_execution,
+            resume.as_deref(),
             format,
         ),
         Commands::Ingest {
@@ -709,6 +714,7 @@ fn run_command(
     wrong_path: &Path,
     repaired_path: &Path,
     allow_execution: bool,
+    resume: Option<&Path>,
     format: OutputFormat,
 ) -> ExitCode {
     let wrong = match std::fs::read_to_string(wrong_path) {
@@ -733,6 +739,7 @@ fn run_command(
         fixture_sources: vec![wrong, repaired],
         max_attempts: 4,
         allow_execution,
+        resume_root: resume,
     };
 
     match run_fixture_loop(&config) {

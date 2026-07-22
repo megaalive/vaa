@@ -80,6 +80,12 @@ impl CandidateProtocol {
         }
     }
 
+    /// Continue after `next_index` sealed candidates already exist (E1).
+    pub fn seed_resume(&mut self, next_index: u32) {
+        self.next_index = next_index;
+        self.attempt_count = next_index;
+    }
+
     /// Submit a candidate for `candidate_target` (must match protocol target).
     pub fn submit(
         &mut self,

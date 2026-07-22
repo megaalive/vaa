@@ -261,7 +261,7 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **B1** | Build tool digests in manifest | **Done** (unit; not bit-identical cross-host) |
 | **N5** | `cargo deny` + light negatives | **Done** |
 | **D2** | Doc sync honesty | **Done** |
-| **E1** | Resume from sealed chain + events | Pending |
+| **E1** | Resume from sealed chain + events | **Done** (unit; not multi-host) |
 
 ## Documentation map
 

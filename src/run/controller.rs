@@ -58,6 +58,8 @@ pub struct RunConfig<'a> {
     pub max_attempts: u32,
     /// Forward SemASM `--allow-execution` (default false).
     pub allow_execution: bool,
+    /// Existing run root to reopen (E1). When set, `run_base` is ignored for create.
+    pub resume_root: Option<&'a Path>,
 }
 
 /// Drive orchestrator + fixture model + SemASM verify until finished or exhausted.
@@ -69,21 +71,45 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
     let wall_deadline =
         Instant::now() + std::time::Duration::from_secs(budgets.max_wall_time_seconds);
 
-    let run_id = RunId::generate();
-    let run_dir =
-        RunDir::create(config.run_base, &run_id).map_err(|e| RunError::RunDir(e.to_string()))?;
-
-    let mut events = EventLog::new(run_dir.event_log_path().to_path_buf());
-    events
-        .record(EventKind::RunStarted {
-            task_id: task_id.clone(),
-            task_digest: locked.digest().prefixed(),
-        })
-        .map_err(|e| RunError::EventLog(e.to_string()))?;
-
+    let (run_dir, run_id, mut events, mut accepted, mut previous_seal_digest, skip_fixtures) =
+        if let Some(root) = config.resume_root {
+            let run_dir = RunDir::open(root).map_err(|e| RunError::RunDir(e.to_string()))?;
+            let cursor = run_dir
+                .resume_cursor()
+                .map_err(|e| RunError::RunDir(e.to_string()))?;
+            let run_id = root
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("resumed")
+                .to_owned();
+            let mut events = EventLog::open_existing(run_dir.event_log_path().to_path_buf());
+            events
+                .record_resume(cursor.next_candidate_index)
+                .map_err(|e| RunError::EventLog(e.to_string()))?;
+            (
+                run_dir,
+                run_id,
+                events,
+                cursor.next_candidate_index,
+                cursor.previous_seal_digest,
+                cursor.next_candidate_index as usize,
+            )
+        } else {
+            let run_id = RunId::generate();
+            let run_dir = RunDir::create(config.run_base, &run_id)
+                .map_err(|e| RunError::RunDir(e.to_string()))?;
+            let mut events = EventLog::new(run_dir.event_log_path().to_path_buf());
+            events
+                .record(EventKind::RunStarted {
+                    task_id: task_id.clone(),
+                    task_digest: locked.digest().prefixed(),
+                })
+                .map_err(|e| RunError::EventLog(e.to_string()))?;
+            (run_dir, run_id.to_string(), events, 0u32, None, 0usize)
+        };
     let mut adapter = FixtureModelAdapter::new("fixture");
     let key = format!("{task_id}::{target}");
-    for source in &config.fixture_sources {
+    for source in config.fixture_sources.iter().skip(skip_fixtures) {
         adapter.add_response(&key, source);
     }
 
@@ -108,9 +134,10 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
 
     let max_attempts = config.max_attempts.min(budgets.max_candidates);
     let mut protocol = CandidateProtocol::with_max(&target, max_attempts);
+    if accepted > 0 {
+        protocol.seed_resume(accepted);
+    }
     let mut last_evidence: Option<EvidenceReport> = None;
-    let mut previous_seal_digest: Option<String> = None;
-    let mut accepted = 0u32;
     let mut need_candidate = true;
     let mut no_progress = 0u32;
     let mut last_progress_status: Option<EvidenceStatus> = None;
@@ -149,7 +176,7 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
             contract_path: config.contract_path,
             source_bytes: response.source.as_bytes(),
             run_dir: &run_dir,
-            run_id: run_id.to_string(),
+            run_id: run_id.clone(),
             protocol: &mut protocol,
             candidate_index: accepted,
             previous_seal_digest: previous_seal_digest.clone(),
@@ -385,6 +412,7 @@ mod tests {
             ],
             max_attempts: 1,
             allow_execution: false,
+            resume_root: None,
         };
         let result = run_fixture_loop(&config);
         let run_root = std::fs::read_dir(&tmp)

@@ -42,8 +42,8 @@ pub use model::{FixtureModelAdapter, ModelAdapter, ModelResponse};
 pub use orchestrate::{MachineState, Orchestrator, StateTransition};
 pub use process::{ProcessConfig, ProcessError, ProcessOutput, ProcessRunner};
 pub use run::{
-    assemble_and_inspect, ingest_candidate, run_fixture_loop, EventKind, EventLog, RunConfig,
-    RunDir, RunDirPaths, RunError, RunId, RunOutcome, VerifySealOutcome,
+    assemble_and_inspect, ingest_candidate, run_fixture_loop, EventKind, EventLog, ResumeCursor,
+    RunConfig, RunDir, RunDirPaths, RunError, RunId, RunOutcome, VerifySealOutcome,
 };
 pub use sandbox::{
     ContainerBackend, ExecutionSandbox, LocalBackend, SandboxBackend, SandboxConfig,

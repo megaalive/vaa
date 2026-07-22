@@ -1,11 +1,13 @@
 pub mod controller;
 pub mod event;
+pub mod resume;
 pub mod run_dir;
 pub mod run_id;
 pub mod verify_seal;
 
 pub use controller::{run_fixture_loop, RunConfig, RunError, RunOutcome};
 pub use event::{Event, EventKind, EventLog};
+pub use resume::ResumeCursor;
 pub use run_dir::{RunDir, RunDirError, RunDirPaths};
 pub use run_id::RunId;
 pub use verify_seal::{

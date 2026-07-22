@@ -108,6 +108,14 @@ impl EventLog {
         self
     }
 
+    /// Seed counters when appending to an existing log (E1).
+    #[must_use]
+    pub fn with_seed(mut self, count: usize, byte_estimate: u64) -> Self {
+        self.count = count;
+        self.byte_estimate = byte_estimate;
+        self
+    }
+
     #[must_use]
     pub fn count(&self) -> usize {
         self.count
