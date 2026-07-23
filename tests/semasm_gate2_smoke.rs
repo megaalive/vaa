@@ -1411,6 +1411,126 @@ fn gate2_verify_hlax64_memcpy_win64_verified() {
 }
 
 #[test]
+#[ignore = "requires `semasm` on PATH, Win64 toolchain, and SemASM --allow-execution"]
+fn gate2_verify_hlax64_min_usize_win64_verified() {
+    let task = root().join("fixtures/ingest/hlax64_min_usize/min_usize.vaa.toml");
+    let source = root().join("fixtures/ingest/hlax64_min_usize/candidate.asm");
+    let contract = root().join("fixtures/ingest/hlax64_min_usize/min_usize.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 hlax64 min_usize: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 hlax64 min_usize: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 hlax64 min_usize expects Verified: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(
+        raw["behavior_oracle"]["id"],
+        "builtin.pure_int.binary_usize"
+    );
+    assert_eq!(raw["behavior_oracle"]["version"], 2);
+    assert!(
+        raw["behavior_oracle"]["claim"]
+            .as_str()
+            .unwrap_or("")
+            .contains("min(a, b)"),
+        "hlax64 min_usize claim must name min: {}",
+        raw["behavior_oracle"]["claim"]
+    );
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH, Win64 toolchain, and SemASM --allow-execution"]
+fn gate2_verify_hlax64_max_usize_win64_verified() {
+    let task = root().join("fixtures/ingest/hlax64_max_usize/max_usize.vaa.toml");
+    let source = root().join("fixtures/ingest/hlax64_max_usize/candidate.asm");
+    let contract = root().join("fixtures/ingest/hlax64_max_usize/max_usize.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 hlax64 max_usize: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 hlax64 max_usize: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 hlax64 max_usize expects Verified: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(
+        raw["behavior_oracle"]["id"],
+        "builtin.pure_int.binary_usize"
+    );
+    assert_eq!(raw["behavior_oracle"]["version"], 2);
+    assert!(
+        raw["behavior_oracle"]["claim"]
+            .as_str()
+            .unwrap_or("")
+            .contains("max(a, b)"),
+        "hlax64 max_usize claim must name max: {}",
+        raw["behavior_oracle"]["claim"]
+    );
+}
+
+#[test]
 #[cfg(target_os = "linux")]
 #[ignore = "requires `semasm` on PATH, Linux toolchain, and SemASM --allow-execution"]
 fn gate2_ingest_count_byte_linux_verified_seal_chain() {

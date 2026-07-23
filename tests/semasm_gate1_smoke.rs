@@ -241,6 +241,56 @@ fn hlax64_memcpy_candidate_is_framed_win64() {
 }
 
 #[test]
+fn hlax64_min_usize_candidate_is_framed_win64() {
+    let src = include_str!("../fixtures/ingest/hlax64_min_usize/candidate.asm");
+    assert!(
+        src.contains("global min_usize"),
+        "HlaX64 min_usize leaf must export the SemASM symbol"
+    );
+    assert!(
+        src.contains("push rbp"),
+        "HlaX64 framed leaf must open a frame"
+    );
+    assert!(
+        src.contains("mov rsp, rbp") || src.contains("mov rsp,rbp"),
+        "HlaX64 framed leaf must restore rsp via rbp (SemASM T1 carve-out)"
+    );
+    assert!(
+        src.contains("[rbp-"),
+        "HlaX64 framed leaf must spill args to [rbp-disp]"
+    );
+    assert!(
+        !(src.contains("cmp qword [") && src.contains("], qword [")),
+        "HlaX64 pure-int leaf must not lower to an invalid mem-mem cmp"
+    );
+}
+
+#[test]
+fn hlax64_max_usize_candidate_is_framed_win64() {
+    let src = include_str!("../fixtures/ingest/hlax64_max_usize/candidate.asm");
+    assert!(
+        src.contains("global max_usize"),
+        "HlaX64 max_usize leaf must export the SemASM symbol"
+    );
+    assert!(
+        src.contains("push rbp"),
+        "HlaX64 framed leaf must open a frame"
+    );
+    assert!(
+        src.contains("mov rsp, rbp") || src.contains("mov rsp,rbp"),
+        "HlaX64 framed leaf must restore rsp via rbp (SemASM T1 carve-out)"
+    );
+    assert!(
+        src.contains("[rbp-"),
+        "HlaX64 framed leaf must spill args to [rbp-disp]"
+    );
+    assert!(
+        !(src.contains("cmp qword [") && src.contains("], qword [")),
+        "HlaX64 pure-int leaf must not lower to an invalid mem-mem cmp"
+    );
+}
+
+#[test]
 #[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
 fn gate1_verify_count_byte_win64_incomplete() {
     let task = root().join("fixtures/semasm/count_byte/count_byte.vaa.toml");
@@ -2350,6 +2400,142 @@ fn gate1_ingest_hlax64_memcpy_verify_chain() {
         .map(|e| e.path())
         .find(|p| p.is_dir())
         .expect("expected a run directory after hlax64 memcpy ingest");
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert!(
+        chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
+        "unexpected chain output: {chain_out}"
+    );
+    assert_seal_signature_if_signing(&run_dir);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_ingest_hlax64_min_usize_verify_chain() {
+    let task = root().join("fixtures/ingest/hlax64_min_usize/min_usize.vaa.toml");
+    let source = root().join("fixtures/ingest/hlax64_min_usize/candidate.asm");
+    let contract = root().join("fixtures/ingest/hlax64_min_usize/min_usize.sem.toml");
+    let run_base = root().join("target/vaa-gate1-hlax64-min-usize-runs");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "ingest",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--generator",
+            "hlax64",
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("run vaa ingest hlax64 min_usize");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success() || stdout.contains("Incomplete") || stdout.contains("final_status"),
+        "hlax64 min_usize ingest failed: status={:?}\nstdout={stdout}\nstderr={stderr}",
+        output.status
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected a run directory after hlax64 min_usize ingest");
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert!(
+        chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
+        "unexpected chain output: {chain_out}"
+    );
+    assert_seal_signature_if_signing(&run_dir);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_ingest_hlax64_max_usize_verify_chain() {
+    let task = root().join("fixtures/ingest/hlax64_max_usize/max_usize.vaa.toml");
+    let source = root().join("fixtures/ingest/hlax64_max_usize/candidate.asm");
+    let contract = root().join("fixtures/ingest/hlax64_max_usize/max_usize.sem.toml");
+    let run_base = root().join("target/vaa-gate1-hlax64-max-usize-runs");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "ingest",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--generator",
+            "hlax64",
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("run vaa ingest hlax64 max_usize");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success() || stdout.contains("Incomplete") || stdout.contains("final_status"),
+        "hlax64 max_usize ingest failed: status={:?}\nstdout={stdout}\nstderr={stderr}",
+        output.status
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected a run directory after hlax64 max_usize ingest");
 
     let chain = Command::new(vaa_bin())
         .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])

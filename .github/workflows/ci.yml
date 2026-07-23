@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
-          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
+          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
+          ref: eb79db5411ae1159efdda688746639bc8dbecb95
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
-          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
+          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
+          ref: eb79db5411ae1159efdda688746639bc8dbecb95
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,16 +247,16 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
-          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
+          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
+          ref: eb79db5411ae1159efdda688746639bc8dbecb95
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: memcpy SemASM/VAA bridge leaf (Thin Th7).
-          ref: 209ac5b13b954c771fca8f2257cde7486873a846
+          # Pin: min_usize/max_usize SemASM/VAA bridge leaves (Thin Th8).
+          ref: 90cbf3b24faef253467a43ef270656dc6de49f0b
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -310,6 +310,8 @@ jobs:
             @{ Name = "find_first_byte"; Script = "regen-hlax64-find_first_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/find_first_byte/find_first_byte.hla64"; Fixture = "fixtures/ingest/hlax64_find_first_byte/candidate.asm" }
             @{ Name = "memset"; Script = "regen-hlax64-memset.ps1"; Source = "hlax64/examples/interop/semasm-vaa/memset/memset.hla64"; Fixture = "fixtures/ingest/hlax64_memset/candidate.asm" }
             @{ Name = "memcpy"; Script = "regen-hlax64-memcpy.ps1"; Source = "hlax64/examples/interop/semasm-vaa/memcpy/memcpy.hla64"; Fixture = "fixtures/ingest/hlax64_memcpy/candidate.asm" }
+            @{ Name = "min_usize"; Script = "regen-hlax64-min_usize.ps1"; Source = "hlax64/examples/interop/semasm-vaa/min_usize/min_usize.hla64"; Fixture = "fixtures/ingest/hlax64_min_usize/candidate.asm" }
+            @{ Name = "max_usize"; Script = "regen-hlax64-max_usize.ps1"; Source = "hlax64/examples/interop/semasm-vaa/max_usize/max_usize.hla64"; Fixture = "fixtures/ingest/hlax64_max_usize/candidate.asm" }
           )) {
             $tmp = Join-Path $env:RUNNER_TEMP ("hlax64-" + $leaf.Name + ".asm")
             dotnet run --project hlax64/src/HlaX64.Cli --no-launch-profile -- emit-nasm `
@@ -344,6 +346,10 @@ jobs:
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_memset_win64_verified -- --ignored --nocapture
           cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_memcpy_verify_chain -- --ignored --nocapture
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_memcpy_win64_verified -- --ignored --nocapture
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_min_usize_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_min_usize_win64_verified -- --ignored --nocapture
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_max_usize_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_max_usize_win64_verified -- --ignored --nocapture
 
       - name: Export + verify-transparency (HlaX64 Gate-1)
         shell: pwsh
@@ -374,8 +380,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
-          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
+          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
+          ref: eb79db5411ae1159efdda688746639bc8dbecb95
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -453,8 +459,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
-          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
+          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
+          ref: eb79db5411ae1159efdda688746639bc8dbecb95
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |

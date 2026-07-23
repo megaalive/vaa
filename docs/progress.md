@@ -266,14 +266,15 @@ implementation plan only after SemASM ADR 0003 is Accepted.
 | `find_last_byte` | yes | yes | yes (H4) |
 | `memcmp` | yes | yes (Y) | yes (H5) |
 | `sum_i64` | yes | — | yes (H1) |
-| `min_usize` / `max_usize` | yes | — | — |
+| `min_usize` / `max_usize` | yes | — | yes (Th8) |
 | `replace_byte` | yes (W3) | — | yes (W4) |
 | `memset` | yes (Wm3) | — | yes (Th5) |
 | `memcpy` | yes (Wc) | yes (Th6) | yes (Th7) |
 
-**Intentionally not continued now:** pure-int (`min_usize`/`max_usize`)
-HlaX64 bridges; A64/RV MemCmp/replace harness; CryptOpt embed; formal
-ensures.
+**Intentionally not continued now:** A64/RV MemCmp/replace harness;
+CryptOpt embed; formal ensures. (Pure-int (`min_usize`/`max_usize`) HlaX64
+bridges landed as **Th8** — residual Thin is now closed; see the Th8
+section below.)
 
 Honesty: Incomplete ≠ Verified. Gate-2 Verified is SemASM `--allow-execution`
 only. HlaX64 `-Wverify` ≠ SemASM Verified. D* does not bump SemASM pipeline
@@ -380,11 +381,14 @@ deferred (W4 landed the `replace_byte` bridge only; see below).
 
 Multi-tranche + Thin program **closed**: **I1/I2** → **Wm** → **Wc** →
 **Rmem** → **W4** → **Dx** → **Thin Th1-Th7** (all Done). Residual Thin
-only if desired: pure-int (\min_usize\/\max_usize\) HlaX64 bridges.
+was pure-int (`min_usize`/`max_usize`) HlaX64 bridges only — landed as
+**Th8** (see the Th8 section below); **residual Thin is now closed**.
 Horizon stays deferred (formal ensures, CryptOpt, HSM, A64/RV write-shape
-harness, decode/lower \erified_in_ci\ bump).
+harness, decode/lower `verified_in_ci` bump).
 
-SemASM pin: e7d40f507519a24441718ee5eecd10ce966eb10HlaX64 pin: 9ac5b13b954c771fca8f2257cde7486873a846
+SemASM pin: `e7d40f507519a24441718ee5eecd10ce966eb10`
+HlaX64 pin: `9ac5b13b954c771fca8f2257cde7486873a846`
+
 ### W4 — HlaX64 `replace_byte` bridge
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
@@ -525,6 +529,60 @@ on SemASM, not this bridge). Non-overlapping `dst`/`src` assumed (SemASM ADR
 0003, "overlap fail-closed"). Update the D0 inventory table: `memcpy` HlaX64
 bridge moves from "—" to "yes (Th7)".
 
+### Th8 — HlaX64 `min_usize`/`max_usize` bridges (residual Thin closed)
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`eb79db5411ae1159efdda688746639bc8dbecb95`
+(`docs(Thin): mark min_usize/max_usize HlaX64 bridges landed`; docs-only tip,
+no behavioral change to `builtin.pure_int.binary_usize` or any other oracle).
+
+HlaX64 pin (`hlax64-bridge`):
+`90cbf3b24faef253467a43ef270656dc6de49f0b`
+(`examples: add min_usize and max_usize SemASM/VAA bridges`).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **Th8** | HlaX64 `min_usize.hla64`/`max_usize.hla64` emit + VAA `fixtures/ingest/hlax64_min_usize/` + `fixtures/ingest/hlax64_max_usize/` + Gate-1/2 + CI | **Done** |
+
+Ninth/tenth HlaX64 leaves (after `sum_i64` H1, `find_last_byte` H4, `memcmp`
+H5, `replace_byte` W4, `count_byte`/`find_first_byte` Th1/Th2, `memset` Th5,
+`memcpy` Th7). `min_usize`/`max_usize` are pure-integer leaves — no
+buffer/pointer arguments, no memory effects — same oracle as the
+`fixtures/semasm/min_usize/` / `fixtures/semasm/max_usize/` fixtures already
+Gate-1/2'd (`builtin.pure_int.binary_usize` v2, landed in **M2–M4**/**N0–N2**);
+this wave only adds the HlaX64 emit bridges
+(`fixtures/ingest/hlax64_min_usize/` + `fixtures/ingest/hlax64_max_usize/` +
+`scripts/regen-hlax64-min_usize.{ps1,sh}` +
+`scripts/regen-hlax64-max_usize.{ps1,sh}` + `hlax64-bridge` CI wiring),
+mirroring **Th1**/**Th2**'s read-only-shape bridge pattern (no write-shape
+concerns here — pure integers, not buffers).
+
+`min_usize.hla64`/`max_usize.hla64` load both parameters into scratch
+registers (`r8`/`r9`) before comparing with the unsigned HlaX64 operators
+(`<?`/`>?`, matching the `usize` contract type) and branching to `mov`
+whichever register holds the result into `rax`. This is a deliberate
+work-around for an HlaX64 code-generation gap found while authoring this
+bridge: comparing two *stack-spilled* parameters directly (e.g. `if(a <? b)`
+with `a`/`b` left as `[rbp-N]` operands) lowers to `cmp qword [rbp-8], qword
+[rbp-16]` — an invalid x86 mem-mem operand pair that NASM rejects outright.
+Loading each operand into a register first (`mov(a, r8); mov(b, r9); if(r8
+<? r9)`) avoids the gap and lowers to a valid `cmp r8, r9`. The committed
+`candidate.asm` files were confirmed to assemble (`nasm -f win64`) and to
+fully **Verify** end-to-end via a local `semasm agent verify --allow-execution`
+run (6/6 oracle vectors passed for both `min` and `max`) before being frozen
+as fixtures; the `hlax64_min_usize_candidate_is_framed_win64` /
+`hlax64_max_usize_candidate_is_framed_win64` tests in
+`tests/semasm_gate1_smoke.rs` assert the exported symbol, the
+register-loaded compare, and the Win64 frame shape.
+
+Honesty: HlaX64 emit / `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete
+(no `--allow-execution`) ≠ Gate-2 Verified. `min_usize`/`max_usize`
+oracle/vectors ≠ formal `ensures`/general theorem proving. Update the D0
+inventory table: `min_usize`/`max_usize` HlaX64 bridge moves from "—" to
+"yes (Th8)". **Residual Thin is now closed** — Thin Th1–Th8 are all
+**Done**; only Horizon (formal ensures, CryptOpt, HSM, A64/RV write-shape
+harness, decode/lower `verified_in_ci` bump) remains.
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):
@@ -539,6 +597,7 @@ First leaf: `sum_i64` (Win64). Second leaf: `find_last_byte` (Win64, H4).
 Third leaf: `memcmp` (Win64, H5). Fourth leaf: `replace_byte` (Win64, W4).
 Fifth/sixth leaves: `count_byte` / `find_first_byte` (Win64, Th1/Th2).
 Seventh leaf: `memset` (Win64, Th5). Eighth leaf: `memcpy` (Win64, Th7).
+Ninth/tenth leaves: `min_usize` / `max_usize` (Win64, Th8).
 Generator label: `--generator hlax64`.
 
 | Wave | Focus | Claim when done |
@@ -804,6 +863,8 @@ Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 | `fixtures/ingest/hlax64_sum_i64/README.md` | HlaX64 → VAA ingest bridge (`sum_i64`) |
 | `fixtures/ingest/hlax64_memset/README.md` | HlaX64 → VAA ingest bridge (`memset`, Th5) |
 | `fixtures/ingest/hlax64_memcpy/README.md` | HlaX64 → VAA ingest bridge (`memcpy`, Th7) |
+| `fixtures/ingest/hlax64_min_usize/README.md` | HlaX64 → VAA ingest bridge (`min_usize`, Th8) |
+| `fixtures/ingest/hlax64_max_usize/README.md` | HlaX64 → VAA ingest bridge (`max_usize`, Th8) |
 | `fixtures/semasm/README.md` | Handshake fixtures |
 | `fixtures/negative/` | N6 fail-closed validate/transparency vectors |
 
