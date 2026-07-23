@@ -10,6 +10,8 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
 
 ### Added
 
+- **N2 / SemASM Tranche N** — `max_usize` Gate-1 Incomplete + Gate-2 Verified fixtures
+  (`fixtures/semasm/max_usize/`); SemASM pin `623d22c…`. Gate-1 Incomplete ≠ Verified.
 - **M4 / SemASM Tranche M** — `min_usize` Gate-1 Incomplete + Gate-2 Verified fixtures
   (`fixtures/semasm/min_usize/`); SemASM pin `1eddf84…`. Gate-1 Incomplete ≠ Verified.
 - **P8-F** — `fuzz/` cargo-fuzz targets (`task_toml`, `seal_envelope`, `transparency_doc`,

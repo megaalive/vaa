@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: 1eddf84022c7c7d65232bbe5036b8c3e2c45a825
+          # Pin: SemASM tip (Tranche N max_usize Gate-ready).
+          ref: 623d22c5a1db922efc6142699c95c12deedcf213
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: 1eddf84022c7c7d65232bbe5036b8c3e2c45a825
+          # Pin: SemASM tip (Tranche N max_usize Gate-ready).
+          ref: 623d22c5a1db922efc6142699c95c12deedcf213
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: 1eddf84022c7c7d65232bbe5036b8c3e2c45a825
+          # Pin: SemASM tip (Tranche N max_usize Gate-ready).
+          ref: 623d22c5a1db922efc6142699c95c12deedcf213
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -349,8 +349,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: 1eddf84022c7c7d65232bbe5036b8c3e2c45a825
+          # Pin: SemASM tip (Tranche N max_usize Gate-ready).
+          ref: 623d22c5a1db922efc6142699c95c12deedcf213
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -428,8 +428,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: 1eddf84022c7c7d65232bbe5036b8c3e2c45a825
+          # Pin: SemASM tip (Tranche N max_usize Gate-ready).
+          ref: 623d22c5a1db922efc6142699c95c12deedcf213
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
