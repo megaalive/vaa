@@ -267,11 +267,11 @@ implementation plan only after SemASM ADR 0003 is Accepted.
 | `memcmp` | yes | yes (Y) | yes (H5) |
 | `sum_i64` | yes | — | yes (H1) |
 | `min_usize` / `max_usize` | yes | — | — |
-| `replace_byte` | yes (W3) | — | paused |
+| `replace_byte` | yes (W3) | — | yes (W4) |
 
-**Intentionally not continued now:** `find_first` / `count_byte` / pure-int /
-`replace_byte` HlaX64 bridges; A64/RV MemCmp/replace harness; CryptOpt embed;
-formal ensures.
+**Intentionally not continued now:** `find_first` / `count_byte` / pure-int
+HlaX64 bridges; A64/RV MemCmp/replace harness; CryptOpt embed; formal
+ensures.
 
 Honesty: Incomplete ≠ Verified. Gate-2 Verified is SemASM `--allow-execution`
 only. HlaX64 `-Wverify` ≠ SemASM Verified. D* does not bump SemASM pipeline
@@ -318,7 +318,7 @@ SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
 
 Honesty: not all buffer leaves are read-only (`replace_byte` declares
 `memory_write`). Incomplete ≠ Verified. Region-precise store proof deferred.
-HlaX64 replace bridge (W4) deferred.
+HlaX64 replace bridge landed in **W4** (see below) — no longer deferred.
 
 Gate-2 isolation phases (see `post-alpha-harden.md`):
 
@@ -347,8 +347,8 @@ I1/I2 (`execution_isolation` evidence + `--execution-sandbox`) already landed
 on VAA in the M0–M1 tranche; this wave does not retouch that path.
 
 Honesty: Gate-1 Incomplete ≠ Verified. `memset` oracle/vectors ≠ formal
-`ensures`/region-precise store proof. HlaX64 `memset` bridge (W4-style)
-deferred, matching `replace_byte`.
+`ensures`/region-precise store proof. HlaX64 `memset` bridge remains
+deferred (W4 landed the `replace_byte` bridge only; see below).
 
 ### Write-shape v3 (Wc) — `memcpy`
 
@@ -371,14 +371,39 @@ non-overlapping buffers only. I1/I2 sandbox evidence already landed on VAA
 in the M0–M1 tranche; this wave does not retouch that path.
 
 Honesty: Gate-1 Incomplete ≠ Verified. `memcpy` oracle/vectors ≠ formal
-`ensures`/region-precise store proof. HlaX64 `memcpy` bridge (W4-style)
-deferred, matching `replace_byte`/`memset`.
+`ensures`/region-precise store proof. HlaX64 `memcpy` bridge remains
+deferred (W4 landed the `replace_byte` bridge only; see below).
 
 ### Next maturity program
 
 Locked order: **Wm** (`memset`, **Done**) → **Wc** (`memcpy`, **Done**) →
-**Rmem** (ADR 0004, next) → **W4** (HlaX64 `replace_byte`/`memset`/`memcpy`)
-→ **Dx** (decode/lower depth). Thin bridges after.
+**Rmem** (ADR 0004, landed on SemASM) → **W4** (HlaX64 `replace_byte` bridge,
+**Done**) → **Dx** (decode/lower depth). Thin bridges after.
+
+### W4 — HlaX64 `replace_byte` bridge
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`a599247ccff848a952c7e645f4b9c60ae3b3725e`
+(Rmem tip: ADR 0004 region-precise memory gate honesty).
+
+HlaX64 pin (`hlax64-bridge`):
+`909553cbad0b5c357a97e21a030153ef9d5648d8`
+(`examples: add replace_byte SemASM/VAA bridge leaf`).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **W4** | HlaX64 `replace_byte.hla64` emit + VAA `fixtures/ingest/hlax64_replace_byte/` + Gate-1/2 + CI | **Done** |
+
+Fourth HlaX64 leaf (after `sum_i64` H1, `find_last_byte` H4, `memcmp` H5).
+`replace_byte` writes to `buffer` (not read-only, unlike the three prior
+bridged leaves) — same oracle as the write-shape v1 `replace_byte` fixtures
+under `fixtures/semasm/replace_byte/` (`builtin.buffer.replace_byte`).
+
+Honesty: HlaX64 emit / `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete
+(no `--allow-execution`) ≠ Gate-2 Verified. `replace_byte` oracle/vectors ≠
+formal `ensures`/region-precise store proof (that is Rmem's job, on SemASM,
+not this bridge). Update the D0 inventory table: `replace_byte` HlaX64
+bridge moves from "paused" to "yes (W4)".
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 

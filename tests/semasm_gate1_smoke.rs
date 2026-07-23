@@ -116,6 +116,31 @@ fn hlax64_memcmp_candidate_is_framed_win64() {
 }
 
 #[test]
+fn hlax64_replace_byte_candidate_is_framed_win64() {
+    let src = include_str!("../fixtures/ingest/hlax64_replace_byte/candidate.asm");
+    assert!(
+        src.contains("global replace_byte"),
+        "HlaX64 replace_byte leaf must export the SemASM symbol"
+    );
+    assert!(
+        !src.contains("mov rax, -1") && !src.contains("mov rax,-1"),
+        "replace_byte emit must avoid model-hostile mov rax,-1"
+    );
+    assert!(
+        src.contains("push rbp"),
+        "HlaX64 framed leaf must open a frame"
+    );
+    assert!(
+        src.contains("mov rsp, rbp") || src.contains("mov rsp,rbp"),
+        "HlaX64 framed leaf must restore rsp via rbp (SemASM T1 carve-out)"
+    );
+    assert!(
+        src.contains("[rbp-"),
+        "HlaX64 framed leaf must spill args to [rbp-disp]"
+    );
+}
+
+#[test]
 #[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
 fn gate1_verify_count_byte_win64_incomplete() {
     let task = root().join("fixtures/semasm/count_byte/count_byte.vaa.toml");
@@ -1885,6 +1910,74 @@ fn gate1_ingest_hlax64_memcmp_verify_chain() {
         .map(|e| e.path())
         .find(|p| p.is_dir())
         .expect("expected a run directory after hlax64 memcmp ingest");
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert!(
+        chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
+        "unexpected chain output: {chain_out}"
+    );
+    assert_seal_signature_if_signing(&run_dir);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_ingest_hlax64_replace_byte_verify_chain() {
+    let task = root().join("fixtures/ingest/hlax64_replace_byte/replace_byte.vaa.toml");
+    let source = root().join("fixtures/ingest/hlax64_replace_byte/candidate.asm");
+    let contract = root().join("fixtures/ingest/hlax64_replace_byte/replace_byte.sem.toml");
+    let run_base = root().join("target/vaa-gate1-hlax64-replace-byte-runs");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "ingest",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--generator",
+            "hlax64",
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("run vaa ingest hlax64 replace_byte");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success() || stdout.contains("Incomplete") || stdout.contains("final_status"),
+        "hlax64 replace_byte ingest failed: status={:?}\nstdout={stdout}\nstderr={stderr}",
+        output.status
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected a run directory after hlax64 replace_byte ingest");
 
     let chain = Command::new(vaa_bin())
         .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
