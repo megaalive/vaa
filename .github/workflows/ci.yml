@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
-          ref: f20d9791683becf50fc7ac6846fc06666697ad92
+          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
+          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
-          ref: f20d9791683becf50fc7ac6846fc06666697ad92
+          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
+          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
-          ref: f20d9791683becf50fc7ac6846fc06666697ad92
+          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
+          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -308,6 +308,7 @@ jobs:
             @{ Name = "replace_byte"; Script = "regen-hlax64-replace_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/replace_byte/replace_byte.hla64"; Fixture = "fixtures/ingest/hlax64_replace_byte/candidate.asm" }
             @{ Name = "count_byte"; Script = "regen-hlax64-count_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/count_byte/count_byte.hla64"; Fixture = "fixtures/ingest/hlax64_count_byte/candidate.asm" }
             @{ Name = "find_first_byte"; Script = "regen-hlax64-find_first_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/find_first_byte/find_first_byte.hla64"; Fixture = "fixtures/ingest/hlax64_find_first_byte/candidate.asm" }
+            @{ Name = "memset"; Script = "regen-hlax64-memset.ps1"; Source = "hlax64/examples/interop/semasm-vaa/memset/memset.hla64"; Fixture = "fixtures/ingest/hlax64_memset/candidate.asm" }
           )) {
             $tmp = Join-Path $env:RUNNER_TEMP ("hlax64-" + $leaf.Name + ".asm")
             dotnet run --project hlax64/src/HlaX64.Cli --no-launch-profile -- emit-nasm `
@@ -338,6 +339,8 @@ jobs:
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_count_byte_win64_verified -- --ignored --nocapture
           cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_find_first_byte_verify_chain -- --ignored --nocapture
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_find_first_byte_win64_verified -- --ignored --nocapture
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_memset_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_memset_win64_verified -- --ignored --nocapture
 
       - name: Export + verify-transparency (HlaX64 Gate-1)
         shell: pwsh
@@ -368,8 +371,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
-          ref: f20d9791683becf50fc7ac6846fc06666697ad92
+          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
+          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -447,8 +450,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
-          ref: f20d9791683becf50fc7ac6846fc06666697ad92
+          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
+          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |

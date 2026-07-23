@@ -611,18 +611,19 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **PR-023 / R-tag** | Alpha release gate + git tag | **Done** (`v0.1.0` annotated tag + GitHub Release, 2026-07-23) |
 | **P7-S…C** | Post-alpha harden / trust / search | **Done** (see Post-alpha harden table; honesty in `docs/post-alpha-harden.md`) |
 
-### Next waves (Th1…Th3) — Thin tranche: write-shape search-ingest Gate parity
+### Next waves (Th1…Th4) — Thin tranche: write-shape search-ingest Gate parity
 
 Thin tranche closes the remaining `search --ingest` Gate parity gap for the
-three multi-candidate leaves that already carry Gate-1/2 fixtures: `memcmp`
-(Th1, landed as **Y1**), `find_first_byte` (Th2, landed as **Z1**), and
-`replace_byte` (Th3, this wave).
+multi-candidate leaves that already carry Gate-1/2 fixtures: `memcmp`
+(Th1, landed as **Y1**), `find_first_byte` (Th2, landed as **Z1**),
+`replace_byte` (Th3), and `memset` (Th4, this wave).
 
 | Wave | Focus | Status |
 |---|---|---|
 | **Th1** | `memcmp` `00_write_broken` + search Gate-1/2 smokes | **Done** (see **Y1**) |
 | **Th2** | `find_first_byte` `00_write_broken` + search Gate-1/2 smokes | **Done** (see **Z1**) |
 | **Th3** | `replace_byte` `fixtures/run/replace_byte/` + search Gate-1/2 smokes | **Done** |
+| **Th4** | `memset` `fixtures/run/memset/` + search Gate-1/2 smokes | **Done** |
 
 **Th3** adds `fixtures/run/replace_byte/` (`replace_byte.vaa.toml` +
 `replace_byte.sem.toml` copied from `fixtures/semasm/replace_byte/`,
@@ -642,6 +643,30 @@ the replacement, and `00_write_broken.asm` writes one byte past
 same SemASM `verified` / `behavior_failed` / `execution_denied` raw statuses,
 so Gate-1 Incomplete ≠ Verified and Gate-2 Verified is SemASM
 `--allow-execution` only (≠ CryptOpt), same as **Th1**/**Th2**.
+
+**Th4** mirrors **Th3** exactly for `memset`: adds `fixtures/run/memset/`
+(`memset.vaa.toml` + `memset.sem.toml` copied from `fixtures/semasm/memset/`,
+`00_write_broken.asm`, `01_wrong.asm` copied from the SemASM
+`memset_wrong_win64.asm` shape, `02_repaired.asm` copied from
+`fixtures/semasm/memset/memset_win64.asm`, `README.md`) plus
+`gate1_search_ingest_memset_nop_before_ret_stops_on_incomplete`,
+`gate1_search_ingest_memset_skips_violated_budget`, and
+`gate2_search_ingest_memset_allow_execution_verified` in the existing Gate-1/2
+smoke suites. No new CI *jobs* were needed for the same reason as **Th3**
+(`semasm-gate1` / `semasm-gate2` already run their whole ignored suite via
+`-- --ignored`); the SemASM pin in `ci.yml` was bumped to the current
+`megaalive/semasm` `HEAD` (docs-only commit ahead of the prior pin — see
+below).
+
+Honesty: `memset` writes to `buffer` (not read-only) — `01_wrong.asm` returns
+`0` (the status the contract requires) without ever storing to the buffer,
+and `00_write_broken.asm` writes one byte past `buffer[0..length]` regardless
+of `value`; both still resolve through the same SemASM `verified` /
+`behavior_failed` / `execution_denied` raw statuses, so Gate-1 Incomplete ≠
+Verified and Gate-2 Verified is SemASM `--allow-execution` only (≠ CryptOpt),
+same as **Th1**/**Th2**/**Th3**. SemASM pin bumped to
+`fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6` (docs-only tip; no behavioral
+change to `builtin.buffer.memset` or any other oracle).
 
 Honesty: `--live` never runs in Gate CI; API keys are env-only and never sealed.
 Practice seals and Gate CI artifacts remain illustrative, not a trust root.
@@ -663,6 +688,7 @@ Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 | `fixtures/run/find_first_byte/README.md` | Q1 multi-candidate wrong→repair |
 | `fixtures/run/find_last_byte/README.md` | S2 multi-candidate + T search-ingest |
 | `fixtures/run/replace_byte/README.md` | W3 multi-candidate + Th3 search-ingest |
+| `fixtures/run/memset/README.md` | Wm3 multi-candidate + Th4 search-ingest |
 | `fixtures/ingest/count_byte/README.md` | R2 generator-agnostic ingest |
 | `fixtures/ingest/hlax64_sum_i64/README.md` | HlaX64 → VAA ingest bridge (`sum_i64`) |
 | `fixtures/semasm/README.md` | Handshake fixtures |
