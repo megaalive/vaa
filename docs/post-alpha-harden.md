@@ -50,3 +50,7 @@ Honesty constraints for waves after `v0.1.0`.
   (`stopped_reason=verified`). Default CI remains Gate-1 fail-closed:
   Incomplete ≠ Verified. Any Verified wording identifies the SemASM path only;
   it is not a CryptOpt claim. SoftHSM/Fulcio ≠ SemASM Verified.
+- Tranche **Y** extends search-ingest Gate parity to `memcmp` (write-broken
+  Violated skip + Incomplete / allow-exec Verified). HlaX64 `find_last_byte`
+  bridge (H4) is a second emit leaf; HlaX64 `-Wverify` ≠ SemASM Verified.
+  LLM search stays opt-in/manual.

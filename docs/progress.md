@@ -192,6 +192,28 @@ Default CI remains Gate-1 fail-closed (no `--allow-execution` on search).
 Closeout tips: SemASM `ca959f39924a34a3bca2a5effe71e96e63238250` (Gate pin);
 VAA Gate handoff `a9f926d` / V3 docs `789f7ad`.
 
+### Next waves (X4 + H4 + Y) — memcmp fail-closed, find_last bridge, search parity
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620`
+(X4 tip: A64/RV memcmp harness fail-closed).
+
+HlaX64 pin (`hlax64-bridge`):
+`3641428a6af4f22b6e7cd12febfeca65ac0d8d1b`
+(`find_last_byte` SemASM/VAA bridge leaf).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **X4** | SemASM MemCmp harness fail-closed on AArch64/RISC-V | **Done** (`0c12bf7`) |
+| **H4** | HlaX64 `find_last_byte` emit + VAA ingest/Gate bridge | **Done** (`e105ea0`) |
+| **Y0** | Docs honesty: bridge + memcmp search-ingest parity | **Done** |
+| **Y1** | `memcmp` `00_write_broken` + search Gate-1/2 smokes | **Done** |
+| **Y2** | Closeout docs + pin tip | pending |
+
+Honesty: Gate-1 Incomplete ≠ Verified. Gate-2 search Verified is SemASM
+`--allow-execution` only (≠ CryptOpt). HlaX64 `-Wverify` ≠ SemASM Verified.
+MemCmp harness remains x86-only; A64/RV fail closed.
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):
@@ -202,7 +224,8 @@ Roles (do not conflate):
 | **SemASM** | Contract + behavioral oracle + `VerificationReport` 0.4 | Task policy / evidence chain |
 | **VAA** | Task lock, `ingest`/`verify`, seal chain | Generating assembly |
 
-First leaf: `sum_i64` (Win64). Generator label: `--generator hlax64`.
+First leaf: `sum_i64` (Win64). Second leaf: `find_last_byte` (Win64, H4).
+Generator label: `--generator hlax64`.
 
 | Wave | Focus | Claim when done |
 |---|---|---|
@@ -210,6 +233,7 @@ First leaf: `sum_i64` (Win64). Generator label: `--generator hlax64`.
 | **H1** | HlaX64 example + frozen NASM ingest fixture + Gate smoke | **Done** |
 | **H2** | `scripts/regen-hlax64-sum_i64` | **Done** |
 | **H3** | CI checkout HlaX64 + emit-nasm + verify | **Done** (`hlax64-bridge` job) |
+| **H4** | `find_last_byte` example + ingest freeze + Gate | **Done** |
 
 Honesty: HlaX64 `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete ≠ Verified.
 

@@ -1859,3 +1859,137 @@ fn gate1_search_ingest_skips_violated_budget() {
         "expected budget_exhausted after skipping Violated: {stdout}"
     );
 }
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+#[allow(clippy::too_many_lines)]
+fn gate1_search_ingest_memcmp_nop_before_ret_stops_on_incomplete() {
+    let task = root().join("fixtures/run/memcmp/memcmp.vaa.toml");
+    let contract = root().join("fixtures/run/memcmp/memcmp.sem.toml");
+    let seed = root().join("fixtures/run/memcmp/02_repaired.asm");
+    let run_base = root().join("target/vaa-gate1-search-ingest-memcmp-incomplete");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "search",
+            task.to_str().unwrap(),
+            seed.to_str().unwrap(),
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--budget",
+            "3",
+            "--mutator",
+            "nop-before-ret",
+            "--ingest",
+            "--contract",
+            contract.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run vaa search --ingest memcmp");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success(),
+        "memcmp search --ingest failed: {:?}\n{stdout}\n{stderr}",
+        output.status
+    );
+    assert!(
+        stdout.contains("verified=false"),
+        "Incomplete must not claim Verified: {stdout}"
+    );
+    assert!(
+        stdout.contains("reason=incomplete_accepted") || stdout.contains("incomplete_accepted"),
+        "expected incomplete_accepted stop: {stdout}"
+    );
+    assert!(
+        !stdout.to_lowercase().contains("cryptopt verified"),
+        "honesty: must not claim CryptOpt Verified: {stdout}"
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected memcmp search-ingest run directory");
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert_seal_signature_if_signing(&run_dir);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_search_ingest_memcmp_skips_violated_budget() {
+    let task = root().join("fixtures/run/memcmp/memcmp.vaa.toml");
+    let contract = root().join("fixtures/run/memcmp/memcmp.sem.toml");
+    let seed = root().join("fixtures/run/memcmp/00_write_broken.asm");
+    let run_base = root().join("target/vaa-gate1-search-ingest-memcmp-violated");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "search",
+            task.to_str().unwrap(),
+            seed.to_str().unwrap(),
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--budget",
+            "2",
+            "--mutator",
+            "nop-before-ret",
+            "--ingest",
+            "--contract",
+            contract.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run vaa search --ingest memcmp violated seed");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success(),
+        "memcmp search --ingest violated seed failed: {:?}\n{stdout}\n{stderr}",
+        output.status
+    );
+    assert!(
+        stdout.contains("verified=false"),
+        "violated budget must not claim Verified: {stdout}"
+    );
+    assert!(
+        stdout.contains("violated"),
+        "expected skipped violated attempts: {stdout}"
+    );
+    assert!(
+        stdout.contains("reason=budget_exhausted") || stdout.contains("budget_exhausted"),
+        "expected budget_exhausted after skipping Violated: {stdout}"
+    );
+}
