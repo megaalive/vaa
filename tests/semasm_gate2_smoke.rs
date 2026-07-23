@@ -728,6 +728,105 @@ fn gate2_verify_replace_byte_win64_verified() {
 #[test]
 #[cfg(target_os = "linux")]
 #[ignore = "requires `semasm` on PATH, Linux toolchain, and SemASM --allow-execution"]
+fn gate2_verify_memset_linux_verified() {
+    let task = root().join("fixtures/semasm/memset/memset_linux.vaa.toml");
+    let source = root().join("fixtures/semasm/memset/memset_linux.asm");
+    let contract = root().join("fixtures/semasm/memset/memset.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 Linux memset: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 Linux memset: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 Linux memset expects Verified with --allow-execution: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(raw["behavior_oracle"]["id"], "builtin.buffer.memset");
+    assert_eq!(raw["behavior_oracle"]["version"], 1);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH, Win64 toolchain, and SemASM --allow-execution"]
+fn gate2_verify_memset_win64_verified() {
+    let task = root().join("fixtures/semasm/memset/memset.vaa.toml");
+    let source = root().join("fixtures/semasm/memset/memset_win64.asm");
+    let contract = root().join("fixtures/semasm/memset/memset.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 memset: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 memset: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 memset expects Verified with --allow-execution: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(raw["behavior_oracle"]["id"], "builtin.buffer.memset");
+    assert_eq!(raw["behavior_oracle"]["version"], 1);
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+#[ignore = "requires `semasm` on PATH, Linux toolchain, and SemASM --allow-execution"]
 fn gate2_verify_memcmp_linux_verified() {
     let task = root().join("fixtures/semasm/memcmp/memcmp_linux.vaa.toml");
     let source = root().join("fixtures/semasm/memcmp/memcmp_linux.asm");

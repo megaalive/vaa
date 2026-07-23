@@ -1,0 +1,95 @@
+schema_version = "0.1"
+task_id = "memset-linux-v1"
+artifact_kind = "callable-function"
+target = "x86_64-unknown-linux-gnu"
+
+[entry]
+symbol = "memset"
+abi = "sysv64"
+
+[inputs.buffer]
+kind = "pointer"
+element = "u8"
+access = "write"
+length_from = "length"
+nullable = false
+
+[inputs.length]
+kind = "usize"
+
+[inputs.value]
+kind = "u8"
+
+[output]
+kind = "usize"
+
+[behavior]
+summary = "Fill buffer[0..length] with value; always returns 0."
+empty_input_result = 0
+
+[capabilities]
+syscalls = []
+imports = []
+heap = false
+filesystem = false
+network = false
+environment = false
+clock = false
+random = false
+
+[memory]
+max_stack_bytes = 128
+allow_global_writable = false
+allow_self_modifying_code = false
+
+[instructions]
+required_features = ["x86-64-baseline"]
+forbidden_mnemonics = []
+allow_unknown_semantics = false
+
+[verification]
+require_complete_lowering = true
+require_abi_check = true
+require_object_inspection = true
+require_behavioral_tests = true
+require_reproducible_build = true
+
+[budgets]
+max_candidates = 4
+max_repairs_per_candidate = 2
+max_wall_time_seconds = 300
+max_model_tokens = 24000
+max_no_progress_iterations = 1
+
+[delivery]
+include_source = true
+include_object = true
+include_binary = false
+include_evidence = true
+
+[[tests]]
+name = "empty"
+expected = 0
+
+[tests.input]
+buffer = []
+length = 0
+value = 1
+
+[[tests]]
+name = "fill_single"
+expected = 0
+
+[tests.input]
+buffer = [0]
+length = 1
+value = 255
+
+[[tests]]
+name = "fill_three"
+expected = 0
+
+[tests.input]
+buffer = [9, 9, 9]
+length = 3
+value = 5

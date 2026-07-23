@@ -328,10 +328,33 @@ Gate-2 isolation phases (see `post-alpha-harden.md`):
 | **I1** `execution_isolation` evidence + Gate-2 assert | **landed** |
 | **I2** `--execution-sandbox` + sandbox CI claim | **landed** (LocalBackend ≠ container) |
 
+### Write-shape v2 (Wm3) — `memset`
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`0b5d115d2838c7243d6ae93373c8f55e5b27dff8`
+
+| Wave | Focus | Status |
+|---|---|---|
+| **Wm0–Wm2** | SemASM `memset` contract/oracle + `HarnessShape::Memset` + x86 asm/e2e/caps | **Done** (SemASM, upstream) |
+| **Wm3** | VAA Gate fixtures + pin | **Done** |
+
+Oracle: `builtin.buffer.memset` (v1). Harness verifies the always-`0` return
+**and** that every `buffer[0..length]` byte equals `value` after the call.
+`memset` vectors are layout-identical to the read-only `BufferScan` shape;
+SemASM's `resolve_harness_shape` disambiguates from the recognized contract
+oracle, not vector layout, so VAA does not need any special-casing here.
+I1/I2 (`execution_isolation` evidence + `--execution-sandbox`) already landed
+on VAA in the M0–M1 tranche; this wave does not retouch that path.
+
+Honesty: Gate-1 Incomplete ≠ Verified. `memset` oracle/vectors ≠ formal
+`ensures`/region-precise store proof. HlaX64 `memset` bridge (W4-style)
+deferred, matching `replace_byte`.
+
 ### Next maturity program
 
-Locked order: **Wm** (`memset`) → **Wc** (`memcpy`) → **Rmem** (ADR 0004) →
-**W4** (HlaX64 `replace_byte`) → **Dx** (decode/lower depth). Thin bridges after.
+Locked order: **Wm** (`memset`, **Done**) → **Wc** (`memcpy`, next) →
+**Rmem** (ADR 0004) → **W4** (HlaX64 `replace_byte`/`memset`) → **Dx**
+(decode/lower depth). Thin bridges after.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
