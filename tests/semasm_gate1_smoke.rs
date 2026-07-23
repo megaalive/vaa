@@ -1097,8 +1097,7 @@ fn gate1_search_nop_slide_stages() {
         "search staging must not claim Verified: {stdout}"
     );
     assert!(
-        stdout.contains("not formal superoptimization")
-            || stdout.contains("CryptOpt-like staging"),
+        stdout.contains("not formal superoptimization") || stdout.contains("CryptOpt-like staging"),
         "expected honesty note: {stdout}"
     );
 
