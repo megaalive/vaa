@@ -21,13 +21,14 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   build-linux:
     name: Linux x86_64 gnu
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Build release binary
         run: cargo build --release --locked
@@ -41,7 +42,7 @@ jobs:
           tar -czf "${STAGE}.tar.gz" "${STAGE}"
           sha256sum "${STAGE}.tar.gz" > SHA256SUMS-linux.txt
           echo "ASSET=${STAGE}.tar.gz" >> "$GITHUB_ENV"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: linux-gnu
           path: |
@@ -52,7 +53,7 @@ jobs:
     name: Windows x86_64 msvc
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Build release binary
         run: cargo build --release --locked
@@ -70,7 +71,7 @@ jobs:
           $hash = (Get-FileHash -Algorithm SHA256 "$Stage.zip").Hash.ToLower()
           Set-Content -Path SHA256SUMS-windows.txt -Value "$hash  $Stage.zip" -NoNewline
           Add-Content -Path SHA256SUMS-windows.txt -Value ""
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: windows-msvc
           path: |
@@ -82,8 +83,8 @@ jobs:
     needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
         with:
           path: dist
       - name: Merge SHA256SUMS

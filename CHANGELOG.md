@@ -8,6 +8,11 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
 
 ## [Unreleased]
 
+### Changed
+
+- **P8-H** — GitHub Actions pins for Node.js 24: `checkout@v6`, `upload-artifact@v6`,
+  `download-artifact@v7`, `setup-dotnet@v5`; `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
+
 ## [0.1.1] — 2026-07-23
 
 Patch release: first tagged cut with **portable Win/Linux binaries** + `SHA256SUMS`

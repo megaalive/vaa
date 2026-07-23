@@ -8,12 +8,13 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
@@ -38,10 +39,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout VAA
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout SemASM
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: megaalive/semasm
           path: semasm
@@ -103,7 +104,7 @@ jobs:
             -PublicKeySrc target/vaa-transparency/gate1/public_key.txt
 
       - name: Upload Gate-1 transparency artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gate1-transparency
           path: target/vaa-transparency/gate1/
@@ -115,10 +116,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout VAA
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout SemASM
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: megaalive/semasm
           path: semasm
@@ -174,7 +175,7 @@ jobs:
             -PublicKeySrc target/vaa-transparency/gate2/public_key.txt
 
       - name: Upload Gate-2 transparency artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gate2-transparency
           path: target/vaa-transparency/gate2/
@@ -186,10 +187,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout VAA
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout SemASM
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: megaalive/semasm
           path: semasm
@@ -197,7 +198,7 @@ jobs:
           ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
 
       - name: Checkout HlaX64
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: megaalive/hlax64
           path: hlax64
@@ -205,7 +206,7 @@ jobs:
           ref: 4c797893e0714f64faf1ae2f67ddf26c44f06d91
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -275,7 +276,7 @@ jobs:
             -PublicKeySrc target/vaa-transparency/hlax64-gate1/public_key.txt
 
       - name: Upload HlaX64 Gate-1 transparency artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hlax64-gate1-transparency
           path: target/vaa-transparency/hlax64-gate1/
@@ -288,10 +289,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout VAA
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout SemASM
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: megaalive/semasm
           path: semasm
@@ -355,7 +356,7 @@ jobs:
             --public-key-src target/vaa-transparency/gate1-linux/public_key.txt
 
       - name: Upload Gate-1 Linux transparency artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gate1-linux-transparency
           path: target/vaa-transparency/gate1-linux/
@@ -367,10 +368,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout VAA
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout SemASM
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: megaalive/semasm
           path: semasm
@@ -428,7 +429,7 @@ jobs:
             --public-key-src target/vaa-transparency/gate2-linux/public_key.txt
 
       - name: Upload Gate-2 Linux transparency artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gate2-linux-transparency
           path: target/vaa-transparency/gate2-linux/
