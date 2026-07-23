@@ -244,6 +244,52 @@ Closeout tips: SemASM `03058461651629d880f3a2b08f92d2e101b6a450`;
 HlaX64 `eeac3ba0c9f40f02b3e7fef487c29554df0c6573`;
 VAA Gate handoff `9c2203e3fe8df8fccf760717ec6779b0dacb1e82`.
 
+### Maturity inflection (D0–D2) — design only; leaf treadmill paused
+
+After X5 + H5 + Z the leaf/Gate/bridge treadmill is saturated. **Pause** new
+oracle leaves, HlaX64 bridges, and search-parity waves except bugfix / pin
+tip. Next investment is design (D0–D2), then a separate **W\*** write-shape
+implementation plan only after SemASM ADR 0003 is Accepted.
+
+| Wave | Focus | Status |
+|---|---|---|
+| **D0** | Freeze + inventory honesty (this section) | **Done** |
+| **D1** | SemASM ADR write-shape (`replace_byte` v1) | **Done** (Proposed in SemASM `adr/0003`) |
+| **D2** | Pipeline maturity checklist + Gate-2 isolation criteria | **Done** (notes below) |
+
+#### Inventory (D0)
+
+| Leaf | VAA Gate | search `--ingest` | HlaX64 bridge |
+|---|---|---|---|
+| `count_byte` | yes | yes | paused |
+| `find_first_byte` | yes | yes (Z) | paused |
+| `find_last_byte` | yes | yes | yes (H4) |
+| `memcmp` | yes | yes (Y) | yes (H5) |
+| `sum_i64` | yes | — | yes (H1) |
+| `min_usize` / `max_usize` | yes | — | — |
+
+**Intentionally not continued now:** `find_first` / `count_byte` / pure-int
+HlaX64 bridges; A64/RV MemCmp harness; CryptOpt embed; formal ensures.
+
+Honesty: Incomplete ≠ Verified. Gate-2 Verified is SemASM `--allow-execution`
+only. HlaX64 `-Wverify` ≠ SemASM Verified. D* does not bump SemASM pipeline
+maturity and does not wire `ExecutionSandbox` into Gate.
+
+#### Gate-2 isolation honesty (D2 companion)
+
+See also `docs/post-alpha-harden.md` § Gate-2 isolation.
+
+- Gate-2 CI may claim SemASM Verified under `--allow-execution` only.
+- `ExecutionSandbox` remains library-only until an explicit Gate path wires it
+  and CI proves process isolation for that job.
+- Do not equate “Verified” with container/seccomp isolation (C-012).
+- Pipeline maturity bumps remain SemASM-owned (`capabilities.toml` + owner job).
+
+#### After ADR 0003 Accept — W\* (separate plan)
+
+Outline only: W0 contract/oracle → W1 harness/memory gate → W2 x86 e2e →
+W3 VAA Gate → W4 optional HlaX64. Not started in this tranche.
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):

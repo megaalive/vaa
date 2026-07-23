@@ -11,6 +11,22 @@ Honesty constraints for waves after `v0.1.0`.
 - Gate-2 still uses SemASM `--allow-execution`; `ExecutionSandbox` remains a library API.
 - Docker/Podman + seccomp ≠ absolute isolation (architecture C-012).
 
+### Gate-2 isolation honesty (maturity inflection D2)
+
+Criteria before any doc or CI label may say Gate-2 uses process isolation:
+
+1. **Today:** Gate-2 = SemASM `agent verify --allow-execution` (host process).
+   Verified means SemASM behavioral proof under that flag — not sandbox proof.
+2. **`ExecutionSandbox` on Gate path** only when:
+   - Gate / `vaa verify` (or named CI job) invokes the sandbox API for the
+     candidate under test;
+   - CI asserts sandbox was used (evidence field or argv), not merely that the
+     library compiles;
+   - failure without sandbox is fail-closed for jobs that claim isolation.
+3. Until (2), wording must keep: Gate-2 Verified ≠ isolated execution;
+   container build sandbox ≠ Gate execution sandbox.
+4. SoftHSM / Fulcio / practice seals still ≠ SemASM Verified.
+
 ## Seal durability (P7-D)
 
 - `vaa evidence durability-probe` classifies `local-durable` / `best-effort` / `refuse-verified`.
@@ -57,3 +73,6 @@ Honesty constraints for waves after `v0.1.0`.
 - Tranche **Z** extends search-ingest Gate parity to `find_first_byte`. HlaX64
   `memcmp` bridge (H5) is a third emit leaf (dual-buffer `-1/0/1`). Default CI
   remains Gate-1 fail-closed.
+- **Maturity inflection:** leaf/search/HlaX64 treadmill paused after Z. Next
+  SemASM cliff is write-shape (ADR 0003 Proposed); W\* implementation is a
+  separate plan after Accept. No new thin leaf waves in D*.
