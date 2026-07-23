@@ -24,3 +24,8 @@ Thumbs.db
 *.profdata
 lcov.info
 coverage/
+
+# cargo-fuzz build artifacts (keep seed corpora)
+/fuzz/target/
+/fuzz/artifacts/
+/fuzz/coverage/

@@ -32,6 +32,24 @@ jobs:
         with:
           command: check
 
+  # P8-F: fail-closed parser fuzz smoke (not a security certification).
+  fuzz:
+    name: Fuzz smoke (PR-022)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      - name: Fuzz smoke (30s each target)
+        run: |
+          set -euo pipefail
+          for t in task_toml seal_envelope transparency_doc cache_verification_record; do
+            echo "::group::fuzz $t"
+            cargo +nightly fuzz run "$t" -- -max_total_time=30 -max_len=4096
+            echo "::endgroup::"
+          done
+
   # Gate-1: live SemASM Incomplete smoke (count_byte Win64, no --allow-execution).
   # This is NOT a Verified vertical slice — see docs/progress.md.
   semasm-gate1:

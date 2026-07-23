@@ -1,0 +1,39 @@
+[package]
+name = "vaa-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = { version = "1.0", default-features = false, features = ["std"] }
+vaa = { path = ".." }
+
+[workspace]
+
+[[bin]]
+name = "task_toml"
+path = "fuzz_targets/task_toml.rs"
+doc = false
+bench = false
+
+[[bin]]
+name = "seal_envelope"
+path = "fuzz_targets/seal_envelope.rs"
+doc = false
+bench = false
+
+[[bin]]
+name = "transparency_doc"
+path = "fuzz_targets/transparency_doc.rs"
+doc = false
+bench = false
+
+[[bin]]
+name = "cache_verification_record"
+path = "fuzz_targets/cache_verification_record.rs"
+doc = false
+bench = false

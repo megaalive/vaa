@@ -109,7 +109,6 @@ cargo run -q -- evidence verify-chain \
 - Disposable VM higher-assurance mode (§15.3)
 - Fulcio keyless OIDC (DSSE uses practice keys today)
 - Live HSM PKCS#11 (scaffold only)
-- Fuller fuzz entry points (PR-022 beyond N5/N6)
 - Embedding CryptOpt engine upstream
 
 ### Post-alpha harden (P7) — see [`docs/post-alpha-harden.md`](post-alpha-harden.md)
@@ -289,7 +288,7 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **PR-019** | Live OpenAI-compatible adapter (`live-model` + `--live`) | **Done** (opt-in; CI stays offline-deterministic) |
 | **PR-020** | Content-addressed cache | **Done** (local `.vaa/cache`; `--cache` opt-in; not remote log) |
 | **PR-021** | Reproducibility report | **Done** (same-host twin assemble/build; not cross-host) |
-| **PR-022** | Negative corpus + fuzz entry points | **Partial Done** (N5/N6 + cache negatives; not full fuzz) |
+| **PR-022** | Negative corpus + fuzz entry points | **Done** (N5/N6 + cache negatives + `fuzz/` smoke CI; not a formal audit) |
 | **PR-023 / R-tag** | Alpha release gate + git tag | **Done** (`v0.1.0` annotated tag + GitHub Release, 2026-07-23) |
 | **P7-S…C** | Post-alpha harden / trust / search | **Done** (see Post-alpha harden table; honesty in `docs/post-alpha-harden.md`) |
 

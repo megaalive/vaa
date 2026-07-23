@@ -8,6 +8,11 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
 
 ## [Unreleased]
 
+### Added
+
+- **P8-F** — `fuzz/` cargo-fuzz targets (`task_toml`, `seal_envelope`, `transparency_doc`,
+  `cache_verification_record`) + ubuntu CI smoke (30s/target). Not a security certification.
+
 ### Changed
 
 - **P8-H** — GitHub Actions pins for Node.js 24: `checkout@v6`, `upload-artifact@v6`,

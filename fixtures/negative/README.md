@@ -1,7 +1,8 @@
-# Negative fixtures (N6 + PR-022 thin)
+# Negative fixtures (N6 + PR-022)
 
 Fail-closed inputs for validate / transparency / seal / cache parsers.
-Not a full security corpus or cargo-fuzz CI job.
+Fuzz entry points + CI smoke: see [`fuzz/`](../../fuzz/) (P8-F). Not a formal
+security audit / certification.
 
 | Path | Expected |
 |---|---|

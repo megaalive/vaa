@@ -1,0 +1,3 @@
+# Malformed verification cache index (PR-022 thin).
+# Not valid VerificationCacheRecord JSON.
+{"schema_version": 999, "broken": true

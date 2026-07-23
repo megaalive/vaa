@@ -1,0 +1,10 @@
+{
+  "schema_version": "vaa-transparency-v999",
+  "exported_at": "0",
+  "run_id": "neg",
+  "task_id": "neg",
+  "target": "x86_64-pc-windows-msvc",
+  "final_envelope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "final_acceptance_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "entries": []
+}
