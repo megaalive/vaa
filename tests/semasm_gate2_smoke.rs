@@ -623,6 +623,98 @@ fn gate2_verify_find_last_byte_win64_verified() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
+#[ignore = "requires `semasm` on PATH, Linux toolchain, and SemASM --allow-execution"]
+fn gate2_verify_memcmp_linux_verified() {
+    let task = root().join("fixtures/semasm/memcmp/memcmp_linux.vaa.toml");
+    let source = root().join("fixtures/semasm/memcmp/memcmp_linux.asm");
+    let contract = root().join("fixtures/semasm/memcmp/memcmp.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 Linux memcmp: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 Linux memcmp: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 Linux memcmp expects Verified with --allow-execution: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH, Win64 toolchain, and SemASM --allow-execution"]
+fn gate2_verify_memcmp_win64_verified() {
+    let task = root().join("fixtures/semasm/memcmp/memcmp.vaa.toml");
+    let source = root().join("fixtures/semasm/memcmp/memcmp_win64.asm");
+    let contract = root().join("fixtures/semasm/memcmp/memcmp.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 memcmp: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 memcmp: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 memcmp expects Verified with --allow-execution: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(raw["behavior_oracle"]["id"], "builtin.buffer.memcmp_i8");
+}
+
+#[test]
 #[ignore = "requires `semasm` on PATH, Win64 toolchain, and SemASM --allow-execution"]
 fn gate2_verify_hlax64_sum_i64_win64_verified() {
     let task = root().join("fixtures/ingest/hlax64_sum_i64/sum_i64.vaa.toml");
@@ -833,4 +925,69 @@ fn gate2_ingest_count_byte_verified_seal_chain() {
         "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
     );
     assert_seal_signature_if_signing(&run_dir);
+}
+
+#[test]
+#[ignore = "requires semasm + Win64 + allow-execution"]
+fn gate2_search_ingest_allow_execution_verified() {
+    let task = root().join("fixtures/run/find_last_byte/find_last_byte.vaa.toml");
+    let contract = root().join("fixtures/run/find_last_byte/find_last_byte.sem.toml");
+    let seed = root().join("fixtures/run/find_last_byte/02_repaired.asm");
+    let run_base = root().join("target/vaa-gate2-search-ingest-verified");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "search",
+            task.to_str().unwrap(),
+            seed.to_str().unwrap(),
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--ingest",
+            "--allow-execution",
+            "--mutator",
+            "nop-before-ret",
+            "--budget",
+            "3",
+            "--contract",
+            contract.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run vaa search --ingest --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success(),
+        "search --ingest --allow-execution failed: {:?}\n{stdout}\n{stderr}",
+        output.status
+    );
+    assert!(
+        stdout.contains("verified=true"),
+        "Gate-2 search must report verified=true: {stdout}"
+    );
+    assert!(
+        stdout.contains("reason=verified")
+            || stdout.contains("stopped_reason=verified")
+            || stdout.contains("\"stopped_reason\":\"verified\""),
+        "Gate-2 search must stop because SemASM verified the candidate: {stdout}"
+    );
+    let stdout_lower = stdout.to_lowercase();
+    assert!(
+        !stdout_lower.contains("cryptopt verified"),
+        "honesty: must not claim CryptOpt Verified: {stdout}"
+    );
+    assert!(
+        stdout.contains("SemASM Verified only") && stdout.contains("not CryptOpt"),
+        "Verified may only be attributed to the SemASM path: {stdout}"
+    );
 }

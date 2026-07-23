@@ -45,3 +45,7 @@ Honesty constraints for waves after `v0.1.0`.
   Incomplete (`stopped_reason=incomplete_accepted`, `verified=false`). Optional
   `--allow-execution` may reach Verified (Gate-2; not default CI). Incomplete ≠
   Verified; mutator output ≠ CryptOpt.
+- Tranche **V** adds an ignored Gate-2
+  `search --ingest --allow-execution` smoke that must stop on SemASM Verified.
+  Default CI remains Gate-1 fail-closed: Incomplete ≠ Verified. Any Verified
+  wording identifies the SemASM path only; it is not a CryptOpt claim.

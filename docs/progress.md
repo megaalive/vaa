@@ -159,8 +159,8 @@ Honesty: staged mutator output ≠ Verified until SemASM ingest; import/noexport
 ### Next waves (X2 + S + T) — Win64 depth, find_last_byte, search-ingest
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
-`b6d339562fe1ab1599c430c2e2d3e58faabfa2c4`
-(Tranche S1 `find_last_byte` + X2a Win64 syscall/stack twins).
+`2683cf090b8c182c3db13b955a1a4daa870da7f8`
+(U1 tip: X3 `memcmp` + U Gate pack).
 
 | Wave | Focus | Status |
 |---|---|---|
@@ -174,8 +174,19 @@ SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
 
 Honesty: Gate-1 Incomplete ≠ Verified. `search --ingest` ≠ CryptOpt. SoftHSM/Fulcio ≠ SemASM Verified.
 
-Closeout tips: SemASM `b6d339562fe1ab1599c430c2e2d3e58faabfa2c4` (S1 functional; docs `1d57e8d`);
+Closeout tips: SemASM `2683cf090b8c182c3db13b955a1a4daa870da7f8` (U1 tip: X3 `memcmp` + U Gate pack);
 VAA `1ad5d0e45d53a8e4bbf4c81d6575dfcfe917dbdf`.
+
+### Next waves (X3 + U + V) — memcmp + Gate-2 search
+
+| Wave | Focus | Status |
+|---|---|---|
+| **X3** | SemASM `memcmp` oracle + SysV/Win64 fixtures | **Done** (SemASM U1 tip) |
+| **U** | VAA `memcmp` Gate-1/2 + wrong→repair smoke | **Done** |
+| **V** | Gate-2 `search --ingest --allow-execution` reaches SemASM Verified | **Pending** |
+
+Honesty: Gate-1 Incomplete ≠ Verified. Gate-2 search Verified is a SemASM
+`--allow-execution` path, not CryptOpt.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
@@ -203,8 +214,8 @@ Do **not** call Gate-1 a “verified vertical slice”.
 ### Next waves (N0–N4) — SemASM tip pin + framed smoke
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
-`b6d339562fe1ab1599c430c2e2d3e58faabfa2c4`
-(Tranche S1 `find_last_byte` + X2a Win64 syscall/stack twins).
+`2683cf090b8c182c3db13b955a1a4daa870da7f8`
+(U1 tip: X3 `memcmp` + U Gate pack).
 
 HlaX64 pin (`hlax64-bridge` only):
 `4c797893e0714f64faf1ae2f67ddf26c44f06d91`

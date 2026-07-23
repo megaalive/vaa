@@ -615,6 +615,94 @@ fn gate1_verify_find_last_byte_win64_incomplete() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
+#[ignore = "requires `semasm` on PATH and a Linux assemble/link toolchain"]
+fn gate1_verify_memcmp_linux_incomplete() {
+    let task = root().join("fixtures/semasm/memcmp/memcmp_linux.vaa.toml");
+    let source = root().join("fixtures/semasm/memcmp/memcmp_linux.asm");
+    let contract = root().join("fixtures/semasm/memcmp/memcmp.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+        panic!(
+            "expected evidence JSON ({e}): stdout={stdout}\nstderr={}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    });
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping: SemASM unavailable\n{value}");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Incomplete",
+        "Gate-1 Linux memcmp expects Incomplete: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "execution_denied");
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_verify_memcmp_win64_incomplete() {
+    let task = root().join("fixtures/semasm/memcmp/memcmp.vaa.toml");
+    let source = root().join("fixtures/semasm/memcmp/memcmp_win64.asm");
+    let contract = root().join("fixtures/semasm/memcmp/memcmp.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+        panic!(
+            "expected evidence JSON ({e}): stdout={stdout}\nstderr={}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    });
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping: SemASM unavailable\n{value}");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Incomplete",
+        "Gate-1 memcmp expects Incomplete: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "execution_denied");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(raw["behavior_oracle"]["id"], "builtin.buffer.memcmp_i8");
+}
+
+#[test]
 #[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
 fn gate1_ingest_and_verify_chain() {
     let task = root().join("fixtures/ingest/count_byte/count_byte.vaa.toml");
@@ -1014,6 +1102,107 @@ fn gate1_run_find_last_byte_multi_candidate_verify_chain() {
     assert!(
         cand0.is_dir() && cand1.is_dir(),
         "S2 expects >=2 sealed candidates under {}",
+        run_dir.display()
+    );
+
+    let seal_log = run_dir.join("evidence").join("seal-log.jsonl");
+    assert!(
+        seal_log.is_file(),
+        "seal-log.jsonl missing under {}",
+        run_dir.display()
+    );
+    let seal_body = std::fs::read_to_string(&seal_log).expect("read seal-log");
+    assert!(
+        seal_body.lines().filter(|l| !l.trim().is_empty()).count() >= 2,
+        "seal-log should have >=2 entries: {seal_body}"
+    );
+
+    let events = run_dir.join("events.jsonl");
+    assert!(
+        events.is_file()
+            && !std::fs::read_to_string(&events)
+                .unwrap_or_default()
+                .is_empty(),
+        "events.jsonl should be non-empty"
+    );
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert!(
+        chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
+        "unexpected chain output: {chain_out}"
+    );
+    assert_seal_signature_if_signing(&run_dir);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_run_memcmp_multi_candidate_verify_chain() {
+    let task = root().join("fixtures/run/memcmp/memcmp.vaa.toml");
+    let contract = root().join("fixtures/run/memcmp/memcmp.sem.toml");
+    let wrong = root().join("fixtures/run/memcmp/01_wrong.asm");
+    let repaired = root().join("fixtures/run/memcmp/02_repaired.asm");
+    let run_base = root().join("target/vaa-gate1-run-memcmp-smokes");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "run",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--wrong",
+            wrong.to_str().unwrap(),
+            "--repaired",
+            repaired.to_str().unwrap(),
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("run vaa run memcmp");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success()
+            || stdout.contains("Incomplete")
+            || stdout.contains("Candidates accepted")
+            || stdout.contains("final_status"),
+        "vaa run memcmp failed: status={:?}\nstdout={stdout}\nstderr={stderr}",
+        output.status
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected a run directory after vaa run memcmp");
+
+    let cand0 = run_dir.join("candidates").join("0000");
+    let cand1 = run_dir.join("candidates").join("0001");
+    assert!(
+        cand0.is_dir() && cand1.is_dir(),
+        "U expects >=2 sealed candidates under {}",
         run_dir.display()
     );
 

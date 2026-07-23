@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche S1 find_last_byte + X2a Win64 twins).
-          ref: b6d339562fe1ab1599c430c2e2d3e58faabfa2c4
+          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
+          ref: ca959f39924a34a3bca2a5effe71e96e63238250
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche S1 find_last_byte + X2a Win64 twins).
-          ref: b6d339562fe1ab1599c430c2e2d3e58faabfa2c4
+          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
+          ref: ca959f39924a34a3bca2a5effe71e96e63238250
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche S1 find_last_byte + X2a Win64 twins).
-          ref: b6d339562fe1ab1599c430c2e2d3e58faabfa2c4
+          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
+          ref: ca959f39924a34a3bca2a5effe71e96e63238250
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -349,8 +349,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche S1 find_last_byte + X2a Win64 twins).
-          ref: b6d339562fe1ab1599c430c2e2d3e58faabfa2c4
+          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
+          ref: ca959f39924a34a3bca2a5effe71e96e63238250
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -428,8 +428,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche S1 find_last_byte + X2a Win64 twins).
-          ref: b6d339562fe1ab1599c430c2e2d3e58faabfa2c4
+          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
+          ref: ca959f39924a34a3bca2a5effe71e96e63238250
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
