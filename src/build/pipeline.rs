@@ -42,6 +42,15 @@ pub struct ContainerBuildOpts {
     pub image_digest: Option<String>,
     pub cpu_quota: Option<f64>,
     pub pids_limit: Option<u32>,
+    /// Docker/Podman `--memory` (bytes).
+    pub memory_limit_bytes: Option<u64>,
+    /// When true (default for CLI container builds), bind source parent at `/input`
+    /// (ro) and output dir at `/work` (rw), remapping tool argv paths (C1).
+    pub bind_host_paths: bool,
+    /// Optional path to a seccomp JSON profile (`--security-opt seccomp=…`).
+    pub seccomp_profile: Option<PathBuf>,
+    /// When true, require a rootless-looking runtime probe before wrapping.
+    pub require_rootless: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -205,14 +214,89 @@ fn maybe_wrap_container(program: &str, args: &[String], config: &PipelineConfig)
         Some(d) => ContainerBackend::with_image_digest(&opts.runtime, &opts.image, d),
         None => ContainerBackend::new(&opts.runtime, &opts.image),
     };
+
+    let (host_input_ro, host_work_dir, remapped_args) = if opts.bind_host_paths {
+        let input_dir = config
+            .source_path
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .map_or_else(|| PathBuf::from("."), Path::to_path_buf);
+        let work_dir = config.output_dir.clone();
+        let remapped = remap_host_args_to_container(args, &input_dir, &work_dir);
+        (Some(input_dir), Some(work_dir), remapped)
+    } else {
+        (None, None, args.to_vec())
+    };
+
     let sandbox = SandboxConfig {
         cpu_quota: opts.cpu_quota,
         pids_limit: opts.pids_limit,
+        memory_limit_bytes: opts.memory_limit_bytes,
         timeout: config.timeout,
         max_output_bytes: config.max_output_bytes,
+        host_work_dir,
+        host_input_ro,
+        seccomp_profile: opts.seccomp_profile.clone(),
+        require_rootless: opts.require_rootless,
         ..SandboxConfig::default()
     };
-    backend.wrap_process(program, args, &sandbox)
+    backend.wrap_process(program, &remapped_args, &sandbox)
+}
+
+/// Remap host absolute/relative paths under `input_dir` → `/input/…` and
+/// under `work_dir` → `/work/…` for in-container argv.
+#[must_use]
+pub fn remap_host_args_to_container(
+    args: &[String],
+    input_dir: &Path,
+    work_dir: &Path,
+) -> Vec<String> {
+    let input_canon = std::fs::canonicalize(input_dir).unwrap_or_else(|_| input_dir.to_path_buf());
+    let work_canon = std::fs::canonicalize(work_dir).unwrap_or_else(|_| work_dir.to_path_buf());
+    args.iter()
+        .map(|arg| {
+            let path = Path::new(arg);
+            // Only remap path-like args (contain a separator or look like a file).
+            if !(arg.contains('/') || arg.contains('\\') || path.extension().is_some()) {
+                return arg.clone();
+            }
+            let abs = if path.is_absolute() {
+                path.to_path_buf()
+            } else {
+                std::env::current_dir()
+                    .unwrap_or_else(|_| PathBuf::from("."))
+                    .join(path)
+            };
+            // Prefer parent canonicalize when the leaf does not exist yet (e.g. output .o).
+            let abs = if abs.exists() {
+                std::fs::canonicalize(&abs).unwrap_or(abs)
+            } else if let Some(parent) = abs.parent() {
+                let leaf = abs.file_name().map_or_else(PathBuf::new, PathBuf::from);
+                let parent_c =
+                    std::fs::canonicalize(parent).unwrap_or_else(|_| parent.to_path_buf());
+                parent_c.join(leaf)
+            } else {
+                abs
+            };
+            if let Ok(rel) = abs.strip_prefix(&work_canon) {
+                let rel = rel.to_string_lossy().replace('\\', "/");
+                return if rel.is_empty() {
+                    "/work".to_owned()
+                } else {
+                    format!("/work/{rel}")
+                };
+            }
+            if let Ok(rel) = abs.strip_prefix(&input_canon) {
+                let rel = rel.to_string_lossy().replace('\\', "/");
+                return if rel.is_empty() {
+                    "/input".to_owned()
+                } else {
+                    format!("/input/{rel}")
+                };
+            }
+            arg.clone()
+        })
+        .collect()
 }
 
 /// SHA-256 of a resolved toolchain binary (B1). Returns `None` if unresolved.
@@ -304,6 +388,10 @@ mod tests {
                 image_digest: None,
                 cpu_quota: Some(0.5),
                 pids_limit: Some(128),
+                memory_limit_bytes: Some(32 * 1024 * 1024),
+                bind_host_paths: false,
+                seccomp_profile: None,
+                require_rootless: false,
             }),
             ..PipelineConfig::default()
         };
@@ -311,5 +399,72 @@ mod tests {
         assert_eq!(pc.program.to_string_lossy(), "docker");
         assert!(pc.args.contains(&"--cpus".to_owned()));
         assert!(pc.args.contains(&"0.5".to_owned()));
+        assert!(pc.args.contains(&"--memory".to_owned()));
+    }
+
+    #[test]
+    fn container_wrap_binds_input_and_work_when_enabled() {
+        let dir = std::env::temp_dir().join(format!(
+            "vaa_c1_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let input = dir.join("src");
+        let work = dir.join("out");
+        std::fs::create_dir_all(&input).unwrap();
+        std::fs::create_dir_all(&work).unwrap();
+        let source = input.join("t.asm");
+        std::fs::write(&source, b"nop\n").unwrap();
+
+        let config = PipelineConfig {
+            source_path: source.clone(),
+            output_dir: work.clone(),
+            container: Some(ContainerBuildOpts {
+                runtime: "docker".into(),
+                image: DEFAULT_CONTAINER_IMAGE.into(),
+                image_digest: None,
+                cpu_quota: None,
+                pids_limit: Some(64),
+                memory_limit_bytes: None,
+                bind_host_paths: true,
+                seccomp_profile: Some(PathBuf::from("/tmp/sec.json")),
+                require_rootless: false,
+            }),
+            ..PipelineConfig::default()
+        };
+        let host_obj = work.join("t.o");
+        let args = vec![
+            "-f".into(),
+            "elf64".into(),
+            "-o".into(),
+            host_obj.to_string_lossy().into_owned(),
+            source.to_string_lossy().into_owned(),
+        ];
+        let pc = maybe_wrap_container("nasm", &args, &config);
+        assert!(pc
+            .args
+            .iter()
+            .any(|a| a.contains("dst=/input") && a.contains("ro=true")));
+        assert!(pc
+            .args
+            .iter()
+            .any(|a| a.contains("dst=/work") && a.contains("ro=false")));
+        assert!(pc.args.iter().any(|a| a == "/work/t.o"));
+        assert!(pc.args.iter().any(|a| a == "/input/t.asm"));
+        assert!(pc.args.iter().any(|a| a == "seccomp=/tmp/sec.json"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn remap_keeps_non_path_flags() {
+        let remapped = remap_host_args_to_container(
+            &["-f".into(), "elf64".into()],
+            Path::new("/tmp/in"),
+            Path::new("/tmp/out"),
+        );
+        assert_eq!(remapped, vec!["-f".to_owned(), "elf64".to_owned()]);
     }
 }

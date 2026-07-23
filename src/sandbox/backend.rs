@@ -18,6 +18,11 @@ pub struct SandboxConfig {
     pub host_work_dir: Option<PathBuf>,
     /// Host directory bind-mounted at `/input` (ro).
     pub host_input_ro: Option<PathBuf>,
+    /// Optional seccomp JSON profile path (`--security-opt seccomp=<path>`).
+    pub seccomp_profile: Option<PathBuf>,
+    /// When true, `ContainerBackend::wrap_process` still emits argv; callers must
+    /// probe rootless separately via [`crate::sandbox::probe_rootless_runtime`].
+    pub require_rootless: bool,
 }
 
 impl Default for SandboxConfig {
@@ -33,6 +38,8 @@ impl Default for SandboxConfig {
             allowed_env: vec!["PATH".to_owned(), "HOME".to_owned()],
             host_work_dir: None,
             host_input_ro: None,
+            seccomp_profile: None,
+            require_rootless: false,
         }
     }
 }
@@ -91,9 +98,9 @@ impl SandboxBackend for LocalBackend {
     }
 }
 
-/// Docker/Podman argv wrapper. Still **Scaffold** isolation — not a production
-/// hardened profile (no custom seccomp, no verified rootless daemon). C1 adds
-/// optional host bind mounts for `/work` and `/input`.
+/// Docker/Podman argv wrapper. Hardening increments (seccomp profile, C1 binds)
+/// are real argv; this is still **not** absolute isolation (architecture C-012).
+/// Verified rootless is opt-in via doctor/`require_rootless`, not assumed.
 pub struct ContainerBackend {
     pub runtime: String,
     pub image: String,
@@ -172,6 +179,10 @@ impl SandboxBackend for ContainerBackend {
         wrapped.push("ALL".to_owned());
         wrapped.push("--security-opt".to_owned());
         wrapped.push("no-new-privileges".to_owned());
+        if let Some(profile) = &config.seccomp_profile {
+            wrapped.push("--security-opt".to_owned());
+            wrapped.push(format!("seccomp={}", profile.display()));
+        }
         wrapped.push("--user".to_owned());
         wrapped.push("65534:65534".to_owned());
         wrapped.push("--read-only".to_owned());
@@ -215,6 +226,9 @@ impl SandboxBackend for ContainerBackend {
             wrapped.push(format!("{pids}"));
         }
 
+        // require_rootless is enforced by callers/doctor before wrap; keep argv honest.
+        let _ = config.require_rootless;
+
         wrapped.push("--init".to_owned());
         wrapped.push(self.image_ref());
         wrapped.push(program.to_owned());
@@ -231,6 +245,47 @@ impl SandboxBackend for ContainerBackend {
             stdin_null: true,
         }
     }
+}
+
+/// Bundled default seccomp profile (JSON). Restrictive baseline for Linux
+/// containers — still not a certified security product.
+pub const DEFAULT_SECCOMP_PROFILE_JSON: &str =
+    include_str!("../../assets/seccomp/vaa-default.json");
+
+/// Write the bundled seccomp profile to `path` (parents created).
+pub fn write_default_seccomp_profile(path: &std::path::Path) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+    std::fs::write(path, DEFAULT_SECCOMP_PROFILE_JSON)
+}
+
+/// Best-effort rootless probe: `podman info` / `docker info` stdout contains
+/// `rootless` hints. Returns `Ok(true)` when evidence of rootless is found,
+/// `Ok(false)` when runtime works but looks rootful, `Err` when unavailable.
+pub fn probe_rootless_runtime(runtime: &str) -> Result<bool, SandboxError> {
+    let cfg = ProcessConfig {
+        program: PathBuf::from(runtime),
+        args: vec!["info".to_owned()],
+        timeout: Duration::from_secs(15),
+        max_output_bytes: 1_048_576,
+        ..ProcessConfig::default()
+    };
+    let out = crate::process::ProcessRunner::run(&cfg)
+        .map_err(|e| SandboxError::Unavailable(e.to_string()))?;
+    if out.exit_code != Some(0) {
+        return Err(SandboxError::Unavailable(format!(
+            "{runtime} info exit={:?}",
+            out.exit_code
+        )));
+    }
+    let blob = format!("{}\n{}", out.stdout, out.stderr).to_ascii_lowercase();
+    Ok(blob.contains("rootless: true")
+        || blob.contains("rootless\": true")
+        || blob.contains("rootlessmode")
+        || (runtime == "podman" && blob.contains("rootless")))
 }
 
 #[cfg(test)]
@@ -329,6 +384,7 @@ mod tests {
         let cfg = SandboxConfig {
             cpu_quota: Some(1.5),
             pids_limit: Some(256),
+            memory_limit_bytes: Some(64 * 1024 * 1024),
             ..SandboxConfig::default()
         };
         let pc = backend.wrap_process("nasm", &["-v".to_owned()], &cfg);
@@ -336,5 +392,28 @@ mod tests {
         assert!(pc.args.contains(&"1.5".to_owned()));
         assert!(pc.args.contains(&"--pids-limit".to_owned()));
         assert!(pc.args.contains(&"256".to_owned()));
+        assert!(pc.args.contains(&"--memory".to_owned()));
+        assert!(pc.args.contains(&(64 * 1024 * 1024).to_string()));
+    }
+
+    #[test]
+    fn container_backend_emits_seccomp_security_opt() {
+        let backend = ContainerBackend::new("docker", "ubuntu:24.04");
+        let cfg = SandboxConfig {
+            seccomp_profile: Some(PathBuf::from("/tmp/vaa-seccomp.json")),
+            ..SandboxConfig::default()
+        };
+        let pc = backend.wrap_process("nasm", &["-v".to_owned()], &cfg);
+        assert!(pc.args.iter().any(|a| a == "seccomp=/tmp/vaa-seccomp.json"));
+    }
+
+    #[test]
+    fn bundled_seccomp_profile_is_json() {
+        let v: serde_json::Value =
+            serde_json::from_str(DEFAULT_SECCOMP_PROFILE_JSON).expect("seccomp json");
+        assert_eq!(
+            v.get("defaultAction").and_then(|x| x.as_str()),
+            Some("SCMP_ACT_ERRNO")
+        );
     }
 }

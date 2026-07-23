@@ -9,6 +9,16 @@ for **crate** versions. Git tag `v0.1.0` marks the alpha release; see
 
 ## [Unreleased]
 
+### Added
+
+- **P7-S** — Container C1 binds + path remap, bundled seccomp, rootless probe,
+  `--generator-jail` for external generators; Gate exec honesty (SemASM path).
+- **P7-D** — `vaa evidence durability-probe` + multi-file seal-last helper.
+- **P7-A** — `SealSigner` trait, Sigstore-shaped DSSE, HSM PKCS#11 scaffold.
+- **P7-T** — Rekor publish/verify with mock transport; `--features rekor` for live HTTP;
+  optional `transparency-rekor.yml` workflow_dispatch.
+- **P7-C** — `vaa search` nop-slide / external mutator staging loop (no CryptOpt embed).
+
 ## [0.1.0] — 2026-07-23
 
 Alpha release (`git tag v0.1.0`). Gate CI artifacts and practice seals are

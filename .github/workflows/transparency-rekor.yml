@@ -1,0 +1,38 @@
+# Optional Rekor publish (manual / secrets required)
+
+# Does NOT run on push. Gate CI stays offline-deterministic.
+name: transparency-rekor
+
+on:
+  workflow_dispatch:
+    inputs:
+      transparency_path:
+        description: Path to vaa-transparency-v1 JSON artifact
+        required: true
+        type: string
+      dry_run:
+        description: Dry-run only (no network)
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build with rekor feature
+        run: cargo build --release --features rekor
+      - name: Keygen practice seed
+        run: |
+          ./target/release/vaa evidence keygen-seal --out "${{ runner.temp }}/seal.seed"
+          echo "VAA_SEAL_SIGNING_KEY=${{ runner.temp }}/seal.seed" >> "$GITHUB_ENV"
+      - name: Publish
+        env:
+          VAA_REKOR_URL: ${{ secrets.VAA_REKOR_URL }}
+        run: |
+          DRY=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
+          ./target/release/vaa evidence publish-rekor ${DRY} "${{ inputs.transparency_path }}"
+        continue-on-error: true

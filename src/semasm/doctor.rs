@@ -57,6 +57,17 @@ impl EvidencePolicy {
             os_fs_isolation: false,
         }
     }
+
+    /// Reported when a generator OS jail is actually configured/enforced.
+    #[must_use]
+    pub fn vaa_os_jail() -> Self {
+        Self {
+            generator_staging: "run_dir/staging".to_owned(),
+            evidence_writes: "seal_module_only".to_owned(),
+            rundir_protected_zone: true,
+            os_fs_isolation: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -362,6 +373,12 @@ mod tests {
         assert_eq!(p.evidence_writes, "seal_module_only");
         assert!(p.rundir_protected_zone);
         assert!(!p.os_fs_isolation);
+    }
+
+    #[test]
+    fn evidence_policy_os_jail_flips_flag() {
+        let p = EvidencePolicy::vaa_os_jail();
+        assert!(p.os_fs_isolation);
     }
 
     #[test]

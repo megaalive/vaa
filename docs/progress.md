@@ -106,13 +106,21 @@ cargo run -q -- evidence verify-chain \
 
 ### Still out of scope / later waves
 
-- Full hardened sandbox (custom seccomp, verified rootless, **OS-level** generator FS isolation)
-- Remote append-only transparency service / Rekor / Git notes automation
-- HSM / hardware keys / certificate chains
-- Formal multi-file transactional seals on network / lying filesystems
-- CryptOpt randomized search engine
+- Disposable VM higher-assurance mode (§15.3)
+- Fulcio keyless OIDC (DSSE uses practice keys today)
+- Live HSM PKCS#11 (scaffold only)
 - Fuller fuzz entry points (PR-022 beyond N5/N6)
-- Remote transparency / HSM / hardened OS sandbox (see below)
+- Embedding CryptOpt engine upstream
+
+### Post-alpha harden (P7) — see [`docs/post-alpha-harden.md`](post-alpha-harden.md)
+
+| Wave | Focus | Status |
+|---|---|---|
+| **P7-S** | Container C1 binds + seccomp + rootless probe + generator jail | **Done** (not absolute isolation) |
+| **P7-D** | Durability probe + multi-file seal-last publish | **Done** (labels, not formal FS proof) |
+| **P7-A** | SealSigner trait + DSSE + HSM scaffold | **Done** (practice keys ≠ trust root) |
+| **P7-T** | Rekor publish/verify (mock + `--features rekor`) | **Done** (opt-in; Gate offline) |
+| **P7-C** | `vaa search` nop-slide / mutator staging | **Done** (not formal superopt) |
 
 ### Planned vertical-slice waves (after R2c)
 
@@ -283,6 +291,7 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **PR-021** | Reproducibility report | **Done** (same-host twin assemble/build; not cross-host) |
 | **PR-022** | Negative corpus + fuzz entry points | **Partial Done** (N5/N6 + cache negatives; not full fuzz) |
 | **PR-023 / R-tag** | Alpha release gate + git tag | **Done** (`v0.1.0` annotated tag + GitHub Release, 2026-07-23) |
+| **P7-S…C** | Post-alpha harden / trust / search | **Done** (see Post-alpha harden table; honesty in `docs/post-alpha-harden.md`) |
 
 Honesty: `--live` never runs in Gate CI; API keys are env-only and never sealed.
 Practice seals and Gate CI artifacts remain illustrative, not a trust root.

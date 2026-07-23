@@ -162,6 +162,28 @@ enum Commands {
         /// Opt-in live OpenAI-compatible generate (requires feature `live-model` + `VAA_MODEL_API_KEY`).
         #[arg(long, default_value_t = false)]
         live: bool,
+        /// Wrap `--command` in a container OS jail (staging bind at `/work` only).
+        #[arg(long, default_value_t = false)]
+        generator_jail: bool,
+    },
+    /// CryptOpt-like search loop via ingest (fixture mutator; no embed CryptOpt).
+    Search {
+        /// Locked task file.
+        task: PathBuf,
+        /// Seed assembly source.
+        seed: PathBuf,
+        /// Run base directory.
+        #[arg(long)]
+        run_dir: PathBuf,
+        /// Max candidates to try (also capped by task `max_candidates`).
+        #[arg(long, default_value_t = 8)]
+        budget: u32,
+        /// Mutator: `nop-slide` (deterministic fixture) or external `--mutator-command`.
+        #[arg(long, default_value = "nop-slide")]
+        mutator: String,
+        /// Optional external mutator program (reads seed on stdin, writes asm on stdout).
+        #[arg(long)]
+        mutator_command: Option<PathBuf>,
     },
     /// Assemble and link a source file.
     Build {
@@ -188,6 +210,18 @@ enum Commands {
         /// Docker/Podman `--cpus` quota when `--sandbox container`.
         #[arg(long)]
         cpu_quota: Option<f64>,
+        /// Docker/Podman `--memory` bytes when `--sandbox container`.
+        #[arg(long)]
+        memory_limit_bytes: Option<u64>,
+        /// Disable C1 host bind mounts (`/input`+`/work`) for container builds.
+        #[arg(long, default_value_t = false)]
+        no_container_binds: bool,
+        /// Apply bundled seccomp profile (written under output dir). Linux-oriented.
+        #[arg(long, default_value_t = false)]
+        seccomp: bool,
+        /// Fail closed unless runtime probe looks rootless.
+        #[arg(long, default_value_t = false)]
+        require_rootless: bool,
         /// Opt-in local content-addressed build cache (PR-020).
         #[arg(long, default_value_t = false)]
         cache: bool,
@@ -259,6 +293,42 @@ enum EvidenceCommands {
         /// Output path for the hex seed file.
         #[arg(long)]
         out: PathBuf,
+    },
+    /// Publish transparency JSON to a Rekor-compatible log (opt-in network).
+    PublishRekor {
+        /// Path to `vaa-transparency-v1` JSON.
+        file: PathBuf,
+        /// Rekor base URL (also `VAA_REKOR_URL`).
+        #[arg(
+            long,
+            env = "VAA_REKOR_URL",
+            default_value = "https://rekor.sigstore.dev"
+        )]
+        rekor_url: String,
+        /// Dry-run: build the entry payload without HTTP.
+        #[arg(long, default_value_t = false)]
+        dry_run: bool,
+    },
+    /// Verify a Rekor entry UUID against a local transparency file (opt-in network).
+    VerifyRekor {
+        /// Path to transparency JSON.
+        file: PathBuf,
+        /// Rekor entry UUID.
+        #[arg(long)]
+        uuid: String,
+        /// Rekor base URL (also `VAA_REKOR_URL`).
+        #[arg(
+            long,
+            env = "VAA_REKOR_URL",
+            default_value = "https://rekor.sigstore.dev"
+        )]
+        rekor_url: String,
+    },
+    /// Probe seal durability class for a path (local-durable / best-effort / refuse).
+    DurabilityProbe {
+        /// Directory to probe (default: cwd).
+        #[arg(long)]
+        path: Option<PathBuf>,
     },
 }
 
@@ -349,6 +419,17 @@ fn main() -> ExitCode {
                 verify_transparency_command(&file, &against)
             }
             EvidenceCommands::KeygenSeal { out } => keygen_seal_command(&out),
+            EvidenceCommands::PublishRekor {
+                file,
+                rekor_url,
+                dry_run,
+            } => publish_rekor_command(&file, &rekor_url, dry_run),
+            EvidenceCommands::VerifyRekor {
+                file,
+                uuid,
+                rekor_url,
+            } => verify_rekor_command(&file, &uuid, &rekor_url),
+            EvidenceCommands::DurabilityProbe { path } => durability_probe_command(path.as_deref()),
         },
         Commands::Generate {
             task,
@@ -357,6 +438,7 @@ fn main() -> ExitCode {
             command,
             command_args,
             live,
+            generator_jail,
         } => generate_command(
             &task,
             output.as_deref(),
@@ -364,6 +446,22 @@ fn main() -> ExitCode {
             command.as_deref(),
             &command_args,
             live,
+            generator_jail,
+        ),
+        Commands::Search {
+            task,
+            seed,
+            run_dir,
+            budget,
+            mutator,
+            mutator_command,
+        } => search_command(
+            &task,
+            &seed,
+            &run_dir,
+            budget,
+            &mutator,
+            mutator_command.as_deref(),
         ),
         Commands::Build {
             source,
@@ -374,6 +472,10 @@ fn main() -> ExitCode {
             container_image_digest,
             container_runtime,
             cpu_quota,
+            memory_limit_bytes,
+            no_container_binds,
+            seccomp,
+            require_rootless,
             cache,
             check_reproducible,
             format,
@@ -386,6 +488,10 @@ fn main() -> ExitCode {
             container_image_digest.as_deref(),
             container_runtime.as_deref(),
             cpu_quota,
+            memory_limit_bytes,
+            !no_container_binds,
+            seccomp,
+            require_rootless,
             cache,
             check_reproducible,
             format,
@@ -543,8 +649,11 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                 evidence_policy.rundir_protected_zone
             );
             println!(
-                "    os_fs_isolation: {} (logical G0 barrier only)",
+                "    os_fs_isolation: {} (true only when generator jail enforced)",
                 evidence_policy.os_fs_isolation
+            );
+            println!(
+                "  execution: Gate uses SemASM --allow-execution; ExecutionSandbox is library-only"
             );
             for detail in &report.details {
                 println!("  {detail}");
@@ -1063,6 +1172,206 @@ fn keygen_seal_command(out: &Path) -> ExitCode {
     }
 }
 
+fn durability_probe_command(path: Option<&Path>) -> ExitCode {
+    let dir = path.map_or_else(|| PathBuf::from("."), Path::to_path_buf);
+    let report = vaa::probe_durability(&dir);
+    println!("durability probe: {}", report.path);
+    println!("  class: {:?}", report.class);
+    for d in &report.details {
+        println!("  - {d}");
+    }
+    println!(
+        "  may_claim_verified: {}",
+        vaa::may_claim_verified(report.class)
+    );
+    println!("note: not a formal proof of filesystem correctness");
+    if matches!(report.class, vaa::DurabilityClass::RefuseVerified) {
+        VaaExitCode::ToolFailure.as_std()
+    } else {
+        VaaExitCode::Success.as_std()
+    }
+}
+
+fn publish_rekor_command(file: &Path, rekor_url: &str, dry_run: bool) -> ExitCode {
+    let doc = match vaa::read_transparency_file(file) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: read transparency: {e}");
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    let payload = match serde_json::to_vec(&doc) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("error: serialize transparency: {e}");
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+    let Ok(seed) = std::env::var(vaa::ENV_SEAL_SIGNING_KEY) else {
+        eprintln!("error: set VAA_SEAL_SIGNING_KEY to sign DSSE before Rekor publish");
+        return VaaExitCode::InvalidInput.as_std();
+    };
+    let raw = match std::fs::read_to_string(&seed) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: read signing key: {e}");
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+    let hex: String = raw.chars().filter(|c| !c.is_whitespace()).collect();
+    let mut seed_bytes = [0u8; 32];
+    if hex.len() != 64 {
+        eprintln!("error: signing seed must be 64 hex chars");
+        return VaaExitCode::InvalidInput.as_std();
+    }
+    for (i, chunk) in hex.as_bytes().chunks(2).enumerate() {
+        let s = std::str::from_utf8(chunk).unwrap();
+        seed_bytes[i] = u8::from_str_radix(s, 16).unwrap_or(0);
+    }
+    let signer = vaa::SigstoreDsseSigner::from_seed(seed_bytes);
+    let dsse = match signer.sign_payload(vaa::DSSE_PAYLOAD_TYPE_TRANSPARENCY, &payload) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("error: dsse sign: {e}");
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+    let dsse_path = file.with_extension("dsse.json");
+    if let Err(e) = vaa::write_dsse_file(&dsse_path, &dsse) {
+        eprintln!("error: write dsse: {e}");
+        return VaaExitCode::ToolFailure.as_std();
+    }
+
+    let result = if dry_run {
+        vaa::publish_dsse(&vaa::MockRekorTransport::new(), &dsse, true)
+    } else {
+        #[cfg(feature = "rekor")]
+        {
+            let transport = vaa::UreqRekorTransport {
+                base_url: rekor_url.to_owned(),
+            };
+            vaa::publish_dsse(&transport, &dsse, false)
+        }
+        #[cfg(not(feature = "rekor"))]
+        {
+            let _ = rekor_url;
+            eprintln!(
+                "error: live Rekor requires `--features rekor` (use --dry-run for offline payload)"
+            );
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+
+    match result {
+        Ok(r) => {
+            println!(
+                "ok: rekor publish uuid={} digest={}",
+                r.uuid, r.entry_digest
+            );
+            println!("  dsse: {}", dsse_path.display());
+            println!("  dry_run: {}", r.dry_run);
+            println!("note: Rekor entry ≠ SemASM Verified");
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: rekor publish: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn verify_rekor_command(file: &Path, uuid: &str, rekor_url: &str) -> ExitCode {
+    let dsse_path = file.with_extension("dsse.json");
+    let Some(dsse) = std::fs::read_to_string(&dsse_path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<vaa::DsseEnvelope>(&s).ok())
+    else {
+        eprintln!(
+            "error: missing/invalid DSSE at {} (publish-rekor first)",
+            dsse_path.display()
+        );
+        return VaaExitCode::InvalidInput.as_std();
+    };
+    if let Err(e) = vaa::verify_dsse_envelope(&dsse) {
+        eprintln!("error: dsse verify: {e}");
+        return VaaExitCode::ToolFailure.as_std();
+    }
+
+    #[cfg(feature = "rekor")]
+    {
+        let transport = vaa::UreqRekorTransport {
+            base_url: rekor_url.to_owned(),
+        };
+        match vaa::verify_entry_matches_dsse(&transport, uuid, &dsse) {
+            Ok(()) => {
+                println!("ok: rekor entry {uuid} matches DSSE");
+                VaaExitCode::Success.as_std()
+            }
+            Err(e) => {
+                eprintln!("error: rekor verify: {e}");
+                VaaExitCode::ToolFailure.as_std()
+            }
+        }
+    }
+    #[cfg(not(feature = "rekor"))]
+    {
+        let _ = (uuid, rekor_url);
+        eprintln!("error: live Rekor verify requires `--features rekor`");
+        VaaExitCode::ToolFailure.as_std()
+    }
+}
+
+fn search_command(
+    task_path: &Path,
+    seed: &Path,
+    run_dir: &Path,
+    budget: u32,
+    mutator: &str,
+    mutator_command: Option<&Path>,
+) -> ExitCode {
+    let locked = match load_locked_task(task_path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("error: load task: {e}");
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    let seed_asm = match std::fs::read_to_string(seed) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: read seed: {e}");
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    match vaa::run_search(
+        &locked,
+        &seed_asm,
+        run_dir,
+        budget,
+        mutator,
+        mutator_command,
+        false,
+    ) {
+        Ok(report) => {
+            println!(
+                "search: attempts={} verified={} reason={}",
+                report.attempts.len(),
+                report.verified,
+                report.stopped_reason
+            );
+            for a in &report.attempts {
+                println!("  [{:>4}] {} {}", a.index, a.status, a.source_digest);
+            }
+            println!("note: CryptOpt-like staging loop only — not formal superoptimization");
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: search failed: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
 fn emit_evidence_report(report: &vaa::EvidenceReport, format: OutputFormat) -> ExitCode {
     match format {
         OutputFormat::Terminal => {
@@ -1097,6 +1406,7 @@ fn generate_command(
     command: Option<&Path>,
     command_args: &[String],
     live: bool,
+    generator_jail: bool,
 ) -> ExitCode {
     let locked = match load_locked_task(task_path) {
         Ok(t) => t,
@@ -1109,6 +1419,11 @@ fn generate_command(
 
     if command.is_some() && live {
         eprintln!("error: `--command` and `--live` are mutually exclusive");
+        return VaaExitCode::InvalidInput.as_std();
+    }
+
+    if generator_jail && command.is_none() {
+        eprintln!("error: `--generator-jail` requires `--command`");
         return VaaExitCode::InvalidInput.as_std();
     }
 
@@ -1134,11 +1449,28 @@ fn generate_command(
     if let Some(prog) = command {
         let rd = rundir.as_ref().expect("run-dir checked");
         let relative = vaa::DEFAULT_STAGING_OUTPUT.to_owned();
-        let _ = output_path; // G1 always stages `candidate.asm`; explicit --output outside staging ignored.
+        let _ = output_path;
 
-        let gen = vaa::ArgvExternalGenerator::new("external-argv", prog)
+        let mut gen = vaa::ArgvExternalGenerator::new("external-argv", prog)
             .with_args(command_args.to_vec())
             .with_output_relative(relative.clone());
+        if generator_jail {
+            let runtime = vaa::probe_container_runtime().unwrap_or_else(|| "docker".to_owned());
+            let seccomp = {
+                let path = rd.paths().staging_dir.join("vaa-seccomp.json");
+                let _ = vaa::write_default_seccomp_profile(&path);
+                Some(path)
+            };
+            gen = gen.with_jail(vaa::GeneratorJailOpts {
+                runtime,
+                image: std::env::var("VAA_CONTAINER_IMAGE")
+                    .unwrap_or_else(|_| vaa::DEFAULT_CONTAINER_IMAGE.to_owned()),
+                image_digest: std::env::var("VAA_CONTAINER_IMAGE_DIGEST").ok(),
+                seccomp_profile: seccomp,
+                memory_limit_bytes: Some(256 * 1024 * 1024),
+                pids_limit: Some(128),
+            });
+        }
 
         return match gen.generate_to_staging(
             &rd.paths().staging_dir,
@@ -1148,12 +1480,20 @@ fn generate_command(
         ) {
             Ok(resp) => match rd.write_staging(&relative, resp.source.as_bytes()) {
                 Ok(written) => {
+                    let kind = if generator_jail {
+                        "external-argv+os-jail"
+                    } else {
+                        "external-argv"
+                    };
                     println!(
-                        "generated `{}` (model: {}, id: {}, kind: external-argv)",
+                        "generated `{}` (model: {}, id: {}, kind: {kind})",
                         written.display(),
                         resp.model_name,
                         resp.generation_id
                     );
+                    if generator_jail {
+                        println!("note: os_fs_isolation enforced via container jail (not absolute isolation)");
+                    }
                     VaaExitCode::Success.as_std()
                 }
                 Err(e) => {
@@ -1308,7 +1648,7 @@ fn write_generated_source(
     VaaExitCode::Success.as_std()
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
 fn build_command(
     source: &Path,
     output_dir: &Path,
@@ -1318,6 +1658,10 @@ fn build_command(
     container_image_digest: Option<&str>,
     container_runtime: Option<&str>,
     cpu_quota: Option<f64>,
+    memory_limit_bytes: Option<u64>,
+    bind_host_paths: bool,
+    use_seccomp: bool,
+    require_rootless: bool,
     use_cache: bool,
     check_reproducible: bool,
     format: OutputFormat,
@@ -1367,6 +1711,31 @@ fn build_command(
                 .map(str::to_owned)
                 .or_else(vaa::probe_container_runtime)
                 .unwrap_or_else(|| "docker".to_owned());
+            if require_rootless {
+                match vaa::probe_rootless_runtime(&runtime) {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        eprintln!(
+                            "error: --require-rootless set but `{runtime}` does not look rootless"
+                        );
+                        return VaaExitCode::ToolFailure.as_std();
+                    }
+                    Err(e) => {
+                        eprintln!("error: rootless probe failed: {e}");
+                        return VaaExitCode::ToolFailure.as_std();
+                    }
+                }
+            }
+            let seccomp_profile = if use_seccomp {
+                let path = output_dir.join("vaa-seccomp.json");
+                if let Err(e) = vaa::write_default_seccomp_profile(&path) {
+                    eprintln!("error: write seccomp profile: {e}");
+                    return VaaExitCode::ToolFailure.as_std();
+                }
+                Some(path)
+            } else {
+                None
+            };
             Some(vaa::ContainerBuildOpts {
                 runtime,
                 image: container_image
@@ -1375,6 +1744,10 @@ fn build_command(
                 image_digest: container_image_digest.map(str::to_owned),
                 cpu_quota,
                 pids_limit: Some(256),
+                memory_limit_bytes,
+                bind_host_paths,
+                seccomp_profile,
+                require_rootless,
             })
         }
     };

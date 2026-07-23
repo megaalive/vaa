@@ -17,6 +17,8 @@ default = ["local-cli"]
 local-cli = []
 # Opt-in OpenAI-compatible HTTP adapter (ureq). Default build stays offline.
 live-model = ["dep:ureq"]
+# Opt-in live Rekor HTTP client (ureq). Mock transport always available.
+rekor = ["dep:ureq"]
 
 [dependencies]
 base64 = "0.22"
