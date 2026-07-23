@@ -290,6 +290,27 @@ See also `docs/post-alpha-harden.md` § Gate-2 isolation.
 Outline only: W0 contract/oracle → W1 harness/memory gate → W2 x86 e2e →
 W3 VAA Gate → W4 optional HlaX64. Not started in this tranche.
 
+### Maturity follow-up (M0–M1) — deepen then SemASM pipeline bump
+
+After D0–D2: deepen criteria, then SemASM may bump x86 pipeline maturity.
+**Not** in this VAA wave: Accept ADR 0003 / W*, Gate-2 `ExecutionSandbox` wire (I2).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **M0** | Deepen Gate-2 I0–I2 phases + point at SemASM ownership map | **Done** (this section + `post-alpha-harden.md`) |
+| **M1** | SemASM bind `ci_jobs` + bump assemble/link/execute/pipeline_verify | pending (SemASM-owned) |
+
+Next after M0: SemASM **M1** pipeline bump. Sandbox **I2** deferred. Write-shape
+waits on Accept of SemASM ADR 0003.
+
+Gate-2 isolation phases (see `post-alpha-harden.md`):
+
+| Phase | Status |
+|---|---|
+| **I0** host `--allow-execution` | current |
+| **I1** reserve `execution_isolation` evidence | design only |
+| **I2** wire `ExecutionSandbox` | deferred |
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):

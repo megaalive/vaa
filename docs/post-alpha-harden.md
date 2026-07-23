@@ -11,11 +11,11 @@ Honesty constraints for waves after `v0.1.0`.
 - Gate-2 still uses SemASM `--allow-execution`; `ExecutionSandbox` remains a library API.
 - Docker/Podman + seccomp ≠ absolute isolation (architecture C-012).
 
-### Gate-2 isolation honesty (maturity inflection D2)
+### Gate-2 isolation honesty (maturity inflection D2 + M0 phases)
 
 Criteria before any doc or CI label may say Gate-2 uses process isolation:
 
-1. **Today:** Gate-2 = SemASM `agent verify --allow-execution` (host process).
+1. **Today (I0):** Gate-2 = SemASM `agent verify --allow-execution` (host process).
    Verified means SemASM behavioral proof under that flag — not sandbox proof.
 2. **`ExecutionSandbox` on Gate path** only when:
    - Gate / `vaa verify` (or named CI job) invokes the sandbox API for the
@@ -26,6 +26,14 @@ Criteria before any doc or CI label may say Gate-2 uses process isolation:
 3. Until (2), wording must keep: Gate-2 Verified ≠ isolated execution;
    container build sandbox ≠ Gate execution sandbox.
 4. SoftHSM / Fulcio / practice seals still ≠ SemASM Verified.
+
+| Phase | Meaning | Status |
+|---|---|---|
+| **I0** | Gate-2 = SemASM `--allow-execution` on host; Verified ≠ isolation | **current** |
+| **I1** | Reserve evidence field `execution_isolation: semasm_host \| sandbox`; CI that claims isolation must assert the field | **design only** (M0) |
+| **I2** | Wire `ExecutionSandbox` into Gate / `vaa verify`; fail-closed if isolation is claimed without sandbox | **deferred** (not M0–M1) |
+
+I1 does not change Gate behavior. I2 is a separate implementation tranche.
 
 ## Seal durability (P7-D)
 
