@@ -379,15 +379,25 @@ deferred (W4 landed the `replace_byte` bridge only; see below).
 
 ### Next maturity program
 
-Multi-tranche + Thin program **closed**: **I1/I2** → **Wm** → **Wc** →
-**Rmem** → **W4** → **Dx** → **Thin Th1-Th7** (all Done). Residual Thin
-was pure-int (`min_usize`/`max_usize`) HlaX64 bridges only — landed as
-**Th8** (see the Th8 section below); **residual Thin is now closed**.
-Horizon stays deferred (formal ensures, CryptOpt, HSM, A64/RV write-shape
-harness, decode/lower `verified_in_ci` bump).
+Multi-tranche + Thin program **closed** (I1/I2 through Thin Th8). **Horizon
+Closeout (H0-H6)** is the active maturity program: landable cliffs (guard-byte
+Rmem, A64/RV MemCmp harness, Dx deepen without bump, multi-ISA + transparency
+ADRs) plus **Horizon-locked deferred** (formal ensures, CryptOpt embed,
+hardware HSM, live-model Gate CI, decode/lower erified_in_ci, A64/RV
+write-shape harness).
 
-SemASM pin: `e7d40f507519a24441718ee5eecd10ce966eb10`
-HlaX64 pin: `9ac5b13b954c771fca8f2257cde7486873a846`
+Honesty: SoftHSM ≠ HSM; search ≠ CryptOpt; Incomplete ≠ Verified; HlaX64 ≠
+SemASM Verified; local transparency artifact ≠ remote log.
+
+| Wave | Focus | Status |
+|---|---|---|
+| **H0** | Horizon map (landable vs locked deferred) | **Done** |
+| **H1** | SemASM ADR 0005 multi-ISA MemCmp/write-shape | **Done** (SemASM) |
+| **H2** | Guard-byte write-shape harness (sample-based) | pending |
+| **H3** | A64/RV memcmp harness | pending |
+| **H4** | Dx adversarial deepen (caps stay partial) | pending |
+| **H5** | VAA remote-transparency honesty | pending |
+| **H6** | Hygiene + Horizon closed / locked table | pending |
 
 ### W4 — HlaX64 `replace_byte` bridge
 
