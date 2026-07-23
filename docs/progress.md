@@ -139,8 +139,8 @@ cargo run -q -- evidence verify-chain \
 
 | Wave | Focus | Status |
 |---|---|---|
-| **Q0** | Docs honesty: next = Tranche Q + further x86 depth | **In progress** |
-| **Q1** | `find_first_byte` multi-candidate `vaa run` wrong→repair Gate smoke | Pending |
+| **Q0** | Docs honesty: next = Tranche Q + further x86 depth | **Done** |
+| **Q1** | `find_first_byte` multi-candidate `vaa run` wrong→repair Gate smoke | **Done** (Gate-1 ignored + CI) |
 | **Q2** | `vaa search` nop-slide staging Gate smoke (offline; ≠ CryptOpt/Verified) | Pending |
 | **X0** | SemASM Win64 W+X object-policy twin (parity SysV) | Pending (SemASM) |
 
@@ -326,6 +326,7 @@ Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 | `docs/vaa-canonical-json-v1.md` | Named canonical JSON profile |
 | `fixtures/canonical-json/` | Cross-language conformance vectors |
 | `fixtures/run/count_byte/README.md` | R1 golden run |
+| `fixtures/run/find_first_byte/README.md` | Q1 multi-candidate wrong→repair |
 | `fixtures/ingest/count_byte/README.md` | R2 generator-agnostic ingest |
 | `fixtures/ingest/hlax64_sum_i64/README.md` | HlaX64 → VAA ingest bridge (`sum_i64`) |
 | `fixtures/semasm/README.md` | Handshake fixtures |

@@ -766,6 +766,107 @@ fn gate1_run_count_byte_multi_candidate_verify_chain() {
 
 #[test]
 #[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_run_find_first_byte_multi_candidate_verify_chain() {
+    let task = root().join("fixtures/run/find_first_byte/find_first_byte.vaa.toml");
+    let contract = root().join("fixtures/run/find_first_byte/find_first_byte.sem.toml");
+    let wrong = root().join("fixtures/run/find_first_byte/01_wrong.asm");
+    let repaired = root().join("fixtures/run/find_first_byte/02_repaired.asm");
+    let run_base = root().join("target/vaa-gate1-run-ffb-smokes");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "run",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--wrong",
+            wrong.to_str().unwrap(),
+            "--repaired",
+            repaired.to_str().unwrap(),
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("run vaa run find_first_byte");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success()
+            || stdout.contains("Incomplete")
+            || stdout.contains("Candidates accepted")
+            || stdout.contains("final_status"),
+        "vaa run find_first_byte failed: status={:?}\nstdout={stdout}\nstderr={stderr}",
+        output.status
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected a run directory after vaa run find_first_byte");
+
+    let cand0 = run_dir.join("candidates").join("0000");
+    let cand1 = run_dir.join("candidates").join("0001");
+    assert!(
+        cand0.is_dir() && cand1.is_dir(),
+        "Q1 expects ≥2 sealed candidates under {}",
+        run_dir.display()
+    );
+
+    let seal_log = run_dir.join("evidence").join("seal-log.jsonl");
+    assert!(
+        seal_log.is_file(),
+        "seal-log.jsonl missing under {}",
+        run_dir.display()
+    );
+    let seal_body = std::fs::read_to_string(&seal_log).expect("read seal-log");
+    assert!(
+        seal_body.lines().filter(|l| !l.trim().is_empty()).count() >= 2,
+        "seal-log should have ≥2 entries: {seal_body}"
+    );
+
+    let events = run_dir.join("events.jsonl");
+    assert!(
+        events.is_file()
+            && !std::fs::read_to_string(&events)
+                .unwrap_or_default()
+                .is_empty(),
+        "events.jsonl should be non-empty"
+    );
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert!(
+        chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
+        "unexpected chain output: {chain_out}"
+    );
+    assert_seal_signature_if_signing(&run_dir);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
 #[allow(clippy::too_many_lines)]
 fn gate1_resume_second_candidate_verify_chain() {
     let task = root().join("fixtures/run/count_byte/count_byte.vaa.toml");
