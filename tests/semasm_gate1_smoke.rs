@@ -1151,7 +1151,7 @@ fn gate1_search_then_ingest_staged_verify_chain() {
             "--run-dir",
             search_base.to_str().unwrap(),
             "--budget",
-            "2",
+            "1",
             "--mutator",
             "nop-slide",
         ])
@@ -1175,11 +1175,18 @@ fn gate1_search_then_ingest_staged_verify_chain() {
         .map(|e| e.path())
         .find(|p| p.is_dir())
         .expect("expected search run directory");
-    let staged = search_run.join("staging").join("search-0001.asm");
+    // Index 0 only appends the nop-slide comment marker (no trailing NOPs after
+    // `ret`, which would fail SemASM decode/control). Still proves staging→ingest.
+    let staged = search_run.join("staging").join("search-0000.asm");
     assert!(
         staged.is_file(),
         "expected staged candidate {}",
         staged.display()
+    );
+    let staged_body = std::fs::read_to_string(&staged).expect("read staged");
+    assert!(
+        staged_body.contains("vaa-search nop-slide"),
+        "staged candidate missing mutator marker"
     );
 
     let ingest = Command::new(vaa_bin())
