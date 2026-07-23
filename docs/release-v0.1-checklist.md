@@ -67,6 +67,7 @@ Runs fmt/clippy/test (+ `cargo deny` if installed). Never creates a tag.
 |---|---|
 | Tag | `v0.1.0` |
 | Date | 2026-07-23 |
-| Tip (docs commit) | recorded at tag time |
-| CI (pre-tag tip green) | https://github.com/megaalive/vaa/actions/runs/29969786616 (`4508326`) |
+| Tip (R-tag docs) | `64191426aa7808735a45abf379e8f28e75afea29` |
+| CI (tag tip green) | https://github.com/megaalive/vaa/actions/runs/29971512238 |
+| Release | https://github.com/megaalive/vaa/releases/tag/v0.1.0 |
 | Signing | annotated tag (GPG not available on cut host) |
