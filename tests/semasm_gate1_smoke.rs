@@ -1132,6 +1132,7 @@ fn gate1_search_nop_slide_stages() {
 
 #[test]
 #[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+#[allow(clippy::too_many_lines)]
 fn gate1_search_then_ingest_staged_verify_chain() {
     let task = root().join("fixtures/run/find_first_byte/find_first_byte.vaa.toml");
     let contract = root().join("fixtures/run/find_first_byte/find_first_byte.sem.toml");
