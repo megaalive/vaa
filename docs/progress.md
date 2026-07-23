@@ -290,18 +290,18 @@ See also `docs/post-alpha-harden.md` § Gate-2 isolation.
 Outline only: W0 contract/oracle → W1 harness/memory gate → W2 x86 e2e →
 W3 VAA Gate → W4 optional HlaX64. Not started in this tranche.
 
-### Maturity follow-up (M0–M1) — deepen then SemASM pipeline bump
+### Maturity follow-up (M0–M1) — deepen then SemASM pipeline bump — closed
 
-After D0–D2: deepen criteria, then SemASM may bump x86 pipeline maturity.
-**Not** in this VAA wave: Accept ADR 0003 / W*, Gate-2 `ExecutionSandbox` wire (I2).
+After D0–D2: deepen criteria, then SemASM bumped x86 pipeline maturity.
+**Still deferred:** Accept ADR 0003 / W*, Gate-2 `ExecutionSandbox` wire (I2).
 
 | Wave | Focus | Status |
 |---|---|---|
-| **M0** | Deepen Gate-2 I0–I2 phases + point at SemASM ownership map | **Done** (this section + `post-alpha-harden.md`) |
-| **M1** | SemASM bind `ci_jobs` + bump assemble/link/execute/pipeline_verify | pending (SemASM-owned) |
+| **M0** | Deepen Gate-2 I0–I2 phases + point at SemASM ownership map | **Done** |
+| **M1** | SemASM bind `ci_jobs` + bump assemble/link/execute/pipeline_verify | **Done** (SemASM tip after M1) |
 
-Next after M0: SemASM **M1** pipeline bump. Sandbox **I2** deferred. Write-shape
-waits on Accept of SemASM ADR 0003.
+SemASM M1 closed: x86 pipeline `verified_in_ci` with owner e2e jobs. Sandbox
+**I2** deferred. Write-shape waits on Accept of SemASM ADR 0003.
 
 Gate-2 isolation phases (see `post-alpha-harden.md`):
 
@@ -364,8 +364,8 @@ HlaX64 pin (`hlax64-bridge` only):
 | **P2** | Capability claim bind (`source=vaa_embedded_agent_verify_snapshot`) | **Done** |
 
 Honesty: VAA `capabilities` JSON is an **embedded agent-verify snapshot**, not a
-live read of SemASM `capabilities.toml` (pipeline maturity there may still be
-`partial` / `experimental` on some axes).
+live read of SemASM `capabilities.toml` (pipeline maturity on SemASM x86 is
+`verified_in_ci` after M1; VAA embedded snapshot may lag).
 
 ### Next waves (R0–R6) — runner + SemASM JSON + process tree + live probe
 
