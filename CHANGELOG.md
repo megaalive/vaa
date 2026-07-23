@@ -17,6 +17,8 @@ checklist and maintainer sign-off are complete (see `docs/release-v0.1-checklist
 - **PR-020** — Local content-addressed cache (`.vaa/cache` / `VAA_CACHE_DIR`): verification +
   build keys; `vaa cache status`; opt-in `--cache` on verify/build. Not a remote log;
   Incomplete/Failed never promoted to Verified.
+- **PR-021** — Same-host reproducibility: `vaa build --check-reproducible` + required
+  `reproducible_build` evidence check (twin NASM assemble). Not cross-host bit-identical.
 - **G1** — External argv generator (`vaa generate --run-dir … --command …`) writes
   only under `staging/` (`GeneratorMeta.kind = external-argv`). Logical barrier only;
   not OS ACL / job-object FS isolation.

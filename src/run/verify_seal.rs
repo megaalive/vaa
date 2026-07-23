@@ -128,6 +128,11 @@ pub fn verify_candidate_and_seal(
     if input.locked.task().verification.require_object_inspection {
         expect.object_inspection = Some(assemble_and_inspect(&source_path, &cand_dir, &target));
     }
+    if input.locked.task().verification.require_reproducible_build {
+        let (matched, details) = crate::build::reproducible_build_check(&source_path, &target);
+        expect.reproducible_build =
+            Some(crate::evidence::ReproducibleBuildOutcome { matched, details });
+    }
 
     let evidence = EvidenceAggregator::build(
         input.locked,

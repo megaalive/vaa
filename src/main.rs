@@ -191,6 +191,9 @@ enum Commands {
         /// Opt-in local content-addressed build cache (PR-020).
         #[arg(long, default_value_t = false)]
         cache: bool,
+        /// Twin-build same-host reproducibility check (PR-021).
+        #[arg(long, default_value_t = false)]
+        check_reproducible: bool,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -372,6 +375,7 @@ fn main() -> ExitCode {
             container_runtime,
             cpu_quota,
             cache,
+            check_reproducible,
             format,
         } => build_command(
             &source,
@@ -383,6 +387,7 @@ fn main() -> ExitCode {
             container_runtime.as_deref(),
             cpu_quota,
             cache,
+            check_reproducible,
             format,
         ),
         Commands::Cache { command } => match command {
@@ -796,6 +801,10 @@ fn verify_command(
         expect.object_inspection =
             Some(vaa::assemble_and_inspect(source_path, &inspect_dir, target));
         let _ = std::fs::remove_dir_all(&inspect_dir);
+    }
+    if locked.task().verification.require_reproducible_build {
+        let (matched, details) = vaa::reproducible_build_check(source_path, target);
+        expect.reproducible_build = Some(vaa::ReproducibleBuildOutcome { matched, details });
     }
 
     let report = EvidenceAggregator::build(
@@ -1310,8 +1319,47 @@ fn build_command(
     container_runtime: Option<&str>,
     cpu_quota: Option<f64>,
     use_cache: bool,
+    check_reproducible: bool,
     format: OutputFormat,
 ) -> ExitCode {
+    if check_reproducible {
+        let config = PipelineConfig {
+            source_path: source.to_path_buf(),
+            output_dir: output_dir.to_path_buf(),
+            target: target.to_owned(),
+            ..PipelineConfig::default()
+        };
+        return match vaa::check_reproducible(&config) {
+            Ok(report) => {
+                match format {
+                    OutputFormat::Terminal => {
+                        if report.matched {
+                            println!("reproducible: matched (same-host twin build)");
+                        } else {
+                            eprintln!("reproducible: mismatch");
+                            for m in &report.mismatches {
+                                eprintln!("  {m}");
+                            }
+                        }
+                        println!("note: not a cross-host bit-identical claim");
+                    }
+                    OutputFormat::Json => {
+                        println!("{}", serde_json::to_value(&report).unwrap_or_default());
+                    }
+                }
+                if report.matched {
+                    VaaExitCode::Success.as_std()
+                } else {
+                    VaaExitCode::ToolFailure.as_std()
+                }
+            }
+            Err(e) => {
+                eprintln!("error: reproducible check failed: {e}");
+                VaaExitCode::ToolFailure.as_std()
+            }
+        };
+    }
+
     let container = match sandbox {
         BuildSandboxMode::Local => None,
         BuildSandboxMode::Container => {

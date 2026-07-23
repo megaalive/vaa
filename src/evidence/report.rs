@@ -47,6 +47,15 @@ pub struct EvidenceExpect {
     pub expected_contract_digest: String,
     /// Result of optional object inspection (I0), when policy requires it.
     pub object_inspection: Option<ObjectInspectionOutcome>,
+    /// Result of optional twin-build reproducibility check (PR-021).
+    pub reproducible_build: Option<ReproducibleBuildOutcome>,
+}
+
+/// Outcome of same-host twin build comparison (PR-021).
+#[derive(Debug, Clone)]
+pub struct ReproducibleBuildOutcome {
+    pub matched: bool,
+    pub details: String,
 }
 
 /// Outcome of assembling + inspecting a candidate object (I0).
@@ -70,6 +79,7 @@ impl EvidenceExpect {
             expected_source_digest: expected_source_digest.into(),
             expected_contract_digest: expected_contract_digest.into(),
             object_inspection: None,
+            reproducible_build: None,
         }
     }
 }
@@ -269,6 +279,23 @@ impl EvidenceAggregator {
             }
         }
 
+        if task.task().verification.require_reproducible_build {
+            match &expect.reproducible_build {
+                None => checks.push(CheckOutcome {
+                    check_name: "reproducible_build".to_owned(),
+                    required: true,
+                    passed: false,
+                    details: Some("required but not performed".to_owned()),
+                }),
+                Some(rb) => checks.push(CheckOutcome {
+                    check_name: "reproducible_build".to_owned(),
+                    required: true,
+                    passed: rb.matched,
+                    details: Some(rb.details.clone()),
+                }),
+            }
+        }
+
         let required_failures: Vec<&CheckOutcome> =
             checks.iter().filter(|c| c.required && !c.passed).collect();
 
@@ -391,11 +418,26 @@ mod tests {
     }
 
     fn expect_for(task: &LockedTask) -> EvidenceExpect {
-        EvidenceExpect::new(
+        let mut expect = EvidenceExpect::new(
             task.task().target.clone(),
             "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        )
+        );
+        if task.task().verification.require_object_inspection {
+            expect.object_inspection = Some(ObjectInspectionOutcome {
+                error: None,
+                has_wxorx: false,
+                has_executable_stack: false,
+                format: "Elf".into(),
+            });
+        }
+        if task.task().verification.require_reproducible_build {
+            expect.reproducible_build = Some(ReproducibleBuildOutcome {
+                matched: true,
+                details: "unit twin match".into(),
+            });
+        }
+        expect
     }
 
     fn available_doctor() -> DoctorReport {
@@ -428,15 +470,7 @@ mod tests {
     #[test]
     fn aggregator_verified_when_all_pass() {
         let task = sample_locked_task();
-        let mut expect = expect_for(&task);
-        if task.task().verification.require_object_inspection {
-            expect.object_inspection = Some(ObjectInspectionOutcome {
-                error: None,
-                has_wxorx: false,
-                has_executable_stack: false,
-                format: "Elf".into(),
-            });
-        }
+        let expect = expect_for(&task);
         let report = EvidenceAggregator::build(
             &task,
             None,
@@ -451,6 +485,34 @@ mod tests {
         );
         assert_eq!(report.final_status, EvidenceStatus::Verified);
         assert!(report.summary.contains("Accepted"));
+    }
+
+    #[test]
+    fn aggregator_reproducible_build_mismatch_blocks_verified() {
+        let task = sample_locked_task();
+        assert!(task.task().verification.require_reproducible_build);
+        let mut expect = expect_for(&task);
+        expect.reproducible_build = Some(ReproducibleBuildOutcome {
+            matched: false,
+            details: "object_digest mismatch".into(),
+        });
+        let report = EvidenceAggregator::build(
+            &task,
+            None,
+            Some(ok_verify(&task, &expect)),
+            Some(available_doctor()),
+            Some(CapabilityMatch {
+                compatible: true,
+                missing: vec![],
+                insufficient: vec![],
+            }),
+            &expect,
+        );
+        assert_ne!(report.final_status, EvidenceStatus::Verified);
+        assert!(report
+            .checks
+            .iter()
+            .any(|c| c.check_name == "reproducible_build" && !c.passed));
     }
 
     #[test]

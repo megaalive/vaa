@@ -14,7 +14,7 @@ pub use bundle::{
 pub use chain::{verify_chain, ChainIdentity, VerifyChainReport};
 pub use report::{
     schema_version_compatible, sha256_digest_prefixed, CheckOutcome, EvidenceAggregator,
-    EvidenceExpect, EvidenceReport, ObjectInspectionOutcome,
+    EvidenceExpect, EvidenceReport, ObjectInspectionOutcome, ReproducibleBuildOutcome,
 };
 pub use seal::{
     acceptance_digest_of, build_seal_envelope, envelope_digest_of, seal_envelope, verify_seal,
