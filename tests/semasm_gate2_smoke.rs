@@ -92,6 +92,11 @@ fn gate2_verify_count_byte_win64_verified() {
         "Gate-2 expects Verified with --allow-execution: {value}"
     );
     assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_eq!(
+        value["execution_isolation"].as_str(),
+        Some("semasm_host"),
+        "I1: default Gate-2 isolation claim must be semasm_host: {value}"
+    );
 }
 
 #[test]
@@ -1316,4 +1321,53 @@ fn gate2_search_ingest_find_first_allow_execution_verified() {
         stdout.contains("SemASM Verified only") && stdout.contains("not CryptOpt"),
         "Verified may only be attributed to the SemASM path: {stdout}"
     );
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH, Win64 toolchain, SemASM --allow-execution, and ExecutionSandbox LocalBackend"]
+fn gate2_verify_count_byte_win64_execution_sandbox() {
+    let task = root().join("fixtures/semasm/count_byte/count_byte.vaa.toml");
+    let source = root().join("fixtures/semasm/count_byte/count_byte_win64.asm");
+    let contract = root().join("fixtures/semasm/count_byte/count_byte.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--execution-sandbox",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --execution-sandbox");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 sandbox: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 sandbox: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["execution_isolation"].as_str(),
+        Some("sandbox"),
+        "I2: --execution-sandbox must claim execution_isolation=sandbox: {value}"
+    );
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 sandbox path expects Verified (LocalBackend scaffold, not container): {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
 }

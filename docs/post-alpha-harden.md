@@ -8,8 +8,11 @@ Honesty constraints for waves after `v0.1.0`.
 - `--seccomp` writes the bundled profile from `assets/seccomp/vaa-default.json`.
 - `--require-rootless` fail-closes unless `docker|podman info` looks rootless.
 - `--generator-jail` wraps external generators in a container with only `staging/` at `/work`.
-- Gate-2 still uses SemASM `--allow-execution`; `ExecutionSandbox` remains a library API.
+- Gate-2 still uses SemASM `--allow-execution` by default (`execution_isolation=semasm_host`).
+- Opt-in `vaa verify --execution-sandbox` runs SemASM via `ExecutionSandbox`
+  (LocalBackend process wrapper) and sets `execution_isolation=sandbox`.
 - Docker/Podman + seccomp ≠ absolute isolation (architecture C-012).
+  LocalBackend ≠ container isolation.
 
 ### Gate-2 isolation honesty (maturity inflection D2 + M0 phases)
 
@@ -30,10 +33,11 @@ Criteria before any doc or CI label may say Gate-2 uses process isolation:
 | Phase | Meaning | Status |
 |---|---|---|
 | **I0** | Gate-2 = SemASM `--allow-execution` on host; Verified ≠ isolation | **current** |
-| **I1** | Reserve evidence field `execution_isolation: semasm_host \| sandbox`; CI that claims isolation must assert the field | **design only** (M0) |
-| **I2** | Wire `ExecutionSandbox` into Gate / `vaa verify`; fail-closed if isolation is claimed without sandbox | **deferred** (not M0–M1) |
+| **I1** | Evidence field `execution_isolation: semasm_host \| sandbox`; Gate-2 CI asserts `semasm_host` by default | **landed** |
+| **I2** | Opt-in `--execution-sandbox` on `vaa verify` wires `ExecutionSandbox` (LocalBackend); CI asserts `execution_isolation=sandbox`; fail-closed if sandbox cannot run | **landed** (LocalBackend scaffold ≠ absolute isolation; C-012) |
 
-I1 does not change Gate behavior. I2 is a separate implementation tranche.
+I1 does not change default Gate behavior (still `semasm_host`). I2 is opt-in;
+sandbox claim ≠ container isolation; SoftHSM/Fulcio ≠ Verified.
 
 ## Seal durability (P7-D)
 

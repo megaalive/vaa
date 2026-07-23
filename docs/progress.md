@@ -304,7 +304,7 @@ SemASM/VAA `replace_byte` Gate in tranche W*.
 | **M1** | SemASM bind `ci_jobs` + bump assemble/link/execute/pipeline_verify | **Done** (SemASM tip after M1) |
 
 SemASM M1 closed: x86 pipeline `verified_in_ci` with owner e2e jobs. Sandbox
-**I2** deferred.
+**I1/I2** landed on VAA (`execution_isolation` + `--execution-sandbox`).
 
 ### Write-shape v1 (W0–W3) — `replace_byte`
 
@@ -325,8 +325,13 @@ Gate-2 isolation phases (see `post-alpha-harden.md`):
 | Phase | Status |
 |---|---|
 | **I0** host `--allow-execution` | current |
-| **I1** reserve `execution_isolation` evidence | design only |
-| **I2** wire `ExecutionSandbox` | deferred |
+| **I1** `execution_isolation` evidence + Gate-2 assert | **landed** |
+| **I2** `--execution-sandbox` + sandbox CI claim | **landed** (LocalBackend ≠ container) |
+
+### Next maturity program
+
+Locked order: **Wm** (`memset`) → **Wc** (`memcpy`) → **Rmem** (ADR 0004) →
+**W4** (HlaX64 `replace_byte`) → **Dx** (decode/lower depth). Thin bridges after.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 

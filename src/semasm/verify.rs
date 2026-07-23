@@ -123,6 +123,73 @@ impl SemasmVerify {
         })
     }
 
+    /// Run SemASM verify through [`crate::sandbox::ExecutionSandbox`] (LocalBackend).
+    ///
+    /// Sets up the Gate-2 isolation wire (I2). LocalBackend is a process wrapper,
+    /// not container isolation (C-012). Fail-closed when sandbox cannot run.
+    pub fn run_sandboxed(
+        source: &Path,
+        contract: &Path,
+        binary: &Path,
+        target: &str,
+        allow_execution: bool,
+    ) -> Result<VerifyReport, VerifyError> {
+        use crate::sandbox::exec::ExecutionError;
+        use crate::sandbox::{ExecutionSandbox, LocalBackend};
+
+        let mut args = vec![
+            "agent".to_owned(),
+            "verify".to_owned(),
+            source.to_string_lossy().into_owned(),
+            contract.to_string_lossy().into_owned(),
+            "--format".to_owned(),
+            "json".to_owned(),
+            "--target".to_owned(),
+            target.to_owned(),
+        ];
+        if allow_execution {
+            args.push("--allow-execution".to_owned());
+        }
+
+        let mut sandbox = ExecutionSandbox::new(Box::new(LocalBackend));
+        sandbox.enable();
+        let result = sandbox
+            .run(binary, &args, Duration::from_secs(120))
+            .map_err(|e| match e {
+                ExecutionError::NotEnabled => {
+                    VerifyError::ProcessFailed("execution sandbox not enabled".into())
+                }
+                ExecutionError::SandboxUnavailable(name) => {
+                    VerifyError::ProcessFailed(format!("sandbox unavailable: {name}"))
+                }
+                ExecutionError::BinaryNotFound(p) => VerifyError::ProcessFailed(format!(
+                    "semasm binary not found in sandbox: {p}"
+                )),
+                ExecutionError::ProcessError(ProcessError::Timeout { .. }) => VerifyError::Timeout,
+                ExecutionError::ProcessError(other) => {
+                    VerifyError::ProcessFailed(other.to_string())
+                }
+            })?;
+
+        if result.timed_out {
+            return Err(VerifyError::Timeout);
+        }
+
+        let stdout = result.stdout;
+        let stderr = result.stderr;
+        if stdout.trim().is_empty() {
+            return Err(VerifyError::ParseFailed(format!(
+                "empty stdout from sandboxed semasm; stderr={stderr}"
+            )));
+        }
+        Self::parse_report(&stdout).map_err(|err| match err {
+            VerifyError::ParseFailed(msg) => {
+                VerifyError::ParseFailed(format!("{msg}; stderr={stderr}"))
+            }
+            other => other,
+        })
+    }
+
     /// Parse a SemASM VerificationReport JSON document (stdout body only).
     pub fn parse_report(json: &str) -> Result<VerifyReport, VerifyError> {
         let raw: VerifyReportRaw =

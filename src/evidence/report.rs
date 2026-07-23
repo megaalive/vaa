@@ -34,6 +34,14 @@ pub struct EvidenceReport {
     pub checks: Vec<CheckOutcome>,
     pub final_status: EvidenceStatus,
     pub summary: String,
+    /// How SemASM was invoked for this evidence: `semasm_host` (direct) or
+    /// `sandbox` (via [`crate::sandbox::ExecutionSandbox`]). Not absolute isolation.
+    #[serde(default = "default_execution_isolation")]
+    pub execution_isolation: String,
+}
+
+fn default_execution_isolation() -> String {
+    "semasm_host".to_owned()
 }
 
 /// Expected identity for binding a SemASM report to the locked run.
@@ -351,6 +359,7 @@ impl EvidenceAggregator {
             checks,
             final_status,
             summary,
+            execution_isolation: default_execution_isolation(),
         }
     }
 }

@@ -82,6 +82,10 @@ enum Commands {
         /// Forward `--allow-execution` to SemASM (opt-in behavioral verify).
         #[arg(long, default_value_t = false)]
         allow_execution: bool,
+        /// Run SemASM via ExecutionSandbox (LocalBackend scaffold). Sets
+        /// `execution_isolation=sandbox`. Fail-closed if sandbox cannot run.
+        #[arg(long, default_value_t = false)]
+        execution_sandbox: bool,
         /// Opt-in local content-addressed cache (PR-020). Default off for deterministic Gate CI.
         #[arg(long, default_value_t = false)]
         cache: bool,
@@ -399,9 +403,18 @@ fn main() -> ExitCode {
             source,
             contract,
             allow_execution,
+            execution_sandbox,
             cache,
             format,
-        } => verify_command(&task, &source, &contract, allow_execution, cache, format),
+        } => verify_command(
+            &task,
+            &source,
+            &contract,
+            allow_execution,
+            execution_sandbox,
+            cache,
+            format,
+        ),
         Commands::Run {
             task,
             contract,
@@ -795,6 +808,7 @@ fn verify_command(
     source_path: &Path,
     contract_path: &Path,
     allow_execution: bool,
+    execution_sandbox: bool,
     use_cache: bool,
     format: OutputFormat,
 ) -> ExitCode {
@@ -869,7 +883,23 @@ fn verify_command(
         } else {
             let verify_result = match doctor.binary_path.as_ref() {
                 Some(binary) => {
-                    SemasmVerify::run(source_path, contract_path, binary, target, allow_execution)
+                    if execution_sandbox {
+                        SemasmVerify::run_sandboxed(
+                            source_path,
+                            contract_path,
+                            binary,
+                            target,
+                            allow_execution,
+                        )
+                    } else {
+                        SemasmVerify::run(
+                            source_path,
+                            contract_path,
+                            binary,
+                            target,
+                            allow_execution,
+                        )
+                    }
                 }
                 None => Err(VerifyError::BinaryNotFound),
             };
@@ -939,6 +969,11 @@ fn verify_command(
                         checks,
                         final_status: EvidenceStatus::Failed,
                         summary: format!("Verification failed: {e}"),
+                        execution_isolation: if execution_sandbox {
+                            "sandbox".to_owned()
+                        } else {
+                            "semasm_host".to_owned()
+                        },
                     };
                     return emit_evidence_report(&report, format);
                 }
@@ -965,7 +1000,7 @@ fn verify_command(
         expect.reproducible_build = Some(vaa::ReproducibleBuildOutcome { matched, details });
     }
 
-    let report = EvidenceAggregator::build(
+    let mut report = EvidenceAggregator::build(
         &locked,
         None,
         Some(verify_report),
@@ -973,6 +1008,11 @@ fn verify_command(
         Some(cm),
         &expect,
     );
+    report.execution_isolation = if execution_sandbox {
+        "sandbox".to_owned()
+    } else {
+        "semasm_host".to_owned()
+    };
     emit_evidence_report(&report, format)
 }
 
