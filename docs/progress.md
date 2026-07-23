@@ -383,9 +383,10 @@ Multi-tranche + Thin + **Horizon Closeout (H0-H6)** are **closed**.
 
 Landed in Horizon: guard-byte Rmem (H2), A64/RV MemCmp harness (H3), Dx deepen
 without maturity bump (H4), multi-ISA ADR 0005 (H1), remote-transparency honesty
-(H5). **Horizon-locked deferred:** formal ensures, full symbolic alias, CryptOpt
-embed, live-model Gate CI, hardware HSM, decode/lower `verified_in_ci`, A64/RV
-write-shape harness.
+(H5). **Post-Horizon priority landed:** A64/RV write-shape harness
+(`replace_byte`/`memset`/`memcpy`). **Horizon-locked deferred:** formal ensures,
+full symbolic alias, CryptOpt embed, live-model Gate CI, hardware HSM,
+decode/lower `verified_in_ci`.
 
 Honesty: SoftHSM ≠ HSM; search ≠ CryptOpt; Incomplete ≠ Verified; HlaX64 ≠
 SemASM Verified; local transparency artifact ≠ remote log.
