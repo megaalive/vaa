@@ -378,12 +378,13 @@ deferred (W4 landed the `replace_byte` bridge only; see below).
 
 ### Next maturity program
 
-Multi-tranche maturity program **closed**: **I1/I2** → **Wm** → **Wc** →
-**Rmem** → **W4** → **Dx** → **Thin (Th1–Th2)** (all Done). Optional
-remaining Thin scope (memset/memcpy HlaX64 emit) only if bandwidth remains.
-Horizon stays deferred (formal ensures, CryptOpt, HSM, decode/lower
-`verified_in_ci` bump).
+Multi-tranche + Thin program **closed**: **I1/I2** → **Wm** → **Wc** →
+**Rmem** → **W4** → **Dx** → **Thin Th1-Th7** (all Done). Residual Thin
+only if desired: pure-int (\min_usize\/\max_usize\) HlaX64 bridges.
+Horizon stays deferred (formal ensures, CryptOpt, HSM, A64/RV write-shape
+harness, decode/lower \erified_in_ci\ bump).
 
+SemASM pin: e7d40f507519a24441718ee5eecd10ce966eb10HlaX64 pin: 9ac5b13b954c771fca8f2257cde7486873a846
 ### W4 — HlaX64 `replace_byte` bridge
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
