@@ -178,7 +178,7 @@ enum Commands {
         /// Max candidates to try (also capped by task `max_candidates`).
         #[arg(long, default_value_t = 8)]
         budget: u32,
-        /// Mutator: `nop-slide` (deterministic fixture) or external `--mutator-command`.
+        /// Mutator: `nop-slide`, `nop-before-ret`, or external `--mutator-command`.
         #[arg(long, default_value = "nop-slide")]
         mutator: String,
         /// Optional external mutator program (reads seed on stdin, writes asm on stdout).

@@ -48,6 +48,34 @@ pub fn mutate_nop_slide(seed: &str, times: u32) -> String {
     out
 }
 
+/// Insert `times` NOPs immediately before the last standalone `ret` line.
+///
+/// Fail-closed when no `ret` mnemonic line is present (avoids trailing-after-ret
+/// mutations that SemASM rejects as Violated).
+pub fn mutate_nop_before_ret(seed: &str, times: u32) -> Result<String, SearchError> {
+    let mut lines: Vec<String> = seed.lines().map(str::to_owned).collect();
+    let ret_idx = lines.iter().rposition(|line| {
+        let trimmed = line.trim();
+        trimmed == "ret" || trimmed.starts_with("ret ") || trimmed.starts_with("ret\t")
+    });
+    let Some(idx) = ret_idx else {
+        return Err(SearchError::Mutator(
+            "nop-before-ret requires a `ret` line in the seed".into(),
+        ));
+    };
+    let mut insert = Vec::with_capacity(times as usize + 1);
+    insert.push(format!("; vaa-search nop-before-ret x{times}"));
+    for _ in 0..times {
+        insert.push("    nop".to_owned());
+    }
+    lines.splice(idx..idx, insert);
+    let mut out = lines.join("\n");
+    if !out.ends_with('\n') {
+        out.push('\n');
+    }
+    Ok(out)
+}
+
 fn run_external_mutator(program: &Path, seed: &str, index: u32) -> Result<String, SearchError> {
     let dir = std::env::temp_dir().join(format!("vaa_mut_{}_{}", std::process::id(), index));
     std::fs::create_dir_all(&dir).map_err(|e| SearchError::Io(e.to_string()))?;
@@ -107,9 +135,11 @@ pub fn run_search(
             run_external_mutator(cmd, seed_asm, i)?
         } else if mutator == "nop-slide" {
             mutate_nop_slide(seed_asm, i)
+        } else if mutator == "nop-before-ret" {
+            mutate_nop_before_ret(seed_asm, i)?
         } else {
             return Err(SearchError::Mutator(format!(
-                "unknown mutator `{mutator}` (use nop-slide or --mutator-command)"
+                "unknown mutator `{mutator}` (use nop-slide, nop-before-ret, or --mutator-command)"
             )));
         };
 
@@ -167,6 +197,28 @@ mod tests {
         assert_eq!(a, b);
         assert!(a.contains("nop"));
         assert!(a.contains("vaa-search nop-slide x2"));
+    }
+
+    #[test]
+    fn nop_before_ret_inserts_before_last_ret() {
+        let seed = "xor eax, eax\n    ret\n";
+        let a = mutate_nop_before_ret(seed, 2).expect("mutate");
+        let b = mutate_nop_before_ret(seed, 2).expect("mutate");
+        assert_eq!(a, b);
+        assert!(a.contains("vaa-search nop-before-ret x2"));
+        let ret_pos = a
+            .rfind("\n    ret")
+            .or_else(|| a.rfind("\nret"))
+            .expect("ret");
+        let nop_pos = a.find("    nop").expect("nop");
+        assert!(nop_pos < ret_pos, "nops must appear before ret:\n{a}");
+        assert!(!a.trim_end().ends_with("nop"), "must not append after ret");
+    }
+
+    #[test]
+    fn nop_before_ret_fail_closed_without_ret() {
+        let err = mutate_nop_before_ret("xor eax, eax\n", 1).expect_err("no ret");
+        assert!(err.to_string().contains("ret"));
     }
 
     #[test]

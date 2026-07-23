@@ -38,3 +38,5 @@ Honesty constraints for waves after `v0.1.0`.
   superopt). Staging ≠ SemASM ingest; `verified=false` is intentional.
 - Tranche **R1** wires one staged candidate into `vaa ingest` + `verify-chain`
   (still ≠ CryptOpt; Gate Incomplete without `--allow-execution`).
+- Mutator **`nop-before-ret`** (X2b) inserts NOPs before the last `ret` so SemASM
+  does not see trailing-after-ret Violated (unlike post-ret `nop-slide`).

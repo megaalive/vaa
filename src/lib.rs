@@ -74,7 +74,9 @@ pub use sandbox::{
     probe_rootless_runtime, write_default_seccomp_profile, ContainerBackend, ExecutionSandbox,
     LocalBackend, SandboxBackend, SandboxConfig, DEFAULT_SECCOMP_PROFILE_JSON,
 };
-pub use search::{mutate_nop_slide, run_search, SearchAttempt, SearchError, SearchReport};
+pub use search::{
+    mutate_nop_before_ret, mutate_nop_slide, run_search, SearchAttempt, SearchError, SearchReport,
+};
 pub use semasm::{
     compare_live_status, match_task_requirements, parse_status_json, probe_live_for_target,
     CapabilityMatch, CompareOutcome, DoctorReport, DoctorStatus, EvidencePolicy, LiveProbeSummary,
