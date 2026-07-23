@@ -184,6 +184,15 @@ enum Commands {
         /// Optional external mutator program (reads seed on stdin, writes asm on stdout).
         #[arg(long)]
         mutator_command: Option<PathBuf>,
+        /// Ingest each staged candidate through SemASM verify/seal (Tranche T).
+        #[arg(long, default_value_t = false)]
+        ingest: bool,
+        /// SemASM contract (required with `--ingest`).
+        #[arg(long)]
+        contract: Option<PathBuf>,
+        /// Opt-in SemASM `--allow-execution` (Gate-2). Default CI stays Gate-1 Incomplete.
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
     },
     /// Assemble and link a source file.
     Build {
@@ -489,6 +498,9 @@ fn main() -> ExitCode {
             budget,
             mutator,
             mutator_command,
+            ingest,
+            contract,
+            allow_execution,
         } => search_command(
             &task,
             &seed,
@@ -496,6 +508,9 @@ fn main() -> ExitCode {
             budget,
             &mutator,
             mutator_command.as_deref(),
+            ingest,
+            contract.as_deref(),
+            allow_execution,
         ),
         Commands::Build {
             source,
@@ -1430,6 +1445,7 @@ fn fulcio_sign_command(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn search_command(
     task_path: &Path,
     seed: &Path,
@@ -1437,7 +1453,14 @@ fn search_command(
     budget: u32,
     mutator: &str,
     mutator_command: Option<&Path>,
+    ingest: bool,
+    contract: Option<&Path>,
+    allow_execution: bool,
 ) -> ExitCode {
+    if ingest && contract.is_none() {
+        eprintln!("error: --ingest requires --contract");
+        return VaaExitCode::InvalidInput.as_std();
+    }
     let locked = match load_locked_task(task_path) {
         Ok(t) => t,
         Err(e) => {
@@ -1452,6 +1475,16 @@ fn search_command(
             return VaaExitCode::InvalidInput.as_std();
         }
     };
+    let ingest_cfg = contract.map(|contract_path| vaa::SearchIngestConfig {
+        task_path,
+        contract_path,
+        allow_execution,
+    });
+    if ingest && ingest_cfg.is_none() {
+        eprintln!("error: --ingest requires --contract");
+        return VaaExitCode::InvalidInput.as_std();
+    }
+    let ingest_cfg = if ingest { ingest_cfg } else { None };
     match vaa::run_search(
         &locked,
         &seed_asm,
@@ -1460,6 +1493,7 @@ fn search_command(
         mutator,
         mutator_command,
         false,
+        ingest_cfg,
     ) {
         Ok(report) => {
             println!(
@@ -1471,7 +1505,13 @@ fn search_command(
             for a in &report.attempts {
                 println!("  [{:>4}] {} {}", a.index, a.status, a.source_digest);
             }
-            println!("note: CryptOpt-like staging loop only — not formal superoptimization");
+            if report.verified {
+                println!("note: SemASM Verified only — not CryptOpt; Gate-2 allow-execution path");
+            } else {
+                println!(
+                    "note: CryptOpt-like search loop only — Incomplete≠Verified; not formal superoptimization"
+                );
+            }
             VaaExitCode::Success.as_std()
         }
         Err(e) => {

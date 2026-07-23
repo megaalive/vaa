@@ -156,6 +156,24 @@ Honesty: search/repair staging ≠ SemASM Verified; live-model stays opt-in/manu
 
 Honesty: staged mutator output ≠ Verified until SemASM ingest; import/noexport ≠ execution proof.
 
+### Next waves (X2 + S + T) — Win64 depth, find_last_byte, search-ingest
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`b6d339562fe1ab1599c430c2e2d3e58faabfa2c4`
+(Tranche S1 `find_last_byte` + X2a Win64 syscall/stack twins).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **X2a** | SemASM Win64 syscall + stack_imbalance twins | **Done** (SemASM tip) |
+| **X2b** | VAA mutator `nop-before-ret` | **Done** |
+| **S0–S1** | SemASM `find_last_byte` oracle + Gate pack | **Done** |
+| **S2** | VAA pin + Gate-1/2 + run wrong→repair | **in progress** |
+| **T0** | Docs honesty: search `--ingest` loop; LLM opt-in; CI offline | **in progress** |
+| **T1** | `vaa search --ingest` skip Violated, stop on Incomplete | **in progress** |
+| **T2** | Gate smoke + closeout pin tip | pending |
+
+Honesty: Gate-1 Incomplete ≠ Verified. `search --ingest` ≠ CryptOpt. SoftHSM/Fulcio ≠ SemASM Verified.
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):
@@ -182,8 +200,8 @@ Do **not** call Gate-1 a “verified vertical slice”.
 ### Next waves (N0–N4) — SemASM tip pin + framed smoke
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
-`c8f2047bce0760b72c2b225f0704c44ca7ab2632`
-(Tranche R/X1: Win64 import+noexport object-policy).
+`b6d339562fe1ab1599c430c2e2d3e58faabfa2c4`
+(Tranche S1 `find_last_byte` + X2a Win64 syscall/stack twins).
 
 HlaX64 pin (`hlax64-bridge` only):
 `4c797893e0714f64faf1ae2f67ddf26c44f06d91`
@@ -337,6 +355,7 @@ Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 | `fixtures/canonical-json/` | Cross-language conformance vectors |
 | `fixtures/run/count_byte/README.md` | R1 golden run |
 | `fixtures/run/find_first_byte/README.md` | Q1 multi-candidate wrong→repair |
+| `fixtures/run/find_last_byte/README.md` | S2 multi-candidate + T search-ingest |
 | `fixtures/ingest/count_byte/README.md` | R2 generator-agnostic ingest |
 | `fixtures/ingest/hlax64_sum_i64/README.md` | HlaX64 → VAA ingest bridge (`sum_i64`) |
 | `fixtures/semasm/README.md` | Handshake fixtures |

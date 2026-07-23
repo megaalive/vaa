@@ -28,9 +28,9 @@ Honesty constraints for waves after `v0.1.0`.
 - Rekor / Sigstore / SoftHSM / Fulcio ≠ SemASM Verified; practice keys ≠ trust root;
   SoftHSM ≠ hardware HSM; Fulcio identity attest ≠ behavioral proof.
 
-## Search (P7-C) + Tranche Q / R
+## Search (P7-C) + Tranche Q / R / T
 
-- `vaa search` stages CryptOpt-like mutations (`nop-slide` or `--mutator-command`).
+- `vaa search` stages CryptOpt-like mutations (`nop-slide`, `nop-before-ret`, or `--mutator-command`).
 - Does not embed CryptOpt; live LLM search stays opt-in/manual.
 - Tranche **Q1** extends multi-candidate repair Gate smoke beyond `count_byte`
   (`find_first_byte` wrong→repair).
@@ -40,3 +40,8 @@ Honesty constraints for waves after `v0.1.0`.
   (still ≠ CryptOpt; Gate Incomplete without `--allow-execution`).
 - Mutator **`nop-before-ret`** (X2b) inserts NOPs before the last `ret` so SemASM
   does not see trailing-after-ret Violated (unlike post-ret `nop-slide`).
+- Tranche **T**: `vaa search --ingest --contract` runs bounded mutate→verify/seal
+  internally (no shell recursion). Skips Violated/Failed; stops on first
+  Incomplete (`stopped_reason=incomplete_accepted`, `verified=false`). Optional
+  `--allow-execution` may reach Verified (Gate-2; not default CI). Incomplete ≠
+  Verified; mutator output ≠ CryptOpt.

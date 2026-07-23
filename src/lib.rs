@@ -75,7 +75,8 @@ pub use sandbox::{
     LocalBackend, SandboxBackend, SandboxConfig, DEFAULT_SECCOMP_PROFILE_JSON,
 };
 pub use search::{
-    mutate_nop_before_ret, mutate_nop_slide, run_search, SearchAttempt, SearchError, SearchReport,
+    mutate_nop_before_ret, mutate_nop_slide, run_search, SearchAttempt, SearchError,
+    SearchIngestConfig, SearchReport,
 };
 pub use semasm::{
     compare_live_status, match_task_requirements, parse_status_json, probe_live_for_target,

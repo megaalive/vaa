@@ -6,8 +6,12 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::evidence::sha256_digest_prefixed;
+use crate::candidate::CandidateProtocol;
+use crate::evidence::{sha256_digest_prefixed, EvidenceStatus, GeneratorMeta};
 use crate::process::{ProcessConfig, ProcessRunner};
+use crate::run::verify_seal::{
+    doctor_and_capabilities, verify_candidate_and_seal, VerifySealInput,
+};
 use crate::run::RunDir;
 use crate::task::LockedTask;
 
@@ -17,6 +21,8 @@ pub enum SearchError {
     Io(String),
     #[error("mutator: {0}")]
     Mutator(String),
+    #[error("ingest: {0}")]
+    Ingest(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +38,14 @@ pub struct SearchReport {
     pub attempts: Vec<SearchAttempt>,
     pub verified: bool,
     pub stopped_reason: String,
+}
+
+/// Opt-in SemASM ingest after each staged mutator candidate (Tranche T).
+#[derive(Debug, Clone, Copy)]
+pub struct SearchIngestConfig<'a> {
+    pub task_path: &'a Path,
+    pub contract_path: &'a Path,
+    pub allow_execution: bool,
 }
 
 /// Deterministic fixture mutator: append `times` NOPs.
@@ -110,8 +124,30 @@ fn run_external_mutator(program: &Path, seed: &str, index: u32) -> Result<String
     Ok(source)
 }
 
-/// Bounded search campaign. Offline mode only mutates + stages (unit-friendly).
-/// Live ingest is left to the CLI (`vaa ingest`) so Gate stays deterministic.
+fn mutate_source(
+    seed_asm: &str,
+    index: u32,
+    mutator: &str,
+    mutator_command: Option<&Path>,
+) -> Result<String, SearchError> {
+    if let Some(cmd) = mutator_command {
+        run_external_mutator(cmd, seed_asm, index)
+    } else if mutator == "nop-slide" {
+        Ok(mutate_nop_slide(seed_asm, index))
+    } else if mutator == "nop-before-ret" {
+        mutate_nop_before_ret(seed_asm, index)
+    } else {
+        Err(SearchError::Mutator(format!(
+            "unknown mutator `{mutator}` (use nop-slide, nop-before-ret, or --mutator-command)"
+        )))
+    }
+}
+
+/// Bounded search campaign.
+///
+/// - Offline / default staging: mutate + write `staging/` only (`verified=false`).
+/// - `--ingest`: mutate → internal SemASM verify/seal; skip Violated/Failed; stop on
+///   first Incomplete (or Verified when `allow_execution`).
 pub fn run_search(
     locked: &LockedTask,
     seed_asm: &str,
@@ -120,59 +156,150 @@ pub fn run_search(
     mutator: &str,
     mutator_command: Option<&Path>,
     offline_fixture: bool,
+    ingest: Option<SearchIngestConfig<'_>>,
 ) -> Result<SearchReport, SearchError> {
     let task_budget = locked.task().budgets.max_candidates;
     let limit = budget.min(task_budget).max(1);
-    let rundir = RunDir::create(run_base, &crate::run::RunId::generate())
-        .map_err(|e| SearchError::Io(e.to_string()))?;
+    let run_id = crate::run::RunId::generate();
+    let rundir = RunDir::create(run_base, &run_id).map_err(|e| SearchError::Io(e.to_string()))?;
+    let run_id_str = run_id.to_string();
 
     let mut attempts = Vec::new();
-    let verified = false;
+    let mut verified = false;
     let mut stopped_reason = "budget_exhausted".to_owned();
 
-    for i in 0..limit {
-        let source = if let Some(cmd) = mutator_command {
-            run_external_mutator(cmd, seed_asm, i)?
-        } else if mutator == "nop-slide" {
-            mutate_nop_slide(seed_asm, i)
-        } else if mutator == "nop-before-ret" {
-            mutate_nop_before_ret(seed_asm, i)?
-        } else {
-            return Err(SearchError::Mutator(format!(
-                "unknown mutator `{mutator}` (use nop-slide, nop-before-ret, or --mutator-command)"
-            )));
-        };
+    if offline_fixture || ingest.is_none() {
+        for i in 0..limit {
+            let source = mutate_source(seed_asm, i, mutator, mutator_command)?;
+            let digest = sha256_digest_prefixed(source.as_bytes());
+            let rel = format!("search-{i:04}.asm");
+            let written = rundir
+                .write_staging(&rel, source.as_bytes())
+                .map_err(|e| SearchError::Io(e.to_string()))?;
 
+            let (status, notes) = if offline_fixture {
+                (
+                    "mutated".to_owned(),
+                    vec![
+                        "offline fixture — SemASM ingest skipped".into(),
+                        format!("staged={}", written.display()),
+                    ],
+                )
+            } else {
+                (
+                    "staged".to_owned(),
+                    vec![
+                        format!("staged={}", written.display()),
+                        "run `vaa ingest` on staged candidates for SemASM+seal".into(),
+                    ],
+                )
+            };
+
+            attempts.push(SearchAttempt {
+                index: i,
+                source_digest: digest,
+                status,
+                notes,
+            });
+        }
+
+        if attempts.is_empty() {
+            stopped_reason = "empty".into();
+        }
+
+        return Ok(SearchReport {
+            attempts,
+            verified: false,
+            stopped_reason,
+        });
+    }
+
+    let cfg = ingest.expect("ingest checked");
+    let (doctor, capability_match) = doctor_and_capabilities(locked);
+    if doctor.binary_path.is_none() {
+        return Err(SearchError::Ingest("semasm unavailable".into()));
+    }
+
+    let mut protocol = CandidateProtocol::with_max(&locked.task().target, limit);
+    let mut previous_seal_digest: Option<String> = None;
+
+    for i in 0..limit {
+        let source = mutate_source(seed_asm, i, mutator, mutator_command)?;
         let digest = sha256_digest_prefixed(source.as_bytes());
         let rel = format!("search-{i:04}.asm");
         let written = rundir
             .write_staging(&rel, source.as_bytes())
             .map_err(|e| SearchError::Io(e.to_string()))?;
 
-        let (status, notes) = if offline_fixture {
-            (
-                "mutated".to_owned(),
-                vec![
-                    "offline fixture — SemASM ingest skipped".into(),
-                    format!("staged={}", written.display()),
-                ],
-            )
-        } else {
-            (
-                "staged".to_owned(),
-                vec![
-                    format!("staged={}", written.display()),
-                    "run `vaa ingest` on staged candidates for SemASM+seal".into(),
-                ],
-            )
+        let outcome = match verify_candidate_and_seal(VerifySealInput {
+            locked,
+            task_path: cfg.task_path,
+            contract_path: cfg.contract_path,
+            source_bytes: source.as_bytes(),
+            run_dir: &rundir,
+            run_id: run_id_str.clone(),
+            protocol: &mut protocol,
+            candidate_index: i,
+            previous_seal_digest: previous_seal_digest.clone(),
+            generator: GeneratorMeta {
+                kind: "search".to_owned(),
+                name: mutator.to_owned(),
+                generation_id: Some(format!("search-{i:04}")),
+            },
+            doctor: doctor.clone(),
+            capability_match: capability_match.clone(),
+            allow_execution: cfg.allow_execution,
+        }) {
+            Ok(o) => o,
+            Err(e) => {
+                attempts.push(SearchAttempt {
+                    index: i,
+                    source_digest: digest,
+                    status: "failed".into(),
+                    notes: vec![
+                        format!("staged={}", written.display()),
+                        format!("ingest error: {e}"),
+                    ],
+                });
+                // Skip Failed and continue budget (fail-closed per attempt).
+                continue;
+            }
         };
 
+        previous_seal_digest = Some(outcome.seal.envelope_digest.clone());
+        let status_label = match outcome.evidence.final_status {
+            EvidenceStatus::Verified => "verified",
+            EvidenceStatus::Violated => "violated",
+            EvidenceStatus::Incomplete => "incomplete",
+            EvidenceStatus::Failed => "failed",
+        };
         attempts.push(SearchAttempt {
             index: i,
             source_digest: digest,
-            status,
-            notes,
+            status: status_label.to_owned(),
+            notes: vec![
+                format!("staged={}", written.display()),
+                format!("candidate={}", outcome.candidate_dir.display()),
+                format!("final_status={status_label}"),
+            ],
         });
+
+        match outcome.evidence.final_status {
+            EvidenceStatus::Incomplete => {
+                verified = false;
+                stopped_reason = "incomplete_accepted".into();
+                break;
+            }
+            EvidenceStatus::Verified => {
+                // Only reachable with --allow-execution; honesty: Verified only if SemASM Verified.
+                verified = true;
+                stopped_reason = "verified".into();
+                break;
+            }
+            EvidenceStatus::Violated | EvidenceStatus::Failed => {
+                // Skip and continue within budget.
+            }
+        }
     }
 
     if attempts.is_empty() {
@@ -243,6 +370,7 @@ mod tests {
             "nop-slide",
             None,
             true,
+            None,
         )
         .expect("search");
         assert_eq!(report.attempts.len(), 3);
