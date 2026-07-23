@@ -100,7 +100,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
+          ref: 7d54ee298d99535535807e8e7858f8728002b6c5
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -177,7 +177,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
+          ref: 7d54ee298d99535535807e8e7858f8728002b6c5
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -248,7 +248,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
+          ref: 7d54ee298d99535535807e8e7858f8728002b6c5
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -350,7 +350,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
+          ref: 7d54ee298d99535535807e8e7858f8728002b6c5
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -429,7 +429,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM tip (T0–T6 + N4 docs pointer).
-          ref: b91ca45b2e63bb83eea603bc522cb0063b5155f4
+          ref: 7d54ee298d99535535807e8e7858f8728002b6c5
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |

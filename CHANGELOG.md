@@ -10,6 +10,8 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
 
 ### Added
 
+- **M4 / SemASM Tranche M** — `min_usize` Gate-1 Incomplete + Gate-2 Verified fixtures
+  (`fixtures/semasm/min_usize/`); SemASM pin `7d54ee2…`. Gate-1 Incomplete ≠ Verified.
 - **P8-F** — `fuzz/` cargo-fuzz targets (`task_toml`, `seal_envelope`, `transparency_doc`,
   `cache_verification_record`) + ubuntu CI smoke (30s/target). Not a security certification.
 - **P8-K** — SoftHSM2 PKCS#11 live signer behind `--features pkcs11` (`rsa-pkcs1-sha256`);

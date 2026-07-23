@@ -131,6 +131,7 @@ cargo run -q -- evidence verify-chain \
 | **S2 Gate-1** | CI installs SemASM + toolchain; `vaa verify`/`ingest` + `verify-chain` on `count_byte` Win64 **without** `--allow-execution` | **Done** (Incomplete smoke) |
 | **S3 Gate-2** | VAA forwards `--allow-execution`; CI assert `Verified` | **Done** (opt-in) |
 | **S4** | SemASM ships `sum_i64` contract/oracle; VAA fixtures + CI | **Done** (`builtin.buffer.wrapping_sum_i64`) |
+| **M4** | SemASM Tranche M handoff: `min_usize` Gate-1/2 | **Done** (`builtin.pure_int.binary_usize`) |
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
@@ -158,8 +159,8 @@ Do **not** call Gate-1 a “verified vertical slice”.
 ### Next waves (N0–N4) — SemASM tip pin + framed smoke
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
-`b91ca45b2e63bb83eea603bc522cb0063b5155f4`
-(T0–T6 tip + R2 version/status JSON).
+`7d54ee298d99535535807e8e7858f8728002b6c5`
+(Tranche M tip: `min_usize` Gate-ready pack + callee-saved twins).
 
 HlaX64 pin (`hlax64-bridge` only):
 `4c797893e0714f64faf1ae2f67ddf26c44f06d91`
