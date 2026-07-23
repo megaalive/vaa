@@ -279,8 +279,8 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **PR-019** | Live OpenAI-compatible adapter (`live-model` + `--live`) | **Done** (opt-in; CI stays offline-deterministic) |
 | **PR-020** | Content-addressed cache | **Done** (local `.vaa/cache`; `--cache` opt-in; not remote log) |
 | **PR-021** | Reproducibility report | **Done** (same-host twin assemble/build; not cross-host) |
-| **PR-022** | Negative corpus + fuzz entry points | Partial (N5/N6; not full fuzz) |
-| **PR-023 / R-tag** | Alpha release gate + git tag | Pending (checklist ready; tag deferred) |
+| **PR-022** | Negative corpus + fuzz entry points | **Partial Done** (N5/N6 + cache negatives; not full fuzz) |
+| **PR-023 / R-tag** | Alpha release gate + git tag | **Docs Done** (checklist ready; tag deferred) |
 
 Honesty: `--live` never runs in Gate CI; API keys are env-only and never sealed.
 
@@ -294,6 +294,7 @@ Honesty: `--live` never runs in Gate CI; API keys are env-only and never sealed.
 | `docs/release-v0.1-checklist.md` | Prep checklist before any `v0.1.0` git tag |
 | `CHANGELOG.md` | Release notes (Unreleased + crate 0.1.0 prep) |
 | `scripts/release-prep-check.*` | Local fmt/clippy/test prep (never tags) |
+| `docs/cache.md` | PR-020 local cache layout + honesty |
 | `docs/vaa-canonical-json-v1.md` | Named canonical JSON profile |
 | `fixtures/canonical-json/` | Cross-language conformance vectors |
 | `fixtures/run/count_byte/README.md` | R1 golden run |

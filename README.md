@@ -90,9 +90,10 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-Architecture **Phase 5 / PR-019** (live OpenAI-compatible adapter) is landing; next is
-Phase 6 evidence hardening (cache / reproducibility) then Phase 7 alpha / **R-tag**.
-See [`docs/progress.md`](docs/progress.md) and [`CHANGELOG.md`](CHANGELOG.md).
+**R-tag** (`git tag v0.1.0`) is deferred until maintainer sign-off — see
+[`docs/release-v0.1-checklist.md`](docs/release-v0.1-checklist.md).
+Phase 6 (PR-020 cache, PR-021 repro, thin PR-022/023 docs) is Done.
+Known limits: cache is local-only; repro is same-host; live model is feature-gated.
 Deferred: CryptOpt, Rekor/HSM, OS-level generator isolation, auto-publish.
 
 ## License

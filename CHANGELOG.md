@@ -19,6 +19,8 @@ checklist and maintainer sign-off are complete (see `docs/release-v0.1-checklist
   Incomplete/Failed never promoted to Verified.
 - **PR-021** — Same-host reproducibility: `vaa build --check-reproducible` + required
   `reproducible_build` evidence check (twin NASM assemble). Not cross-host bit-identical.
+- **PR-022/023** — Thin cache negative fixtures + release checklist / `docs/cache.md`
+  closeout (git tag still deferred).
 - **G1** — External argv generator (`vaa generate --run-dir … --command …`) writes
   only under `staging/` (`GeneratorMeta.kind = external-argv`). Logical barrier only;
   not OS ACL / job-object FS isolation.

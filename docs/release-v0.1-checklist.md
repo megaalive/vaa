@@ -26,18 +26,23 @@ authorization to `git tag v0.1.0` until every required row is explicitly signed 
 | External argv → staging (**G1**) | `vaa generate --command` (not OS FS isolation) |
 | E1 resume smoke in Gate-1 CI (**E1b**) | `tests/semasm_gate1_smoke.rs` |
 | Linux Gate Incomplete + Verified (**L1/L2**) | `semasm-gate1-linux` / `semasm-gate2-linux` |
-| CHANGELOG + prep scripts (**R-notes**) | `CHANGELOG.md`, `scripts/release-prep-check.*` |
+| Live model opt-in (**PR-019**) | feature `live-model` + `--live` (Gate CI offline) |
+| Local cache (**PR-020**) | [`docs/cache.md`](cache.md); `--cache` opt-in |
+| Reproducibility (**PR-021**) | `vaa build --check-reproducible` (same-host) |
+| Negative corpus thin (**PR-022**) | `fixtures/negative/` (not full fuzz) |
+| CHANGELOG + prep scripts (**R-notes** / **PR-023** docs) | `CHANGELOG.md`, `scripts/release-prep-check.*` |
 | Next | **R-tag** ceremony deferred until maintainer sign-off |
 
 ## Explicit non-goals for `v0.1.0`
 
-- Live model adapter / provider SDKs
 - CryptOpt-style search engine
 - Remote append-only transparency (Rekor / Git notes automation)
 - HSM / hardware keys / Sigstore
 - Full hardened sandbox (seccomp profile, verified rootless, OS-level FS isolation)
 - Claiming Gate-1 Incomplete as a “Verified vertical slice”
 - Claiming SemASM Linux assemble/link is upstream CI-verified (VAA proves smoke on pin only)
+- Cross-host bit-identical builds / cache as a trust root
+- Full cargo-fuzz PR-022 security certification
 
 ## Local prep (optional)
 

@@ -429,6 +429,39 @@ mod tests {
     }
 
     #[test]
+    fn negative_cache_fixtures_reject_garbage_and_missing_blob() {
+        use crate::cache::{CacheError, CacheStore, VerificationCacheRecord, CACHE_SCHEMA_VERSION};
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/negative");
+        let garbage =
+            std::fs::read_to_string(root.join("cache_verification_garbage.json")).unwrap();
+        assert!(serde_json::from_str::<VerificationCacheRecord>(&garbage).is_err());
+
+        let missing_blob: VerificationCacheRecord = serde_json::from_str(
+            &std::fs::read_to_string(root.join("cache_verification_missing_blob.json")).unwrap(),
+        )
+        .expect("fixture parses");
+        assert_eq!(missing_blob.schema_version, CACHE_SCHEMA_VERSION);
+
+        let dir = std::env::temp_dir().join(format!("vaa_neg_cache_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let store = CacheStore::open(&dir);
+        store.ensure_layout().unwrap();
+        let hex = missing_blob
+            .key_digest
+            .strip_prefix("sha256:")
+            .unwrap()
+            .to_owned();
+        let path = dir.join("verification").join(format!("{hex}.json"));
+        std::fs::write(&path, serde_json::to_vec(&missing_blob).unwrap()).unwrap();
+        // Direct get_blob for missing pointer.
+        assert!(matches!(
+            store.get_blob(&missing_blob.report_blob_digest),
+            Err(CacheError::NotFound)
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn path_abuse_rejected() {
         let store = temp_store();
         store.ensure_layout().unwrap();
