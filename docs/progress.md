@@ -233,7 +233,7 @@ HlaX64 pin (`hlax64-bridge`):
 | **X5** | SemASM caps SysV write/indirect + A64/RV evidence | **Done** (`0305846`) |
 | **H5** | HlaX64 `memcmp` emit + VAA ingest/Gate bridge | **Done** (`85a2dba`) |
 | **Z0** | Docs honesty: memcmp bridge + find_first search parity | **Done** |
-| **Z1** | `find_first` `00_write_broken` + search Gate-1/2 smokes | **in progress** |
+| **Z1** | `find_first` `00_write_broken` + search Gate-1/2 smokes | **Done** |
 | **Z2** | Closeout docs + pin tip | pending |
 
 Honesty: Gate-1 Incomplete ≠ Verified. Gate-2 search Verified is SemASM

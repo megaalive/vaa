@@ -54,3 +54,6 @@ Honesty constraints for waves after `v0.1.0`.
   Violated skip + Incomplete / allow-exec Verified). HlaX64 `find_last_byte`
   bridge (H4) is a second emit leaf; HlaX64 `-Wverify` ≠ SemASM Verified.
   LLM search stays opt-in/manual.
+- Tranche **Z** extends search-ingest Gate parity to `find_first_byte`. HlaX64
+  `memcmp` bridge (H5) is a third emit leaf (dual-buffer `-1/0/1`). Default CI
+  remains Gate-1 fail-closed.
