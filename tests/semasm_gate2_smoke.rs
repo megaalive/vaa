@@ -1896,3 +1896,68 @@ fn gate2_search_ingest_memset_allow_execution_verified() {
         "Verified may only be attributed to the SemASM path: {stdout}"
     );
 }
+
+#[test]
+#[ignore = "requires semasm + Win64 + allow-execution"]
+fn gate2_search_ingest_memcpy_allow_execution_verified() {
+    let task = root().join("fixtures/run/memcpy/memcpy.vaa.toml");
+    let contract = root().join("fixtures/run/memcpy/memcpy.sem.toml");
+    let seed = root().join("fixtures/run/memcpy/02_repaired.asm");
+    let run_base = root().join("target/vaa-gate2-search-ingest-memcpy-verified");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "search",
+            task.to_str().unwrap(),
+            seed.to_str().unwrap(),
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--ingest",
+            "--allow-execution",
+            "--mutator",
+            "nop-before-ret",
+            "--budget",
+            "3",
+            "--contract",
+            contract.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run vaa search --ingest --allow-execution memcpy");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        output.status.success(),
+        "memcpy search --ingest --allow-execution failed: {:?}\n{stdout}\n{stderr}",
+        output.status
+    );
+    assert!(
+        stdout.contains("verified=true"),
+        "Gate-2 memcpy search must report verified=true: {stdout}"
+    );
+    assert!(
+        stdout.contains("reason=verified")
+            || stdout.contains("stopped_reason=verified")
+            || stdout.contains("\"stopped_reason\":\"verified\""),
+        "Gate-2 memcpy search must stop because SemASM verified the candidate: {stdout}"
+    );
+    let stdout_lower = stdout.to_lowercase();
+    assert!(
+        !stdout_lower.contains("cryptopt verified"),
+        "honesty: must not claim CryptOpt Verified: {stdout}"
+    );
+    assert!(
+        stdout.contains("SemASM Verified only") && stdout.contains("not CryptOpt"),
+        "Verified may only be attributed to the SemASM path: {stdout}"
+    );
+}
