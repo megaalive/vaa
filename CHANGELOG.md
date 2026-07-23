@@ -30,6 +30,8 @@ Practice seals and Gate artifacts remain illustrative, not a trust root.
 
 - CHANGELOG `[0.1.0]` non-goals: remove stray `Done` after OS-level FS isolation line.
 - GitHub repository About description + topics for discoverability.
+- Twin-assemble `reproducible_build` on Windows: normalize COFF `TimeDateStamp`
+  before object digest compare (same-host; not cross-host bit-identical).
 
 ## [0.1.0] — 2026-07-23
 

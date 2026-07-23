@@ -39,7 +39,7 @@ impl CanonicalBuildView {
     pub fn from_outcome(outcome: &BuildOutcome, source_bytes: &[u8], target: &str) -> Self {
         let object_digest = std::fs::read(&outcome.manifest.object_path)
             .ok()
-            .map(|b| sha256_digest_prefixed(&b));
+            .map(|b| sha256_digest_prefixed(&canonicalize_object_bytes(&b, target)));
         let binary_digest = std::fs::read(&outcome.manifest.binary_path)
             .ok()
             .map(|b| sha256_digest_prefixed(&b));
@@ -56,6 +56,28 @@ impl CanonicalBuildView {
             linker_args: strip_path_args(&outcome.manifest.linker_args),
         }
     }
+}
+
+/// Zero volatile COFF `TimeDateStamp` (offset 4) on Windows objects so twin
+/// NASM assembles can match same-host without claiming cross-host identity.
+#[must_use]
+pub fn canonicalize_object_bytes(bytes: &[u8], target: &str) -> Vec<u8> {
+    let mut out = bytes.to_vec();
+    if !target.contains("windows") {
+        return out;
+    }
+    // COFF file header: Machine(u16) + NumberOfSections(u16) + TimeDateStamp(u32@4).
+    if out.len() >= 8 {
+        let machine = u16::from_le_bytes([out[0], out[1]]);
+        // IMAGE_FILE_MACHINE_AMD64 / I386 — typical NASM `-f win64` / win32 objects.
+        if machine == 0x8664 || machine == 0x014c {
+            out[4] = 0;
+            out[5] = 0;
+            out[6] = 0;
+            out[7] = 0;
+        }
+    }
+    out
 }
 
 fn strip_path_args(args: &[String]) -> Vec<String> {
@@ -222,10 +244,17 @@ pub fn reproducible_build_check(source_path: &Path, target: &str) -> (bool, Stri
         (Ok(oa), Ok(ob)) if oa.exit_code == Some(0) && ob.exit_code == Some(0) => {
             match (std::fs::read(&obj_a), std::fs::read(&obj_b)) {
                 (Ok(ba), Ok(bb)) => {
-                    let da = sha256_digest_prefixed(&ba);
-                    let db = sha256_digest_prefixed(&bb);
+                    let ca = canonicalize_object_bytes(&ba, target);
+                    let cb = canonicalize_object_bytes(&bb, target);
+                    let da = sha256_digest_prefixed(&ca);
+                    let db = sha256_digest_prefixed(&cb);
                     if da == db {
-                        (true, format!("twin assemble matched ({da})"))
+                        (
+                            true,
+                            format!(
+                                "twin assemble matched ({da}; COFF timestamp normalized on windows)"
+                            ),
+                        )
                     } else {
                         (false, format!("object_digest: {da} vs {db}"))
                     }
@@ -310,5 +339,20 @@ mod tests {
             stripped,
             vec!["-f".to_owned(), "elf64".to_owned(), "-o".to_owned()]
         );
+    }
+
+    #[test]
+    fn coff_timestamp_normalize_zeros_stamp() {
+        let mut fake = vec![0u8; 16];
+        fake[0] = 0x64;
+        fake[1] = 0x86; // AMD64 LE
+        fake[4] = 0x11;
+        fake[5] = 0x22;
+        fake[6] = 0x33;
+        fake[7] = 0x44;
+        let n = canonicalize_object_bytes(&fake, "x86_64-pc-windows-msvc");
+        assert_eq!(&n[4..8], &[0, 0, 0, 0]);
+        let elfish = canonicalize_object_bytes(&fake, "x86_64-unknown-linux-gnu");
+        assert_eq!(&elfish[4..8], &[0x11, 0x22, 0x33, 0x44]);
     }
 }
