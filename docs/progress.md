@@ -207,12 +207,16 @@ HlaX64 pin (`hlax64-bridge`):
 | **X4** | SemASM MemCmp harness fail-closed on AArch64/RISC-V | **Done** (`0c12bf7`) |
 | **H4** | HlaX64 `find_last_byte` emit + VAA ingest/Gate bridge | **Done** (`e105ea0`) |
 | **Y0** | Docs honesty: bridge + memcmp search-ingest parity | **Done** |
-| **Y1** | `memcmp` `00_write_broken` + search Gate-1/2 smokes | **Done** |
-| **Y2** | Closeout docs + pin tip | pending |
+| **Y1** | `memcmp` `00_write_broken` + search Gate-1/2 smokes | **Done** (`1c43236`) |
+| **Y2** | Closeout docs + pin tip | **Done** |
 
 Honesty: Gate-1 Incomplete ≠ Verified. Gate-2 search Verified is SemASM
 `--allow-execution` only (≠ CryptOpt). HlaX64 `-Wverify` ≠ SemASM Verified.
 MemCmp harness remains x86-only; A64/RV fail closed.
+
+Closeout tips: SemASM `0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620`;
+HlaX64 `3641428a6af4f22b6e7cd12febfeca65ac0d8d1b`;
+VAA Gate handoff `1c432364be6d11bf31cd4bd99466258676e89270`.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
