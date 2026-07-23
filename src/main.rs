@@ -1395,7 +1395,7 @@ fn fulcio_sign_command(
         }
         #[cfg(not(feature = "fulcio"))]
         {
-            let _ = fulcio_url;
+            let _ = (fulcio_url, token);
             eprintln!(
                 "error: live Fulcio requires `--features fulcio` (use --dry-run for offline mock)"
             );
@@ -1405,10 +1405,7 @@ fn fulcio_sign_command(
 
     match result {
         Ok(r) => {
-            let out = output.map_or_else(
-                || file.with_extension("fulcio.json"),
-                PathBuf::from,
-            );
+            let out = output.map_or_else(|| file.with_extension("fulcio.json"), PathBuf::from);
             let doc = serde_json::json!({
                 "schema": "vaa-fulcio-dsse-v1",
                 "certificate_chain_pem": r.certificate_chain_pem,
