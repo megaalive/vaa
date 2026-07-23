@@ -167,12 +167,15 @@ SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
 | **X2a** | SemASM Win64 syscall + stack_imbalance twins | **Done** (SemASM tip) |
 | **X2b** | VAA mutator `nop-before-ret` | **Done** |
 | **S0–S1** | SemASM `find_last_byte` oracle + Gate pack | **Done** |
-| **S2** | VAA pin + Gate-1/2 + run wrong→repair | **in progress** |
-| **T0** | Docs honesty: search `--ingest` loop; LLM opt-in; CI offline | **in progress** |
-| **T1** | `vaa search --ingest` skip Violated, stop on Incomplete | **in progress** |
-| **T2** | Gate smoke + closeout pin tip | pending |
+| **S2** | VAA pin + Gate-1/2 + run wrong→repair | **Done** (`dcbc536`) |
+| **T0** | Docs honesty: search `--ingest` loop; LLM opt-in; CI offline | **Done** |
+| **T1** | `vaa search --ingest` skip Violated, stop on Incomplete | **Done** |
+| **T2** | Gate smoke + closeout pin tip | **Done** (`1ad5d0e`) |
 
 Honesty: Gate-1 Incomplete ≠ Verified. `search --ingest` ≠ CryptOpt. SoftHSM/Fulcio ≠ SemASM Verified.
+
+Closeout tips: SemASM `b6d339562fe1ab1599c430c2e2d3e58faabfa2c4` (S1 functional; docs `1d57e8d`);
+VAA `1ad5d0e45d53a8e4bbf4c81d6575dfcfe917dbdf`.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
