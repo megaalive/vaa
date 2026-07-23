@@ -394,7 +394,7 @@ SemASM Verified; local transparency artifact ≠ remote log.
 |---|---|---|
 | **H0–H6** | Horizon Closeout program | **Done** |
 
-SemASM pin: `6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc`
+SemASM pin: `c036551cd74dd88ed137bf63d80f20086738f85d`
 
 ### W4 — HlaX64 `replace_byte` bridge
 
@@ -587,8 +587,10 @@ Honesty: HlaX64 emit / `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete
 oracle/vectors ≠ formal `ensures`/general theorem proving. Update the D0
 inventory table: `min_usize`/`max_usize` HlaX64 bridge moves from "—" to
 "yes (Th8)". **Residual Thin is now closed** — Thin Th1–Th8 are all
-**Done**; only Horizon (formal ensures, CryptOpt, HSM, A64/RV write-shape
-harness, decode/lower `verified_in_ci` bump) remains.
+**Done**. Horizon Closeout (H0–H6) is also **closed**; residual cliffs are
+**Horizon-locked deferred** (formal ensures, CryptOpt embed, hardware HSM,
+A64/RV write-shape harness, live-model Gate CI, decode/lower
+`verified_in_ci` bump) — see Next maturity program above.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 

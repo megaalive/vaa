@@ -86,7 +86,7 @@ jobs:
         run: cargo test --features pkcs11 softhsm_live_round_trip -- --nocapture
 
   # Gate-1: live SemASM Incomplete smoke (count_byte Win64, no --allow-execution).
-  # This is NOT a Verified vertical slice — see docs/progress.md.
+  # This is NOT a Verified vertical slice â€” see docs/progress.md.
   semasm-gate1:
     name: Gate-1 SemASM Incomplete (Win64)
     runs-on: windows-latest
@@ -100,7 +100,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
+          ref: c036551cd74dd88ed137bf63d80f20086738f85d
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -177,7 +177,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
+          ref: c036551cd74dd88ed137bf63d80f20086738f85d
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -248,7 +248,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
+          ref: c036551cd74dd88ed137bf63d80f20086738f85d
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -367,7 +367,7 @@ jobs:
           if-no-files-found: error
 
   # Gate-1 Linux: live SemASM Incomplete smoke (count_byte/sysv64, no --allow-execution).
-  # VAA+SemASM smoke on the pinned SemASM SHA — not a claim SemASM Linux is upstream CI-verified.
+  # VAA+SemASM smoke on the pinned SemASM SHA â€” not a claim SemASM Linux is upstream CI-verified.
   semasm-gate1-linux:
     name: Gate-1 SemASM Incomplete (Linux)
     runs-on: ubuntu-latest
@@ -381,7 +381,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
+          ref: c036551cd74dd88ed137bf63d80f20086738f85d
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -460,7 +460,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
+          ref: c036551cd74dd88ed137bf63d80f20086738f85d
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
