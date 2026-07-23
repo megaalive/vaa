@@ -255,8 +255,8 @@ jobs:
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: replace_byte SemASM/VAA bridge leaf (W4).
-          ref: 909553cbad0b5c357a97e21a030153ef9d5648d8
+          # Pin: count_byte + find_first_byte SemASM/VAA bridges (Thin Th1/Th2).
+          ref: 5e29a4442b7db01c4bb396aea363e01d8067b750
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -306,6 +306,8 @@ jobs:
             @{ Name = "find_last_byte"; Script = "regen-hlax64-find_last_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/find_last_byte/find_last_byte.hla64"; Fixture = "fixtures/ingest/hlax64_find_last_byte/candidate.asm" }
             @{ Name = "memcmp"; Script = "regen-hlax64-memcmp.ps1"; Source = "hlax64/examples/interop/semasm-vaa/memcmp/memcmp.hla64"; Fixture = "fixtures/ingest/hlax64_memcmp/candidate.asm" }
             @{ Name = "replace_byte"; Script = "regen-hlax64-replace_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/replace_byte/replace_byte.hla64"; Fixture = "fixtures/ingest/hlax64_replace_byte/candidate.asm" }
+            @{ Name = "count_byte"; Script = "regen-hlax64-count_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/count_byte/count_byte.hla64"; Fixture = "fixtures/ingest/hlax64_count_byte/candidate.asm" }
+            @{ Name = "find_first_byte"; Script = "regen-hlax64-find_first_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/find_first_byte/find_first_byte.hla64"; Fixture = "fixtures/ingest/hlax64_find_first_byte/candidate.asm" }
           )) {
             $tmp = Join-Path $env:RUNNER_TEMP ("hlax64-" + $leaf.Name + ".asm")
             dotnet run --project hlax64/src/HlaX64.Cli --no-launch-profile -- emit-nasm `
@@ -332,6 +334,10 @@ jobs:
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_memcmp_win64_verified -- --ignored --nocapture
           cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_replace_byte_verify_chain -- --ignored --nocapture
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_replace_byte_win64_verified -- --ignored --nocapture
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_count_byte_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_count_byte_win64_verified -- --ignored --nocapture
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_find_first_byte_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_find_first_byte_win64_verified -- --ignored --nocapture
 
       - name: Export + verify-transparency (HlaX64 Gate-1)
         shell: pwsh

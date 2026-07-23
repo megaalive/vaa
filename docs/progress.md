@@ -261,15 +261,15 @@ implementation plan only after SemASM ADR 0003 is Accepted.
 
 | Leaf | VAA Gate | search `--ingest` | HlaX64 bridge |
 |---|---|---|---|
-| `count_byte` | yes | yes | paused |
-| `find_first_byte` | yes | yes (Z) | paused |
+| `count_byte` | yes | yes | yes (Th1) |
+| `find_first_byte` | yes | yes (Z) | yes (Th2) |
 | `find_last_byte` | yes | yes | yes (H4) |
 | `memcmp` | yes | yes (Y) | yes (H5) |
 | `sum_i64` | yes | — | yes (H1) |
 | `min_usize` / `max_usize` | yes | — | — |
 | `replace_byte` | yes (W3) | — | yes (W4) |
 
-**Intentionally not continued now:** `find_first` / `count_byte` / pure-int
+**Intentionally not continued now:** pure-int (`min_usize`/`max_usize`)
 HlaX64 bridges; A64/RV MemCmp/replace harness; CryptOpt embed; formal
 ensures.
 
@@ -377,10 +377,10 @@ deferred (W4 landed the `replace_byte` bridge only; see below).
 ### Next maturity program
 
 Multi-tranche maturity program **closed**: **I1/I2** → **Wm** → **Wc** →
-**Rmem** → **W4** → **Dx** (all Done). Optional **Thin** bridges
-(`count_byte` / `find_first` HlaX64 parity, memset/memcpy emit) only if
-bandwidth remains. Horizon stays deferred (formal ensures, CryptOpt, HSM,
-decode/lower `verified_in_ci` bump).
+**Rmem** → **W4** → **Dx** → **Thin (Th1–Th2)** (all Done). Optional
+remaining Thin scope (memset/memcpy HlaX64 emit) only if bandwidth remains.
+Horizon stays deferred (formal ensures, CryptOpt, HSM, decode/lower
+`verified_in_ci` bump).
 
 ### W4 — HlaX64 `replace_byte` bridge
 
@@ -413,6 +413,36 @@ SemASM tip `f20d979` documents the Dx bump checklist and lands an adversarial
 wave (`cpuid` unknown-insn + `find_first_byte` trailing-bytes twins).
 `decode`/`lower` remain **`partial`** — no maturity bump.
 
+### Thin (Th1–Th2) — HlaX64 `count_byte` + `find_first_byte` bridges
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`f20d9791683becf50fc7ac6846fc06666697ad92`
+(Dx tip: decode/lower checklist + adversarial wave; caps stay `partial`;
+unchanged from W4 — Thin lands no new SemASM work).
+
+HlaX64 pin (`hlax64-bridge`):
+`5e29a4442b7db01c4bb396aea363e01d8067b750`
+(`examples: add count_byte and find_first_byte SemASM/VAA bridges`).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **Th1** | HlaX64 `count_byte.hla64` emit + VAA `fixtures/ingest/hlax64_count_byte/` + Gate-1/2 + CI | **Done** |
+| **Th2** | HlaX64 `find_first_byte.hla64` emit + VAA `fixtures/ingest/hlax64_find_first_byte/` + Gate-1/2 + CI | **Done** |
+
+Fifth and sixth HlaX64 leaves (after `sum_i64` H1, `find_last_byte` H4,
+`memcmp` H5, `replace_byte` W4). Both `count_byte` and `find_first_byte`
+are read-only buffer scans (like `memcmp`/`find_last_byte`) — same oracles
+as the existing `fixtures/semasm/count_byte/` (`builtin.buffer.count_equal_u8`
+v2) and `fixtures/semasm/find_first_byte/` (`builtin.buffer.find_first_u8`
+v1) fixtures.
+
+Honesty: HlaX64 emit / `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete
+(no `--allow-execution`) ≠ Gate-2 Verified. `count_byte`/`find_first_byte`
+oracle/vectors ≠ formal `ensures`/region-precise proof. Update the D0
+inventory table: `count_byte` HlaX64 bridge moves from "paused" to
+"yes (Th1)"; `find_first_byte` HlaX64 bridge moves from "paused" to
+"yes (Th2)".
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):
@@ -424,7 +454,9 @@ Roles (do not conflate):
 | **VAA** | Task lock, `ingest`/`verify`, seal chain | Generating assembly |
 
 First leaf: `sum_i64` (Win64). Second leaf: `find_last_byte` (Win64, H4).
-Third leaf: `memcmp` (Win64, H5). Generator label: `--generator hlax64`.
+Third leaf: `memcmp` (Win64, H5). Fourth leaf: `replace_byte` (Win64, W4).
+Fifth/sixth leaves: `count_byte` / `find_first_byte` (Win64, Th1/Th2).
+Generator label: `--generator hlax64`.
 
 | Wave | Focus | Claim when done |
 |---|---|---|

@@ -162,9 +162,9 @@ impl SemasmVerify {
                 ExecutionError::SandboxUnavailable(name) => {
                     VerifyError::ProcessFailed(format!("sandbox unavailable: {name}"))
                 }
-                ExecutionError::BinaryNotFound(p) => VerifyError::ProcessFailed(format!(
-                    "semasm binary not found in sandbox: {p}"
-                )),
+                ExecutionError::BinaryNotFound(p) => {
+                    VerifyError::ProcessFailed(format!("semasm binary not found in sandbox: {p}"))
+                }
                 ExecutionError::ProcessError(ProcessError::Timeout { .. }) => VerifyError::Timeout,
                 ExecutionError::ProcessError(other) => {
                     VerifyError::ProcessFailed(other.to_string())
