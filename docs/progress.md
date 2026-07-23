@@ -146,6 +146,16 @@ cargo run -q -- evidence verify-chain \
 
 Honesty: search/repair staging ≠ SemASM Verified; live-model stays opt-in/manual.
 
+### Next waves (R0–R1 + X1) — search→ingest + object-policy depth
+
+| Wave | Focus | Status |
+|---|---|---|
+| **R0** | Docs honesty: next = search→ingest + Win64 import/noexport | **In progress** |
+| **X1** | SemASM Win64 import + noexport object-policy twins | Pending (SemASM) |
+| **R1** | `vaa search` staging → `ingest` Gate smoke + verify-chain | Pending |
+
+Honesty: staged mutator output ≠ Verified until SemASM ingest; import/noexport ≠ execution proof.
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):

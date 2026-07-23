@@ -28,7 +28,7 @@ Honesty constraints for waves after `v0.1.0`.
 - Rekor / Sigstore / SoftHSM / Fulcio ≠ SemASM Verified; practice keys ≠ trust root;
   SoftHSM ≠ hardware HSM; Fulcio identity attest ≠ behavioral proof.
 
-## Search (P7-C) + Tranche Q
+## Search (P7-C) + Tranche Q / R
 
 - `vaa search` stages CryptOpt-like mutations (`nop-slide` or `--mutator-command`).
 - Does not embed CryptOpt; live LLM search stays opt-in/manual.
@@ -36,3 +36,5 @@ Honesty constraints for waves after `v0.1.0`.
   (`find_first_byte` wrong→repair).
 - Tranche **Q2** adds offline nop-slide staging Gate smoke (≠ Verified; ≠ formal
   superopt). Staging ≠ SemASM ingest; `verified=false` is intentional.
+- Tranche **R1** wires one staged candidate into `vaa ingest` + `verify-chain`
+  (still ≠ CryptOpt; Gate Incomplete without `--allow-execution`).
