@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
-          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
+          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
+          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
-          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
+          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
+          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
-          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
+          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
+          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -374,8 +374,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
-          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
+          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
+          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -453,8 +453,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (docs: HlaX64 count_byte/find_first_byte bridges landed on VAA; caps stay partial).
-          ref: fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6
+          # Pin: SemASM Thin tip (Th1-Th7 inventory close; decode/lower stay partial).
+          ref: 4e7d40f507519a24441718ee5eecd10ce966eb10
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
