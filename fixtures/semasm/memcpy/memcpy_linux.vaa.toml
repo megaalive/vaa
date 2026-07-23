@@ -1,0 +1,100 @@
+schema_version = "0.1"
+task_id = "memcpy-linux-v1"
+artifact_kind = "callable-function"
+target = "x86_64-unknown-linux-gnu"
+
+[entry]
+symbol = "memcpy"
+abi = "sysv64"
+
+[inputs.dst]
+kind = "pointer"
+element = "u8"
+access = "write"
+length_from = "length"
+nullable = false
+
+[inputs.src]
+kind = "pointer"
+element = "u8"
+access = "read"
+length_from = "length"
+nullable = false
+
+[inputs.length]
+kind = "usize"
+
+[output]
+kind = "usize"
+
+[behavior]
+summary = "Copy src[0..length] into dst[0..length]; always returns 0."
+empty_input_result = 0
+
+[capabilities]
+syscalls = []
+imports = []
+heap = false
+filesystem = false
+network = false
+environment = false
+clock = false
+random = false
+
+[memory]
+max_stack_bytes = 128
+allow_global_writable = false
+allow_self_modifying_code = false
+
+[instructions]
+required_features = ["x86-64-baseline"]
+forbidden_mnemonics = []
+allow_unknown_semantics = false
+
+[verification]
+require_complete_lowering = true
+require_abi_check = true
+require_object_inspection = true
+require_behavioral_tests = true
+require_reproducible_build = true
+
+[budgets]
+max_candidates = 4
+max_repairs_per_candidate = 2
+max_wall_time_seconds = 300
+max_model_tokens = 24000
+max_no_progress_iterations = 1
+
+[delivery]
+include_source = true
+include_object = true
+include_binary = false
+include_evidence = true
+
+[[tests]]
+name = "empty"
+expected = 0
+
+[tests.input]
+dst = []
+src = []
+length = 0
+
+[[tests]]
+name = "copy_three"
+expected = 0
+
+[tests.input]
+dst = [9, 9, 9]
+src = [1, 2, 3]
+length = 3
+
+[[tests]]
+# dst and src are distinct, non-overlapping fixture arrays (no aliasing).
+name = "distinct_nonoverlapping_buffers"
+expected = 0
+
+[tests.input]
+dst = [0, 0, 0, 0, 0]
+src = [10, 20, 30, 40, 50]
+length = 5

@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Wm tip (memset write-shape oracle/harness/x86 fixtures).
-          ref: 0b5d115d2838c7243d6ae93373c8f55e5b27dff8
+          # Pin: SemASM Wc tip (memcpy write-shape oracle/harness/x86 fixtures).
+          ref: 247b01586dd626e3c4261e170cb73565e7b7b54c
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Wm tip (memset write-shape oracle/harness/x86 fixtures).
-          ref: 0b5d115d2838c7243d6ae93373c8f55e5b27dff8
+          # Pin: SemASM Wc tip (memcpy write-shape oracle/harness/x86 fixtures).
+          ref: 247b01586dd626e3c4261e170cb73565e7b7b54c
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Wm tip (memset write-shape oracle/harness/x86 fixtures).
-          ref: 0b5d115d2838c7243d6ae93373c8f55e5b27dff8
+          # Pin: SemASM Wc tip (memcpy write-shape oracle/harness/x86 fixtures).
+          ref: 247b01586dd626e3c4261e170cb73565e7b7b54c
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -359,8 +359,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Wm tip (memset write-shape oracle/harness/x86 fixtures).
-          ref: 0b5d115d2838c7243d6ae93373c8f55e5b27dff8
+          # Pin: SemASM Wc tip (memcpy write-shape oracle/harness/x86 fixtures).
+          ref: 247b01586dd626e3c4261e170cb73565e7b7b54c
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -438,8 +438,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Wm tip (memset write-shape oracle/harness/x86 fixtures).
-          ref: 0b5d115d2838c7243d6ae93373c8f55e5b27dff8
+          # Pin: SemASM Wc tip (memcpy write-shape oracle/harness/x86 fixtures).
+          ref: 247b01586dd626e3c4261e170cb73565e7b7b54c
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |

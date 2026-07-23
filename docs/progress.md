@@ -350,11 +350,35 @@ Honesty: Gate-1 Incomplete ≠ Verified. `memset` oracle/vectors ≠ formal
 `ensures`/region-precise store proof. HlaX64 `memset` bridge (W4-style)
 deferred, matching `replace_byte`.
 
+### Write-shape v3 (Wc) — `memcpy`
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`247b01586dd626e3c4261e170cb73565e7b7b54c`
+
+| Wave | Focus | Status |
+|---|---|---|
+| **Wc0–Wc2** | SemASM `memcpy` contract/oracle + `HarnessShape::Memcpy` + x86 asm/e2e/caps | **Done** (SemASM, upstream) |
+| **Wc3** | VAA Gate fixtures + pin | **Done** |
+
+Oracle: `builtin.buffer.memcpy` (v1). Harness verifies the always-`0` return
+**and** that every `dst[0..length]` byte equals `src[0..length]` after the
+call; `src` is unchanged input and is never echoed back. `dst`/`src` wire
+layout is indistinguishable from the dual-buffer `MemCmp` shape by design;
+SemASM's `resolve_harness_shape` disambiguates from the recognized contract
+oracle, not vector layout. Overlapping/aliasing `dst`/`src` is out of scope
+(SemASM ADR 0003, "overlap fail-closed"): VAA fixtures use distinct,
+non-overlapping buffers only. I1/I2 sandbox evidence already landed on VAA
+in the M0–M1 tranche; this wave does not retouch that path.
+
+Honesty: Gate-1 Incomplete ≠ Verified. `memcpy` oracle/vectors ≠ formal
+`ensures`/region-precise store proof. HlaX64 `memcpy` bridge (W4-style)
+deferred, matching `replace_byte`/`memset`.
+
 ### Next maturity program
 
-Locked order: **Wm** (`memset`, **Done**) → **Wc** (`memcpy`, next) →
-**Rmem** (ADR 0004) → **W4** (HlaX64 `replace_byte`/`memset`) → **Dx**
-(decode/lower depth). Thin bridges after.
+Locked order: **Wm** (`memset`, **Done**) → **Wc** (`memcpy`, **Done**) →
+**Rmem** (ADR 0004, next) → **W4** (HlaX64 `replace_byte`/`memset`/`memcpy`)
+→ **Dx** (decode/lower depth). Thin bridges after.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
