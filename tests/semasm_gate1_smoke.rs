@@ -2220,4 +2220,3 @@ fn gate1_search_ingest_find_first_skips_violated_budget() {
         "expected budget_exhausted after skipping Violated: {stdout}"
     );
 }
-

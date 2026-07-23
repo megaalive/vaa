@@ -1219,4 +1219,3 @@ fn gate2_search_ingest_find_first_allow_execution_verified() {
         "Verified may only be attributed to the SemASM path: {stdout}"
     );
 }
-
