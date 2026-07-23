@@ -23,9 +23,8 @@ Incomplete ≠ Verified; `search --ingest` ≠ CryptOpt; Gate-2 Verified needs
 and reads `src` (never mutated). `01_wrong.asm` returns 0 (the status the
 contract requires) without ever copying `src` into `dst` — the return value
 alone is not sufficient evidence of a copy; region-precise store proof stays
-deferred (see `docs/progress.md`). `00_write_broken.asm` writes one byte past
-the declared `dst[0..length]` region regardless of `src`, which fails the
-SemASM behavioral oracle (`builtin.buffer.memcpy`) and is reported
-`Violated`, mirroring the `memcmp` / `find_first_byte` / `replace_byte` /
-`memset` adversarial seeds. `dst`/`src` are distinct, non-overlapping
-buffers only (SemASM ADR 0003, "overlap fail-closed").
+deferred (see `docs/progress.md`). `00_write_broken.asm` is a Gate-1 static
+Violated seed (`jmp rax` → control gate); write-shape skips the static memory
+gate, so OOB-store-only seeds are Incomplete without `--allow-execution`
+(guard-byte evidence is Gate-2 / SemASM H2). `dst`/`src` are distinct,
+non-overlapping buffers only (SemASM ADR 0003, "overlap fail-closed").

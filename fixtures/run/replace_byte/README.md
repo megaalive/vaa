@@ -22,8 +22,7 @@ Incomplete ≠ Verified; `search --ingest` ≠ CryptOpt; Gate-2 Verified needs
 `replace_byte` writes to `buffer` (not read-only, unlike `memcmp` / `find_first_byte`).
 `01_wrong.asm` counts matching bytes correctly but never stores the replacement —
 the return value alone is not sufficient evidence of a store; region-precise
-store proof stays deferred (see `docs/progress.md`). `00_write_broken.asm`
-writes one byte past the declared `buffer[0..length]` region regardless of
-match state, which fails the SemASM behavioral oracle (`builtin.buffer.replace_byte`)
-and is reported `Violated`, mirroring the `memcmp` / `find_first_byte`
-adversarial seeds.
+store proof stays deferred (see `docs/progress.md`). `00_write_broken.asm` is a
+Gate-1 static Violated seed (`jmp rax` → control gate); write-shape skips the
+static memory gate, so OOB-store-only seeds are Incomplete without
+`--allow-execution` (guard-byte evidence is Gate-2 / SemASM H2).

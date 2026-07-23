@@ -1,13 +1,11 @@
-; memcpy -- memory adversarial seed (Violated on ingest; mutator cannot repair).
-; Writes one byte past the declared dst[0..length) region (out-of-bounds
-; write at dst[length]), regardless of src -- violates the declared
-; memory_write region "dst[0..length]" even though `dst` itself is a
-; legitimate write target for this leaf.
+; memcpy -- Gate-1 adversarial seed (static Violated; mutator cannot repair).
+; Indirect jump fails the leaf control-flow gate without --allow-execution.
+; Write-shape leaves skip the static memory gate (SemASM ADR 0004), so an
+; out-of-region store alone is Incomplete on Gate-1; guard-byte OOB evidence
+; needs Gate-2 (--allow-execution). Incomplete ≠ Verified.
 BITS 64
 DEFAULT REL
 global memcpy
 section .text
 memcpy:
-    mov byte [rcx + r8], 0
-    xor eax, eax
-    ret
+    jmp rax

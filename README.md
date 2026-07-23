@@ -9,7 +9,7 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 ## What works today
 
 | Capability | Status |
-|---|---|---|
+|---|---|
 | `vaa version` / `vaa status` | Available |
 | `vaa validate <task.vaa.toml>` | Available (schema **0.1**) |
 | Task content digest (`sha256:…`) | Available after successful validate |
@@ -29,6 +29,8 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | Assemble / link / sandbox execute | **Via toolchain on PATH** |
 
 This project does **not** claim safety, formal proof, zero overhead, or production readiness.
+HSM scaffold ≠ hardware HSM; `search --ingest` ≠ CryptOpt; local transparency
+artifact ≠ remote append-only log; Incomplete ≠ Verified.
 
 ## Build
 
