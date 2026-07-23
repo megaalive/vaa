@@ -10,6 +10,9 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
 
 ### Added
 
+- **P2 / SemASM Tranche P** — `find_first_byte` Gate-1 Incomplete + Gate-2 Verified
+  fixtures (`fixtures/semasm/find_first_byte/`); SemASM pin `511bb45…`.
+  Gate-1 Incomplete ≠ Verified.
 - **N2 / SemASM Tranche N** — `max_usize` Gate-1 Incomplete + Gate-2 Verified fixtures
   (`fixtures/semasm/max_usize/`); SemASM pin `623d22c…`. Gate-1 Incomplete ≠ Verified.
 - **M4 / SemASM Tranche M** — `min_usize` Gate-1 Incomplete + Gate-2 Verified fixtures
