@@ -4,10 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-for **crate** versions. Git tag `v0.1.0` marks the alpha release; see
-`docs/release-v0.1-checklist.md`.
+for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene.
 
 ## [Unreleased]
+
+## [0.1.1] — 2026-07-23
+
+Patch release: first tagged cut with **portable Win/Linux binaries** + `SHA256SUMS`
+(via `.github/workflows/release-binaries.yml`). No MSI/Docker/installer.
+Practice seals and Gate artifacts remain illustrative, not a trust root.
 
 ### Added
 
@@ -24,11 +29,13 @@ for **crate** versions. Git tag `v0.1.0` marks the alpha release; see
 ### Fixed
 
 - CHANGELOG `[0.1.0]` non-goals: remove stray `Done` after OS-level FS isolation line.
+- GitHub repository About description + topics for discoverability.
 
 ## [0.1.0] — 2026-07-23
 
 Alpha release (`git tag v0.1.0`). Gate CI artifacts and practice seals are
-**illustrative**, not a trust root.
+**illustrative**, not a trust root. Release assets were **source archives only**
+(no portable binaries — added in `v0.1.1`).
 
 ### Added
 

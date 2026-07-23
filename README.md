@@ -90,13 +90,12 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-Alpha **`v0.1.0`** is tagged. Post-alpha P7 (sandbox harden, durability labels,
-Sigstore-shaped DSSE, opt-in Rekor, `vaa search`) is Done — see
-[`docs/post-alpha-harden.md`](docs/post-alpha-harden.md).
+**`v0.1.1`** is the first tagged release with portable Win/Linux binaries + `SHA256SUMS`
+(see [Releases](https://github.com/megaalive/vaa/releases)). Alpha **`v0.1.0`** remains
+source-archive-only historically.
+Post-alpha P7 is Done — [`docs/post-alpha-harden.md`](docs/post-alpha-harden.md).
 Known limits: container ≠ absolute isolation; Rekor/Sigstore ≠ SemASM Verified;
 HSM is scaffold; search is staging-only (not CryptOpt embed).
-Release tags `v*` attach portable Win/Linux binaries + `SHA256SUMS` via
-[`release-binaries.yml`](.github/workflows/release-binaries.yml) (no MSI/Docker).
 Later: disposable VM mode, Fulcio keyless, live PKCS#11, fuller fuzz.
 
 ## License
