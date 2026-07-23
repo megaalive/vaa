@@ -14,6 +14,9 @@ checklist and maintainer sign-off are complete (see `docs/release-v0.1-checklist
 - **PR-019** — Opt-in OpenAI-compatible live model adapter behind feature `live-model`
   (`ureq`): `vaa generate … --live` with `VAA_MODEL_API_KEY` (+ optional base URL / model).
   CI remains deterministic without network; API keys never enter seals.
+- **PR-020** — Local content-addressed cache (`.vaa/cache` / `VAA_CACHE_DIR`): verification +
+  build keys; `vaa cache status`; opt-in `--cache` on verify/build. Not a remote log;
+  Incomplete/Failed never promoted to Verified.
 - **G1** — External argv generator (`vaa generate --run-dir … --command …`) writes
   only under `staging/` (`GeneratorMeta.kind = external-argv`). Logical barrier only;
   not OS ACL / job-object FS isolation.

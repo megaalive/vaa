@@ -112,8 +112,7 @@ cargo run -q -- evidence verify-chain \
 - Formal multi-file transactional seals on network / lying filesystems
 - CryptOpt randomized search engine
 - `v0.1.0` release tag ceremony
-- Content-addressed cache / reproducibility report (PR-020/021)
-
+- Reproducibility report (PR-021) / fuller fuzz (PR-022)
 ### Planned vertical-slice waves (after R2c)
 
 | Wave | Focus | Claim when done |
@@ -279,7 +278,7 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | Wave | Focus | Status |
 |---|---|---|
 | **PR-019** | Live OpenAI-compatible adapter (`live-model` + `--live`) | **Done** (opt-in; CI stays offline-deterministic) |
-| **PR-020** | Content-addressed cache | Pending |
+| **PR-020** | Content-addressed cache | **Done** (local `.vaa/cache`; `--cache` opt-in; not remote log) |
 | **PR-021** | Reproducibility report | Pending |
 | **PR-022** | Negative corpus + fuzz entry points | Partial (N5/N6; not full fuzz) |
 | **PR-023 / R-tag** | Alpha release gate + git tag | Pending (checklist ready; tag deferred) |

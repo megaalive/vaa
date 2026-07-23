@@ -8,6 +8,7 @@
 )]
 
 pub mod build;
+pub mod cache;
 pub mod candidate;
 pub mod canonical_json;
 pub mod evidence;
@@ -23,8 +24,14 @@ pub mod semasm;
 pub mod task;
 
 pub use build::{
-    probe_container_runtime, BuildManifest, BuildOutcome, BuildPipeline, ContainerBuildOpts,
-    PipelineConfig, DEFAULT_CONTAINER_IMAGE,
+    probe_container_runtime, tool_digest, BuildManifest, BuildOutcome, BuildPipeline,
+    ContainerBuildOpts, PipelineConfig, DEFAULT_CONTAINER_IMAGE,
+};
+pub use cache::{
+    args_fingerprint, build_cache_key, default_cache_root, may_reuse_build, may_reuse_verification,
+    resolve_cache_root, verification_cache_key, BuildCacheArtifacts, BuildCacheRecord,
+    BuildKeyMaterials, CacheError, CacheReuseDecision, CacheStats, CacheStore,
+    VerificationCacheRecord, VerificationKeyMaterials, CACHE_SCHEMA_VERSION,
 };
 pub use candidate::{CandidateProtocol, CandidateSubmission, SubmissionOutcome};
 pub use canonical_json::{CANONICALIZATION_ID, DIGEST_ALGORITHM_ID};

@@ -82,6 +82,9 @@ enum Commands {
         /// Forward `--allow-execution` to SemASM (opt-in behavioral verify).
         #[arg(long, default_value_t = false)]
         allow_execution: bool,
+        /// Opt-in local content-addressed cache (PR-020). Default off for deterministic Gate CI.
+        #[arg(long, default_value_t = false)]
+        cache: bool,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -185,9 +188,17 @@ enum Commands {
         /// Docker/Podman `--cpus` quota when `--sandbox container`.
         #[arg(long)]
         cpu_quota: Option<f64>,
+        /// Opt-in local content-addressed build cache (PR-020).
+        #[arg(long, default_value_t = false)]
+        cache: bool,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
+    },
+    /// Local content-addressed cache utilities (PR-020).
+    Cache {
+        #[command(subcommand)]
+        command: CacheCommands,
     },
     /// Inspect a compiled artifact.
     Inspect {
@@ -197,6 +208,12 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum CacheCommands {
+    /// Print cache root and entry counts.
+    Status,
 }
 
 #[derive(Debug, Subcommand)]
@@ -279,8 +296,9 @@ fn main() -> ExitCode {
             source,
             contract,
             allow_execution,
+            cache,
             format,
-        } => verify_command(&task, &source, &contract, allow_execution, format),
+        } => verify_command(&task, &source, &contract, allow_execution, cache, format),
         Commands::Run {
             task,
             contract,
@@ -353,6 +371,7 @@ fn main() -> ExitCode {
             container_image_digest,
             container_runtime,
             cpu_quota,
+            cache,
             format,
         } => build_command(
             &source,
@@ -363,8 +382,12 @@ fn main() -> ExitCode {
             container_image_digest.as_deref(),
             container_runtime.as_deref(),
             cpu_quota,
+            cache,
             format,
         ),
+        Commands::Cache { command } => match command {
+            CacheCommands::Status => cache_status_command(),
+        },
         Commands::Inspect { artifact, format } => inspect_command(&artifact, format),
     }
 }
@@ -375,10 +398,13 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, inspect");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
+    );
+    println!(
+        "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
     );
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
@@ -606,6 +632,7 @@ fn verify_command(
     source_path: &Path,
     contract_path: &Path,
     allow_execution: bool,
+    use_cache: bool,
     format: OutputFormat,
 ) -> ExitCode {
     let locked = match load_locked_task(task_path) {
@@ -622,68 +649,6 @@ fn verify_command(
 
     let doctor = SemasmDoctor::run();
 
-    let verify_result = match doctor.binary_path.as_ref() {
-        Some(binary) => {
-            SemasmVerify::run(source_path, contract_path, binary, target, allow_execution)
-        }
-        None => Err(VerifyError::BinaryNotFound),
-    };
-
-    let verify_report = match verify_result {
-        Ok(report) => Some(report),
-        Err(e) => {
-            let mut checks = Vec::new();
-            checks.push(vaa::CheckOutcome {
-                check_name: "task_valid".to_owned(),
-                required: true,
-                passed: true,
-                details: None,
-            });
-            checks.push(vaa::CheckOutcome {
-                check_name: "semasm_available".to_owned(),
-                required: true,
-                passed: matches!(
-                    doctor.status,
-                    vaa::DoctorStatus::Available | vaa::DoctorStatus::Degraded
-                ),
-                details: Some(format!("{:?}", doctor.status)),
-            });
-            checks.push(vaa::CheckOutcome {
-                check_name: "target_capability_match".to_owned(),
-                required: true,
-                passed: cm.compatible,
-                details: if cm.compatible {
-                    None
-                } else {
-                    let mut msgs = cm.insufficient.clone();
-                    msgs.extend(cm.missing.clone());
-                    Some(msgs.join("; "))
-                },
-            });
-            checks.push(vaa::CheckOutcome {
-                check_name: "semasm_verification".to_owned(),
-                required: true,
-                passed: false,
-                details: Some(format!("verify error: {e}")),
-            });
-            let report = vaa::EvidenceReport {
-                task_id: locked.task().task_id.clone(),
-                task_digest: locked.digest().prefixed(),
-                target: target.clone(),
-                timestamp: iso_timestamp(),
-                run_id: None,
-                doctor: Some(doctor),
-                capability_match: Some(cm),
-                verify_report: None,
-                checks,
-                // No VerificationReport on stdout → Failed (not Incomplete).
-                final_status: EvidenceStatus::Failed,
-                summary: format!("Verification failed: {e}"),
-            };
-            return emit_evidence_report(&report, format);
-        }
-    };
-
     let source_bytes = match std::fs::read(source_path) {
         Ok(bytes) => bytes,
         Err(error) => {
@@ -698,11 +663,127 @@ fn verify_command(
             return VaaExitCode::ToolFailure.as_std();
         }
     };
-    let mut expect = EvidenceExpect::new(
-        target.clone(),
-        sha256_digest_prefixed(&source_bytes),
-        sha256_digest_prefixed(&contract_bytes),
-    );
+    let source_digest = sha256_digest_prefixed(&source_bytes);
+    let contract_digest = sha256_digest_prefixed(&contract_bytes);
+
+    let cache_materials = || {
+        let semasm_version = doctor
+            .version
+            .as_ref()
+            .map_or_else(|| "unknown".to_owned(), |v| v.version.clone());
+        vaa::VerificationKeyMaterials {
+            source_digest: source_digest.clone(),
+            contract_digest: contract_digest.clone(),
+            task_digest: locked.digest().prefixed(),
+            target: target.clone(),
+            semasm_version,
+            allow_execution,
+            capability_source: vaa::CAPABILITY_SOURCE.to_owned(),
+        }
+    };
+
+    let verify_report = {
+        let mut cached: Option<vaa::VerifyReport> = None;
+        if use_cache
+            && matches!(
+                doctor.status,
+                vaa::DoctorStatus::Available | vaa::DoctorStatus::Degraded
+            )
+            && cm.compatible
+        {
+            let store = vaa::CacheStore::open(vaa::resolve_cache_root());
+            let mat = cache_materials();
+            // Prefer exact status reuse (including Incomplete); never promote to Verified via policy.
+            if let Ok((_rec, raw)) = store.get_verification(&mat, false) {
+                if let Ok(parsed) = SemasmVerify::parse_report(&raw) {
+                    cached = Some(parsed);
+                }
+            }
+        }
+
+        if let Some(report) = cached {
+            report
+        } else {
+            let verify_result = match doctor.binary_path.as_ref() {
+                Some(binary) => {
+                    SemasmVerify::run(source_path, contract_path, binary, target, allow_execution)
+                }
+                None => Err(VerifyError::BinaryNotFound),
+            };
+            match verify_result {
+                Ok(report) => {
+                    if use_cache {
+                        let store = vaa::CacheStore::open(vaa::resolve_cache_root());
+                        let status = match report.outcome {
+                            EvidenceStatus::Verified => "Verified",
+                            EvidenceStatus::Violated => "Violated",
+                            EvidenceStatus::Incomplete => "Incomplete",
+                            EvidenceStatus::Failed => "Failed",
+                        };
+                        let _ = store.put_verification(
+                            &cache_materials(),
+                            status,
+                            &report.raw_json,
+                            Some(&report.raw_status),
+                        );
+                    }
+                    report
+                }
+                Err(e) => {
+                    let mut checks = Vec::new();
+                    checks.push(vaa::CheckOutcome {
+                        check_name: "task_valid".to_owned(),
+                        required: true,
+                        passed: true,
+                        details: None,
+                    });
+                    checks.push(vaa::CheckOutcome {
+                        check_name: "semasm_available".to_owned(),
+                        required: true,
+                        passed: matches!(
+                            doctor.status,
+                            vaa::DoctorStatus::Available | vaa::DoctorStatus::Degraded
+                        ),
+                        details: Some(format!("{:?}", doctor.status)),
+                    });
+                    checks.push(vaa::CheckOutcome {
+                        check_name: "target_capability_match".to_owned(),
+                        required: true,
+                        passed: cm.compatible,
+                        details: if cm.compatible {
+                            None
+                        } else {
+                            let mut msgs = cm.insufficient.clone();
+                            msgs.extend(cm.missing.clone());
+                            Some(msgs.join("; "))
+                        },
+                    });
+                    checks.push(vaa::CheckOutcome {
+                        check_name: "semasm_verification".to_owned(),
+                        required: true,
+                        passed: false,
+                        details: Some(format!("verify error: {e}")),
+                    });
+                    let report = vaa::EvidenceReport {
+                        task_id: locked.task().task_id.clone(),
+                        task_digest: locked.digest().prefixed(),
+                        target: target.clone(),
+                        timestamp: iso_timestamp(),
+                        run_id: None,
+                        doctor: Some(doctor),
+                        capability_match: Some(cm),
+                        verify_report: None,
+                        checks,
+                        final_status: EvidenceStatus::Failed,
+                        summary: format!("Verification failed: {e}"),
+                    };
+                    return emit_evidence_report(&report, format);
+                }
+            }
+        }
+    };
+
+    let mut expect = EvidenceExpect::new(target.clone(), source_digest, contract_digest);
     if locked.task().verification.require_object_inspection {
         let inspect_dir = std::env::temp_dir().join(format!(
             "vaa_verify_inspect_{}_{}",
@@ -720,12 +801,24 @@ fn verify_command(
     let report = EvidenceAggregator::build(
         &locked,
         None,
-        verify_report,
+        Some(verify_report),
         Some(doctor),
         Some(cm),
         &expect,
     );
     emit_evidence_report(&report, format)
+}
+
+fn cache_status_command() -> ExitCode {
+    let store = vaa::CacheStore::open(vaa::resolve_cache_root());
+    let _ = store.ensure_layout();
+    let stats = store.stats();
+    println!("cache root: {}", stats.root);
+    println!("blobs: {}", stats.blobs);
+    println!("verification entries: {}", stats.verification_entries);
+    println!("build entries: {}", stats.build_entries);
+    println!("note: local content-addressed store ≠ remote immutable log");
+    VaaExitCode::Success.as_std()
 }
 
 fn run_command(
@@ -1216,6 +1309,7 @@ fn build_command(
     container_image_digest: Option<&str>,
     container_runtime: Option<&str>,
     cpu_quota: Option<f64>,
+    use_cache: bool,
     format: OutputFormat,
 ) -> ExitCode {
     let container = match sandbox {
@@ -1245,7 +1339,87 @@ fn build_command(
         ..PipelineConfig::default()
     };
 
+    // Opt-in build cache: restore object/binary when toolchain digests match.
+    if use_cache {
+        if let Ok(source_bytes) = std::fs::read(source) {
+            let source_digest = sha256_digest_prefixed(&source_bytes);
+            let as_digest = vaa::tool_digest(Path::new("nasm")).unwrap_or_default();
+            let ld_digest = vaa::tool_digest(Path::new("ld")).unwrap_or_default();
+            let mat = vaa::BuildKeyMaterials {
+                source_digest,
+                target: target.to_owned(),
+                assembler_digest: as_digest,
+                linker_digest: ld_digest,
+                assembler_args_fingerprint: vaa::args_fingerprint(&[
+                    "-f".into(),
+                    target.to_owned(),
+                ]),
+                linker_args_fingerprint: vaa::args_fingerprint(&[]),
+                container_image_digest: container_image_digest.unwrap_or("").to_owned(),
+            };
+            let store = vaa::CacheStore::open(vaa::resolve_cache_root());
+            if let Ok(arts) = store.get_build(&mat) {
+                let _ = std::fs::create_dir_all(output_dir);
+                let stem = source.file_stem().and_then(|s| s.to_str()).unwrap_or("out");
+                let object_path = output_dir.join(format!("{stem}.o"));
+                let binary_path = output_dir.join(format!("{stem}.bin"));
+                if std::fs::write(&object_path, &arts.object).is_ok() {
+                    if let Some(bin) = arts.binary {
+                        let _ = std::fs::write(&binary_path, bin);
+                    }
+                    match format {
+                        OutputFormat::Terminal => {
+                            println!("Build cache hit");
+                            println!("  object: {}", object_path.display());
+                            println!("  binary: {}", binary_path.display());
+                        }
+                        OutputFormat::Json => {
+                            println!(
+                                "{}",
+                                serde_json::json!({
+                                    "success": true,
+                                    "cache_hit": true,
+                                    "object": object_path,
+                                    "binary": binary_path,
+                                })
+                            );
+                        }
+                    }
+                    return VaaExitCode::Success.as_std();
+                }
+            }
+        }
+    }
+
     let outcome = BuildPipeline::build(&config);
+
+    if use_cache && outcome.success {
+        if let (Ok(source_bytes), Ok(object_bytes)) = (
+            std::fs::read(source),
+            std::fs::read(&outcome.manifest.object_path),
+        ) {
+            let binary_bytes = std::fs::read(&outcome.manifest.binary_path).ok();
+            let mat = vaa::BuildKeyMaterials {
+                source_digest: sha256_digest_prefixed(&source_bytes),
+                target: target.to_owned(),
+                assembler_digest: outcome
+                    .manifest
+                    .assembler_digest
+                    .clone()
+                    .unwrap_or_default(),
+                linker_digest: outcome.manifest.linker_digest.clone().unwrap_or_default(),
+                assembler_args_fingerprint: vaa::args_fingerprint(&[
+                    "-f".into(),
+                    target.to_owned(),
+                ]),
+                linker_args_fingerprint: vaa::args_fingerprint(&[]),
+                container_image_digest: container_image_digest.unwrap_or("").to_owned(),
+            };
+            let store = vaa::CacheStore::open(vaa::resolve_cache_root());
+            let manifest_json = serde_json::to_string(&outcome.manifest).unwrap_or_default();
+            let _ = store.put_build(&mat, &object_bytes, binary_bytes.as_deref(), &manifest_json);
+        }
+    }
 
     match format {
         OutputFormat::Terminal => {
@@ -1614,6 +1788,36 @@ mod tests {
         let cli = Cli::try_parse_from(["vaa", "build", "source.asm", "--output-dir", "out"])
             .expect("parse");
         assert!(matches!(cli.command, Some(Commands::Build { .. })));
+    }
+
+    #[test]
+    fn clap_parses_cache_status() {
+        let cli = Cli::try_parse_from(["vaa", "cache", "status"]).expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Cache {
+                command: CacheCommands::Status
+            })
+        ));
+    }
+
+    #[test]
+    fn clap_parses_verify_cache_flag() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "verify",
+            "task.vaa.toml",
+            "--source",
+            "a.asm",
+            "--contract",
+            "c.sem.toml",
+            "--cache",
+        ])
+        .expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Verify { cache: true, .. })
+        ));
     }
 
     #[test]
