@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
-          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
+          # Pin: SemASM X5 tip (caps write/indirect + A64/RV evidence).
+          ref: 03058461651629d880f3a2b08f92d2e101b6a450
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
-          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
+          # Pin: SemASM X5 tip (caps write/indirect + A64/RV evidence).
+          ref: 03058461651629d880f3a2b08f92d2e101b6a450
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,16 +247,16 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
-          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
+          # Pin: SemASM X5 tip (caps write/indirect + A64/RV evidence).
+          ref: 03058461651629d880f3a2b08f92d2e101b6a450
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: find_last_byte SemASM/VAA bridge leaf (H4).
-          ref: 3641428a6af4f22b6e7cd12febfeca65ac0d8d1b
+          # Pin: memcmp SemASM/VAA bridge leaf (H5).
+          ref: 79d6ecdddd064fb78a202db8bfdb439f3e729259
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -304,6 +304,7 @@ jobs:
           foreach ($leaf in @(
             @{ Name = "sum_i64"; Script = "regen-hlax64-sum_i64.ps1"; Source = "hlax64/examples/interop/semasm-vaa/sum_i64/sum_i64.hla64"; Fixture = "fixtures/ingest/hlax64_sum_i64/candidate.asm" },
             @{ Name = "find_last_byte"; Script = "regen-hlax64-find_last_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/find_last_byte/find_last_byte.hla64"; Fixture = "fixtures/ingest/hlax64_find_last_byte/candidate.asm" }
+            @{ Name = "memcmp"; Script = "regen-hlax64-memcmp.ps1"; Source = "hlax64/examples/interop/semasm-vaa/memcmp/memcmp.hla64"; Fixture = "fixtures/ingest/hlax64_memcmp/candidate.asm" }
           )) {
             $tmp = Join-Path $env:RUNNER_TEMP ("hlax64-" + $leaf.Name + ".asm")
             dotnet run --project hlax64/src/HlaX64.Cli --no-launch-profile -- emit-nasm `
@@ -326,6 +327,8 @@ jobs:
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_sum_i64_win64_verified -- --ignored --nocapture
           cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_find_last_byte_verify_chain -- --ignored --nocapture
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_find_last_byte_win64_verified -- --ignored --nocapture
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_memcmp_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_memcmp_win64_verified -- --ignored --nocapture
 
       - name: Export + verify-transparency (HlaX64 Gate-1)
         shell: pwsh
@@ -356,8 +359,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
-          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
+          # Pin: SemASM X5 tip (caps write/indirect + A64/RV evidence).
+          ref: 03058461651629d880f3a2b08f92d2e101b6a450
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -435,8 +438,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
-          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
+          # Pin: SemASM X5 tip (caps write/indirect + A64/RV evidence).
+          ref: 03058461651629d880f3a2b08f92d2e101b6a450
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
