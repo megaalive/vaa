@@ -171,8 +171,8 @@ mod tests {
 
     #[test]
     fn offline_search_respects_budget_cap() {
-        let fixture =
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/tasks/sum_i64.vaa.toml");
+        let fixture = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/tasks/sum_i64.vaa.toml");
         let locked = crate::task::load_locked_task(&fixture).expect("task");
         let dir = std::env::temp_dir().join(format!(
             "vaa_search_{}_{}",
