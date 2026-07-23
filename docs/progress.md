@@ -158,14 +158,10 @@ Honesty: staged mutator output ≠ Verified until SemASM ingest; import/noexport
 
 ### Next waves (X2 + S + T) — Win64 depth, find_last_byte, search-ingest
 
-SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
-`2683cf090b8c182c3db13b955a1a4daa870da7f8`
-(U1 tip: X3 `memcmp` + U Gate pack).
-
 | Wave | Focus | Status |
 |---|---|---|
 | **X2a** | SemASM Win64 syscall + stack_imbalance twins | **Done** (SemASM tip) |
-| **X2b** | VAA mutator `nop-before-ret` | **Done** |
+| **X2b** | VAA mutator `nop-before-ret` | **Done** (`9a490d3`) |
 | **S0–S1** | SemASM `find_last_byte` oracle + Gate pack | **Done** |
 | **S2** | VAA pin + Gate-1/2 + run wrong→repair | **Done** (`dcbc536`) |
 | **T0** | Docs honesty: search `--ingest` loop; LLM opt-in; CI offline | **Done** |
@@ -174,19 +170,27 @@ SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
 
 Honesty: Gate-1 Incomplete ≠ Verified. `search --ingest` ≠ CryptOpt. SoftHSM/Fulcio ≠ SemASM Verified.
 
-Closeout tips: SemASM `2683cf090b8c182c3db13b955a1a4daa870da7f8` (U1 tip: X3 `memcmp` + U Gate pack);
-VAA `1ad5d0e45d53a8e4bbf4c81d6575dfcfe917dbdf`.
+### Next waves (X3 + U + V) — Win64 depth, memcmp Gate, search allow-exec
 
-### Next waves (X3 + U + V) — memcmp + Gate-2 search
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`ca959f39924a34a3bca2a5effe71e96e63238250`
+(U1 tip: X3 Win64 callee_saved + `memcmp` Gate pack).
 
 | Wave | Focus | Status |
 |---|---|---|
-| **X3** | SemASM `memcmp` oracle + SysV/Win64 fixtures | **Done** (SemASM U1 tip) |
-| **U** | VAA `memcmp` Gate-1/2 + wrong→repair smoke | **Done** |
-| **V** | Gate-2 `search --ingest --allow-execution` reaches SemASM Verified | **Pending** |
+| **X3** | SemASM Win64 `count_byte` callee_saved + caps write/indirect sync | **Done** (SemASM `b9a7079`) |
+| **U0–U1** | SemASM `memcmp` dual-buffer oracle + asm/e2e/CI | **Done** (SemASM `ca959f3`) |
+| **V0** | Docs honesty: memcmp Gate + search allow-execution | **Done** |
+| **V1** | Pin SemASM tip + `memcmp` Gate-1/2 + run wrong→repair | **Done** (`a9f926d`) |
+| **V2** | Gate-2 `search --ingest --allow-execution` on `find_last` | **Done** (`a9f926d`) |
+| **V3** | Closeout docs + pin tip both repos | **Done** |
 
 Honesty: Gate-1 Incomplete ≠ Verified. Gate-2 search Verified is a SemASM
-`--allow-execution` path, not CryptOpt.
+`--allow-execution` path, not CryptOpt. `memcmp` oracle ≠ formal `ensures`.
+Default CI remains Gate-1 fail-closed (no `--allow-execution` on search).
+
+Closeout tips: SemASM `ca959f39924a34a3bca2a5effe71e96e63238250`;
+VAA `3e90223803d53aa13d876ef54400db82f30c5193`.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
