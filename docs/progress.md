@@ -189,8 +189,8 @@ Honesty: Gate-1 Incomplete ≠ Verified. Gate-2 search Verified is a SemASM
 `--allow-execution` path, not CryptOpt. `memcmp` oracle ≠ formal `ensures`.
 Default CI remains Gate-1 fail-closed (no `--allow-execution` on search).
 
-Closeout tips: SemASM `ca959f39924a34a3bca2a5effe71e96e63238250`;
-VAA `37a468ac5697786237e1a2bca6126429125d7621`.
+Closeout tips: SemASM `ca959f39924a34a3bca2a5effe71e96e63238250` (Gate pin);
+VAA Gate handoff `a9f926d` / V3 docs `789f7ad`.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
