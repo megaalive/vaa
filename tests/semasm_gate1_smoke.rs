@@ -663,6 +663,101 @@ fn gate1_verify_find_last_byte_win64_incomplete() {
 #[test]
 #[cfg(target_os = "linux")]
 #[ignore = "requires `semasm` on PATH and a Linux assemble/link toolchain"]
+fn gate1_verify_replace_byte_linux_incomplete() {
+    let task = root().join("fixtures/semasm/replace_byte/replace_byte_linux.vaa.toml");
+    let source = root().join("fixtures/semasm/replace_byte/replace_byte_linux.asm");
+    let contract = root().join("fixtures/semasm/replace_byte/replace_byte.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+        panic!(
+            "expected evidence JSON ({e}): stdout={stdout}\nstderr={}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    });
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping: SemASM unavailable\n{value}");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Incomplete",
+        "Gate-1 Linux replace_byte expects Incomplete: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "execution_denied");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(raw["behavior_oracle"]["id"], "builtin.buffer.replace_byte");
+    assert_eq!(raw["behavior_oracle"]["version"], 1);
+}
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_verify_replace_byte_win64_incomplete() {
+    let task = root().join("fixtures/semasm/replace_byte/replace_byte.vaa.toml");
+    let source = root().join("fixtures/semasm/replace_byte/replace_byte_win64.asm");
+    let contract = root().join("fixtures/semasm/replace_byte/replace_byte.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+        panic!(
+            "expected evidence JSON ({e}): stdout={stdout}\nstderr={}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    });
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping: SemASM unavailable\n{value}");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Incomplete",
+        "Gate-1 replace_byte expects Incomplete: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "execution_denied");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(raw["behavior_oracle"]["id"], "builtin.buffer.replace_byte");
+    assert_eq!(raw["behavior_oracle"]["version"], 1);
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+#[ignore = "requires `semasm` on PATH and a Linux assemble/link toolchain"]
 fn gate1_verify_memcmp_linux_incomplete() {
     let task = root().join("fixtures/semasm/memcmp/memcmp_linux.vaa.toml");
     let source = root().join("fixtures/semasm/memcmp/memcmp_linux.asm");

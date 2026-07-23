@@ -267,9 +267,11 @@ implementation plan only after SemASM ADR 0003 is Accepted.
 | `memcmp` | yes | yes (Y) | yes (H5) |
 | `sum_i64` | yes | — | yes (H1) |
 | `min_usize` / `max_usize` | yes | — | — |
+| `replace_byte` | yes (W3) | — | paused |
 
-**Intentionally not continued now:** `find_first` / `count_byte` / pure-int
-HlaX64 bridges; A64/RV MemCmp harness; CryptOpt embed; formal ensures.
+**Intentionally not continued now:** `find_first` / `count_byte` / pure-int /
+`replace_byte` HlaX64 bridges; A64/RV MemCmp/replace harness; CryptOpt embed;
+formal ensures.
 
 Honesty: Incomplete ≠ Verified. Gate-2 Verified is SemASM `--allow-execution`
 only. HlaX64 `-Wverify` ≠ SemASM Verified. D* does not bump SemASM pipeline
@@ -293,7 +295,8 @@ W3 VAA Gate → W4 optional HlaX64. Not started in this tranche.
 ### Maturity follow-up (M0–M1) — deepen then SemASM pipeline bump — closed
 
 After D0–D2: deepen criteria, then SemASM bumped x86 pipeline maturity.
-**Still deferred:** Accept ADR 0003 / W*, Gate-2 `ExecutionSandbox` wire (I2).
+**Still deferred:** Gate-2 `ExecutionSandbox` wire (I2). Write-shape ADR Accepted;
+SemASM/VAA `replace_byte` Gate in tranche W*.
 
 | Wave | Focus | Status |
 |---|---|---|
@@ -301,7 +304,21 @@ After D0–D2: deepen criteria, then SemASM bumped x86 pipeline maturity.
 | **M1** | SemASM bind `ci_jobs` + bump assemble/link/execute/pipeline_verify | **Done** (SemASM tip after M1) |
 
 SemASM M1 closed: x86 pipeline `verified_in_ci` with owner e2e jobs. Sandbox
-**I2** deferred. Write-shape waits on Accept of SemASM ADR 0003.
+**I2** deferred.
+
+### Write-shape v1 (W0–W3) — `replace_byte`
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`e2bbed6cc5b0eb1792cf8a6db3f80d729032cb4b`
+
+| Wave | Focus | Status |
+|---|---|---|
+| **W0–W2** | ADR Accept + SemASM replace_byte oracle/harness/asm | **Done** (SemASM `e2bbed6`) |
+| **W3** | VAA Gate fixtures + pin | **Done** |
+
+Honesty: not all buffer leaves are read-only (`replace_byte` declares
+`memory_write`). Incomplete ≠ Verified. Region-precise store proof deferred.
+HlaX64 replace bridge (W4) deferred.
 
 Gate-2 isolation phases (see `post-alpha-harden.md`):
 

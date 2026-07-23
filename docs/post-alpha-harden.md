@@ -81,6 +81,6 @@ I1 does not change Gate behavior. I2 is a separate implementation tranche.
 - Tranche **Z** extends search-ingest Gate parity to `find_first_byte`. HlaX64
   `memcmp` bridge (H5) is a third emit leaf (dual-buffer `-1/0/1`). Default CI
   remains Gate-1 fail-closed.
-- **Maturity inflection:** leaf/search/HlaX64 treadmill paused after Z. Next
-  SemASM cliff is write-shape (ADR 0003 Proposed); W\* implementation is a
-  separate plan after Accept. No new thin leaf waves in D*.
+- **Maturity inflection:** leaf/search/HlaX64 treadmill paused after Z for thin
+  bridges. Write-shape `replace_byte` (ADR 0003 Accepted) is the SemASM/VAA
+  cliff (W0–W3). W\* memcpy / HlaX64 replace / Gate-2 I2 remain deferred.
