@@ -172,8 +172,8 @@ Do **not** call Gate-1 a “verified vertical slice”.
 ### Next waves (N0–N4) — SemASM tip pin + framed smoke
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
-`511bb45705605d8d2a1dddc446886a7f77e8e40f`
-(Tranche P tip: `find_first_byte` Gate-ready pack).
+`7fa6e18b34ab310b0757785d3d2e15495eaef255`
+(Tranche Q closeout + X0 Win64 W+X patched COFF).
 
 HlaX64 pin (`hlax64-bridge` only):
 `4c797893e0714f64faf1ae2f67ddf26c44f06d91`

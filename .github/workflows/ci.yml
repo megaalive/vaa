@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche P find_first_byte Gate-ready).
-          ref: 511bb45705605d8d2a1dddc446886a7f77e8e40f
+          # Pin: SemASM tip (Tranche Q closeout + X0 Win64 W+X).
+          ref: 7fa6e18b34ab310b0757785d3d2e15495eaef255
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche P find_first_byte Gate-ready).
-          ref: 511bb45705605d8d2a1dddc446886a7f77e8e40f
+          # Pin: SemASM tip (Tranche Q closeout + X0 Win64 W+X).
+          ref: 7fa6e18b34ab310b0757785d3d2e15495eaef255
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche P find_first_byte Gate-ready).
-          ref: 511bb45705605d8d2a1dddc446886a7f77e8e40f
+          # Pin: SemASM tip (Tranche Q closeout + X0 Win64 W+X).
+          ref: 7fa6e18b34ab310b0757785d3d2e15495eaef255
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -349,8 +349,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche P find_first_byte Gate-ready).
-          ref: 511bb45705605d8d2a1dddc446886a7f77e8e40f
+          # Pin: SemASM tip (Tranche Q closeout + X0 Win64 W+X).
+          ref: 7fa6e18b34ab310b0757785d3d2e15495eaef255
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -428,8 +428,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip (Tranche P find_first_byte Gate-ready).
-          ref: 511bb45705605d8d2a1dddc446886a7f77e8e40f
+          # Pin: SemASM tip (Tranche Q closeout + X0 Win64 W+X).
+          ref: 7fa6e18b34ab310b0757785d3d2e15495eaef255
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
