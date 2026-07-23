@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Rmem tip (ADR 0004 region-precise memory gate honesty).
-          ref: a599247ccff848a952c7e645f4b9c60ae3b3725e
+          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
+          ref: f20d9791683becf50fc7ac6846fc06666697ad92
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Rmem tip (ADR 0004 region-precise memory gate honesty).
-          ref: a599247ccff848a952c7e645f4b9c60ae3b3725e
+          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
+          ref: f20d9791683becf50fc7ac6846fc06666697ad92
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Rmem tip (ADR 0004 region-precise memory gate honesty).
-          ref: a599247ccff848a952c7e645f4b9c60ae3b3725e
+          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
+          ref: f20d9791683becf50fc7ac6846fc06666697ad92
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -362,8 +362,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Rmem tip (ADR 0004 region-precise memory gate honesty).
-          ref: a599247ccff848a952c7e645f4b9c60ae3b3725e
+          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
+          ref: f20d9791683becf50fc7ac6846fc06666697ad92
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -441,8 +441,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Rmem tip (ADR 0004 region-precise memory gate honesty).
-          ref: a599247ccff848a952c7e645f4b9c60ae3b3725e
+          # Pin: SemASM Dx tip (decode/lower checklist + adversarial wave; caps stay partial).
+          ref: f20d9791683becf50fc7ac6846fc06666697ad92
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |

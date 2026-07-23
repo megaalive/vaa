@@ -376,15 +376,17 @@ deferred (W4 landed the `replace_byte` bridge only; see below).
 
 ### Next maturity program
 
-Locked order: **Wm** (`memset`, **Done**) → **Wc** (`memcpy`, **Done**) →
-**Rmem** (ADR 0004, landed on SemASM) → **W4** (HlaX64 `replace_byte` bridge,
-**Done**) → **Dx** (decode/lower depth). Thin bridges after.
+Multi-tranche maturity program **closed**: **I1/I2** → **Wm** → **Wc** →
+**Rmem** → **W4** → **Dx** (all Done). Optional **Thin** bridges
+(`count_byte` / `find_first` HlaX64 parity, memset/memcpy emit) only if
+bandwidth remains. Horizon stays deferred (formal ensures, CryptOpt, HSM,
+decode/lower `verified_in_ci` bump).
 
 ### W4 — HlaX64 `replace_byte` bridge
 
 SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
-`a599247ccff848a952c7e645f4b9c60ae3b3725e`
-(Rmem tip: ADR 0004 region-precise memory gate honesty).
+`f20d9791683becf50fc7ac6846fc06666697ad92`
+(Dx tip: decode/lower checklist + adversarial wave; caps stay `partial`).
 
 HlaX64 pin (`hlax64-bridge`):
 `909553cbad0b5c357a97e21a030153ef9d5648d8`
@@ -404,6 +406,12 @@ Honesty: HlaX64 emit / `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete
 formal `ensures`/region-precise store proof (that is Rmem's job, on SemASM,
 not this bridge). Update the D0 inventory table: `replace_byte` HlaX64
 bridge moves from "paused" to "yes (W4)".
+
+### Dx — decode/lower depth (SemASM)
+
+SemASM tip `f20d979` documents the Dx bump checklist and lands an adversarial
+wave (`cpuid` unknown-insn + `find_first_byte` trailing-bytes twins).
+`decode`/`lower` remain **`partial`** — no maturity bump.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
