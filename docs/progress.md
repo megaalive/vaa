@@ -135,6 +135,17 @@ cargo run -q -- evidence verify-chain \
 | **N2** | SemASM Tranche N handoff: `max_usize` Gate-1/2 | **Done** (pure-int claim `max`) |
 | **P2** | SemASM Tranche P handoff: `find_first_byte` Gate-1/2 | **Done** (`builtin.buffer.find_first_u8`) |
 
+### Next waves (Q0–Q2 + X0) — repair/search loop + x86 depth
+
+| Wave | Focus | Status |
+|---|---|---|
+| **Q0** | Docs honesty: next = Tranche Q + further x86 depth | **In progress** |
+| **Q1** | `find_first_byte` multi-candidate `vaa run` wrong→repair Gate smoke | Pending |
+| **Q2** | `vaa search` nop-slide staging Gate smoke (offline; ≠ CryptOpt/Verified) | Pending |
+| **X0** | SemASM Win64 W+X object-policy twin (parity SysV) | Pending (SemASM) |
+
+Honesty: search/repair staging ≠ SemASM Verified; live-model stays opt-in/manual.
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):
