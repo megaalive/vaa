@@ -141,8 +141,8 @@ cargo run -q -- evidence verify-chain \
 |---|---|---|
 | **Q0** | Docs honesty: next = Tranche Q + further x86 depth | **Done** |
 | **Q1** | `find_first_byte` multi-candidate `vaa run` wrong→repair Gate smoke | **Done** (Gate-1 ignored + CI) |
-| **Q2** | `vaa search` nop-slide staging Gate smoke (offline; ≠ CryptOpt/Verified) | Pending |
-| **X0** | SemASM Win64 W+X object-policy twin (parity SysV) | Pending (SemASM) |
+| **Q2** | `vaa search` nop-slide staging Gate smoke (offline; ≠ CryptOpt/Verified) | **Done** (Gate-1 ignored + CI) |
+| **X0** | SemASM Win64 W+X object-policy twin (parity SysV) | **Done** (SemASM tip) |
 
 Honesty: search/repair staging ≠ SemASM Verified; live-model stays opt-in/manual.
 

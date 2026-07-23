@@ -1056,3 +1056,77 @@ fn gate1_ingest_hlax64_sum_i64_verify_chain() {
     );
     assert_seal_signature_if_signing(&run_dir);
 }
+
+#[test]
+#[ignore = "Gate smoke: offline vaa search staging (no SemASM required)"]
+fn gate1_search_nop_slide_stages() {
+    let task = root().join("fixtures/run/find_first_byte/find_first_byte.vaa.toml");
+    let seed = root().join("fixtures/run/find_first_byte/02_repaired.asm");
+    let run_base = root().join("target/vaa-gate1-search-smokes");
+    let _ = std::fs::remove_dir_all(&run_base);
+    std::fs::create_dir_all(&run_base).unwrap();
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "search",
+            task.to_str().unwrap(),
+            seed.to_str().unwrap(),
+            "--run-dir",
+            run_base.to_str().unwrap(),
+            "--budget",
+            "3",
+            "--mutator",
+            "nop-slide",
+        ])
+        .output()
+        .expect("run vaa search");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        output.status.success(),
+        "vaa search failed: status={:?}\nstdout={stdout}\nstderr={stderr}",
+        output.status
+    );
+    assert!(
+        stdout.contains("search: attempts=3") || stdout.contains("attempts=3"),
+        "expected 3 search attempts: {stdout}"
+    );
+    assert!(
+        stdout.contains("verified=false"),
+        "search staging must not claim Verified: {stdout}"
+    );
+    assert!(
+        stdout.contains("not formal superoptimization")
+            || stdout.contains("CryptOpt-like staging"),
+        "expected honesty note: {stdout}"
+    );
+
+    let run_dir = std::fs::read_dir(&run_base)
+        .expect("read run base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected a run directory after vaa search");
+
+    let staging = run_dir.join("staging");
+    assert!(
+        staging.is_dir(),
+        "staging/ missing under {}",
+        run_dir.display()
+    );
+    for i in 0..3u32 {
+        let staged = staging.join(format!("search-{i:04}.asm"));
+        assert!(
+            staged.is_file(),
+            "expected staged mutator output {}",
+            staged.display()
+        );
+        let body = std::fs::read_to_string(&staged).expect("read staged");
+        assert!(
+            body.contains("vaa-search nop-slide"),
+            "staged file missing nop-slide marker: {}",
+            staged.display()
+        );
+    }
+}

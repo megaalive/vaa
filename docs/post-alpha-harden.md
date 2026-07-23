@@ -35,4 +35,4 @@ Honesty constraints for waves after `v0.1.0`.
 - Tranche **Q1** extends multi-candidate repair Gate smoke beyond `count_byte`
   (`find_first_byte` wrong→repair).
 - Tranche **Q2** adds offline nop-slide staging Gate smoke (≠ Verified; ≠ formal
-  superopt).
+  superopt). Staging ≠ SemASM ingest; `verified=false` is intentional.
