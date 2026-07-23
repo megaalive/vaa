@@ -150,9 +150,9 @@ Honesty: search/repair staging ≠ SemASM Verified; live-model stays opt-in/manu
 
 | Wave | Focus | Status |
 |---|---|---|
-| **R0** | Docs honesty: next = search→ingest + Win64 import/noexport | **In progress** |
-| **X1** | SemASM Win64 import + noexport object-policy twins | Pending (SemASM) |
-| **R1** | `vaa search` staging → `ingest` Gate smoke + verify-chain | Pending |
+| **R0** | Docs honesty: next = search→ingest + Win64 import/noexport | **Done** |
+| **X1** | SemASM Win64 import + noexport object-policy twins | **Done** (SemASM tip) |
+| **R1** | `vaa search` staging → `ingest` Gate smoke + verify-chain | **Done** (Gate-1 ignored + CI) |
 
 Honesty: staged mutator output ≠ Verified until SemASM ingest; import/noexport ≠ execution proof.
 

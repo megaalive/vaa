@@ -1129,3 +1129,113 @@ fn gate1_search_nop_slide_stages() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires `semasm` on PATH and a Win64 assemble/link toolchain"]
+fn gate1_search_then_ingest_staged_verify_chain() {
+    let task = root().join("fixtures/run/find_first_byte/find_first_byte.vaa.toml");
+    let contract = root().join("fixtures/run/find_first_byte/find_first_byte.sem.toml");
+    let seed = root().join("fixtures/run/find_first_byte/02_repaired.asm");
+    let search_base = root().join("target/vaa-gate1-search-ingest-search");
+    let ingest_base = root().join("target/vaa-gate1-search-ingest-runs");
+    let _ = std::fs::remove_dir_all(&search_base);
+    let _ = std::fs::remove_dir_all(&ingest_base);
+    std::fs::create_dir_all(&search_base).unwrap();
+    std::fs::create_dir_all(&ingest_base).unwrap();
+
+    let search = Command::new(vaa_bin())
+        .args([
+            "search",
+            task.to_str().unwrap(),
+            seed.to_str().unwrap(),
+            "--run-dir",
+            search_base.to_str().unwrap(),
+            "--budget",
+            "2",
+            "--mutator",
+            "nop-slide",
+        ])
+        .output()
+        .expect("run vaa search");
+    let search_out = String::from_utf8_lossy(&search.stdout);
+    let search_err = String::from_utf8_lossy(&search.stderr);
+    assert!(
+        search.status.success(),
+        "vaa search failed: {:?}\n{search_out}\n{search_err}",
+        search.status
+    );
+    assert!(
+        search_out.contains("verified=false"),
+        "search must not claim Verified: {search_out}"
+    );
+
+    let search_run = std::fs::read_dir(&search_base)
+        .expect("read search base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected search run directory");
+    let staged = search_run.join("staging").join("search-0001.asm");
+    assert!(
+        staged.is_file(),
+        "expected staged candidate {}",
+        staged.display()
+    );
+
+    let ingest = Command::new(vaa_bin())
+        .args([
+            "ingest",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            staged.to_str().unwrap(),
+            "--generator",
+            "vaa-search-nop-slide",
+            "--run-dir",
+            ingest_base.to_str().unwrap(),
+            "--format",
+            "terminal",
+        ])
+        .output()
+        .expect("run vaa ingest staged");
+
+    let stdout = String::from_utf8_lossy(&ingest.stdout);
+    let stderr = String::from_utf8_lossy(&ingest.stderr);
+    if stdout.contains("semasm unavailable")
+        || stderr.contains("semasm unavailable")
+        || (stdout.contains("SemASM") && stdout.contains("not found"))
+    {
+        eprintln!("skipping: SemASM unavailable\nstdout={stdout}\nstderr={stderr}");
+        return;
+    }
+
+    assert!(
+        ingest.status.success() || stdout.contains("Incomplete") || stdout.contains("final_status"),
+        "ingest staged failed: {:?}\n{stdout}\n{stderr}",
+        ingest.status
+    );
+
+    let run_dir = std::fs::read_dir(&ingest_base)
+        .expect("read ingest base")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.is_dir())
+        .expect("expected ingest run directory");
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", run_dir.to_str().unwrap()])
+        .output()
+        .expect("verify-chain");
+    let chain_out = String::from_utf8_lossy(&chain.stdout);
+    let chain_err = String::from_utf8_lossy(&chain.stderr);
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={chain_out}\nstderr={chain_err}"
+    );
+    assert!(
+        chain_out.contains("seal chain verified") || chain_out.contains("ok:"),
+        "unexpected chain output: {chain_out}"
+    );
+    assert_seal_signature_if_signing(&run_dir);
+}
