@@ -17,14 +17,16 @@ Honesty constraints for waves after `v0.1.0`.
 - `VAA_REQUIRE_LOCAL_DURABLE=1` promotes best-effort to refuse-verified.
 - Not a formal FS correctness proof; network/lying FS remain fail-closed labels.
 
-## Signing + Rekor (P7-A / P7-T) + SoftHSM (P8-K)
+## Signing + Rekor (P7-A / P7-T) + SoftHSM (P8-K) + Fulcio (P8-I)
 
 - `SealSigner` backends: practice Ed25519, Sigstore-shaped DSSE, SoftHSM PKCS#11
   (`--features pkcs11`; Linux smoke CI job `pkcs11-softhsm`).
 - `vaa evidence publish-rekor --dry-run` builds DSSE + hashedrekord without network.
 - Live Rekor HTTP requires `--features rekor` (optional workflow).
-- Rekor / Sigstore / SoftHSM ≠ SemASM Verified; practice keys ≠ trust root;
-  SoftHSM ≠ hardware HSM.
+- Fulcio keyless: `vaa evidence fulcio-sign` + `--features fulcio` + manual
+  `fulcio-sign.yml` (OIDC). Default `--dry-run` uses mock transport.
+- Rekor / Sigstore / SoftHSM / Fulcio ≠ SemASM Verified; practice keys ≠ trust root;
+  SoftHSM ≠ hardware HSM; Fulcio identity attest ≠ behavioral proof.
 
 ## Search (P7-C)
 

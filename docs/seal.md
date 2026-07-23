@@ -45,6 +45,13 @@ as Gate default, committed production signing seeds, **OS-level** generator FS i
   remains practice Ed25519; Windows Gate does **not** require SoftHSM.
 - SoftHSM ≠ hardware HSM ≠ production trust root.
 
+### Fulcio keyless (P8-I, opt-in)
+
+- `vaa evidence fulcio-sign` requests a Fulcio cert (OIDC) and signs DSSE over
+  transparency JSON. Feature `fulcio` + network for live path; `--dry-run` is offline.
+- Manual workflow `.github/workflows/fulcio-sign.yml` only — **does not** block Gate.
+- Fulcio identity attest ≠ SemASM Verified / behavioral proof.
+
 ## Seal schema 0.2
 
 `evidence.seal.json` separates technical acceptance from provenance:

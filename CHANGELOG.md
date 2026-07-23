@@ -14,6 +14,8 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
   `cache_verification_record`) + ubuntu CI smoke (30s/target). Not a security certification.
 - **P8-K** — SoftHSM2 PKCS#11 live signer behind `--features pkcs11` (`rsa-pkcs1-sha256`);
   optional ubuntu CI job `pkcs11-softhsm`. SoftHSM ≠ hardware HSM / trust root.
+- **P8-I** — Fulcio keyless DSSE (`vaa evidence fulcio-sign`, `--features fulcio`) +
+  manual `fulcio-sign.yml`. Gate stays offline; Fulcio ≠ SemASM Verified.
 
 ### Changed
 

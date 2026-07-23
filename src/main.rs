@@ -324,6 +324,27 @@ enum EvidenceCommands {
         )]
         rekor_url: String,
     },
+    /// Fulcio keyless DSSE over transparency JSON (opt-in; not Gate).
+    FulcioSign {
+        /// Path to `vaa-transparency-v1` JSON.
+        file: PathBuf,
+        /// Fulcio base URL (also `VAA_FULCIO_URL`).
+        #[arg(
+            long,
+            env = "VAA_FULCIO_URL",
+            default_value = "https://fulcio.sigstore.dev"
+        )]
+        fulcio_url: String,
+        /// OIDC identity token (also `VAA_OIDC_TOKEN`). Required unless `--dry-run`.
+        #[arg(long, env = "VAA_OIDC_TOKEN")]
+        oidc_token: Option<String>,
+        /// Offline mock Fulcio (no network). Gate stays offline.
+        #[arg(long, default_value_t = false)]
+        dry_run: bool,
+        /// Output path for DSSE + cert chain JSON (default: `<file>.fulcio.json`).
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Probe seal durability class for a path (local-durable / best-effort / refuse).
     DurabilityProbe {
         /// Directory to probe (default: cwd).
@@ -429,6 +450,19 @@ fn main() -> ExitCode {
                 uuid,
                 rekor_url,
             } => verify_rekor_command(&file, &uuid, &rekor_url),
+            EvidenceCommands::FulcioSign {
+                file,
+                fulcio_url,
+                oidc_token,
+                dry_run,
+                output,
+            } => fulcio_sign_command(
+                &file,
+                &fulcio_url,
+                oidc_token.as_deref(),
+                dry_run,
+                output.as_deref(),
+            ),
             EvidenceCommands::DurabilityProbe { path } => durability_probe_command(path.as_deref()),
         },
         Commands::Generate {
@@ -1318,6 +1352,84 @@ fn verify_rekor_command(file: &Path, uuid: &str, rekor_url: &str) -> ExitCode {
         let _ = (uuid, rekor_url);
         eprintln!("error: live Rekor verify requires `--features rekor`");
         VaaExitCode::ToolFailure.as_std()
+    }
+}
+
+fn fulcio_sign_command(
+    file: &Path,
+    fulcio_url: &str,
+    oidc_token: Option<&str>,
+    dry_run: bool,
+    output: Option<&Path>,
+) -> ExitCode {
+    let payload = match std::fs::read(file) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("error: read {}: {e}", file.display());
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let mut seed_bytes = [0u8; 32];
+    rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut seed_bytes);
+
+    let result = if dry_run {
+        let token = oidc_token.map_or_else(vaa::dry_run_oidc_token, str::to_owned);
+        vaa::keyless_sign_transparency(
+            &vaa::MockFulcioTransport::new(),
+            &token,
+            &payload,
+            seed_bytes,
+        )
+    } else {
+        let Some(token) = oidc_token else {
+            eprintln!("error: live Fulcio requires --oidc-token / VAA_OIDC_TOKEN (or --dry-run)");
+            return VaaExitCode::InvalidInput.as_std();
+        };
+        #[cfg(feature = "fulcio")]
+        {
+            let transport = vaa::UreqFulcioTransport {
+                base_url: fulcio_url.to_owned(),
+            };
+            vaa::keyless_sign_transparency(&transport, token, &payload, seed_bytes)
+        }
+        #[cfg(not(feature = "fulcio"))]
+        {
+            let _ = fulcio_url;
+            eprintln!(
+                "error: live Fulcio requires `--features fulcio` (use --dry-run for offline mock)"
+            );
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+
+    match result {
+        Ok(r) => {
+            let out = output.map_or_else(
+                || file.with_extension("fulcio.json"),
+                PathBuf::from,
+            );
+            let doc = serde_json::json!({
+                "schema": "vaa-fulcio-dsse-v1",
+                "certificate_chain_pem": r.certificate_chain_pem,
+                "public_key_b64": r.public_key_b64,
+                "dsse": r.dsse,
+                "dry_run": dry_run,
+            });
+            if let Err(e) =
+                std::fs::write(&out, serde_json::to_vec_pretty(&doc).unwrap_or_default())
+            {
+                eprintln!("error: write {}: {e}", out.display());
+                return VaaExitCode::ToolFailure.as_std();
+            }
+            println!("ok: fulcio keyless DSSE -> {}", out.display());
+            println!("note: Fulcio identity attest ≠ SemASM Verified");
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: fulcio sign: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
     }
 }
 

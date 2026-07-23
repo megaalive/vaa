@@ -1,0 +1,61 @@
+# Fulcio keyless DSSE (manual / release-adjacent)
+
+# Does NOT run on push. Gate CI stays offline-deterministic.
+# Fulcio identity attest ≠ SemASM Verified.
+name: fulcio-sign
+
+on:
+  workflow_dispatch:
+    inputs:
+      transparency_path:
+        description: Path to vaa-transparency-v1 JSON in the repo
+        required: true
+        type: string
+      dry_run:
+        description: Offline mock Fulcio (no network / no OIDC)
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build with fulcio feature
+        run: cargo build --release --features fulcio
+      - name: Dry-run Fulcio DSSE
+        if: ${{ inputs.dry_run }}
+        run: |
+          ./target/release/vaa evidence fulcio-sign --dry-run \
+            "${{ inputs.transparency_path }}" \
+            -o "${{ runner.temp }}/fulcio-dsse.json"
+          echo "note: Fulcio identity attest ≠ SemASM Verified"
+      - name: Live Fulcio (OIDC)
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          TOKEN="$(curl -fsSL \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sigstore" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')"
+          export VAA_OIDC_TOKEN="$TOKEN"
+          ./target/release/vaa evidence fulcio-sign \
+            "${{ inputs.transparency_path }}" \
+            -o "${{ runner.temp }}/fulcio-dsse.json"
+          echo "note: Fulcio identity attest ≠ SemASM Verified"
+        continue-on-error: true
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: fulcio-dsse
+          path: ${{ runner.temp }}/fulcio-dsse.json
+          if-no-files-found: ignore

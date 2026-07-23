@@ -37,19 +37,23 @@ pub use cache::{
 };
 pub use candidate::{CandidateProtocol, CandidateSubmission, SubmissionOutcome};
 pub use canonical_json::{CANONICALIZATION_ID, DIGEST_ALGORITHM_ID};
+#[cfg(feature = "fulcio")]
+pub use evidence::UreqFulcioTransport;
 #[cfg(feature = "rekor")]
 pub use evidence::UreqRekorTransport;
 pub use evidence::{
-    export_transparency, keygen_seal, may_claim_verified, probe_durability, publish_dsse,
-    publish_files_seal_last, read_transparency_file, sha256_digest_prefixed, verify_bundle,
-    verify_chain, verify_dsse_envelope, verify_entry_matches_dsse, verify_seal,
-    verify_transparency_against_run, write_dsse_file, write_sealed_evidence,
-    write_transparency_file, ChainIdentity, CheckOutcome, DsseEnvelope, DurabilityClass,
-    DurabilityProbeReport, EvidenceAggregator, EvidenceExpect, EvidenceReport, EvidenceStatus,
-    GeneratorMeta, HsmPkcs11Signer, MockRekorTransport, PracticeEd25519Signer, RekorPublishResult,
-    ReproducibleBuildOutcome, SealEnvelope, SealError, SealSignature, SealSigner, SignerKind,
-    SigstoreDsseSigner, TransparencyDocument, VerifyChainReport, DSSE_PAYLOAD_TYPE_TRANSPARENCY,
-    ENV_REQUIRE_LOCAL_DURABLE, ENV_SEAL_SIGNING_KEY, TRANSPARENCY_SCHEMA_VERSION,
+    dry_run_oidc_token, export_transparency, keygen_seal, keyless_sign_transparency,
+    may_claim_verified, oidc_subject, probe_durability, publish_dsse, publish_files_seal_last,
+    read_transparency_file, sha256_digest_prefixed, verify_bundle, verify_chain,
+    verify_dsse_envelope, verify_entry_matches_dsse, verify_seal, verify_transparency_against_run,
+    write_dsse_file, write_sealed_evidence, write_transparency_file, ChainIdentity, CheckOutcome,
+    DsseEnvelope, DurabilityClass, DurabilityProbeReport, EvidenceAggregator, EvidenceExpect,
+    EvidenceReport, EvidenceStatus, FulcioError, FulcioSigningResult, GeneratorMeta,
+    HsmPkcs11Signer, MockFulcioTransport, MockRekorTransport, PracticeEd25519Signer,
+    RekorPublishResult, ReproducibleBuildOutcome, SealEnvelope, SealError, SealSignature,
+    SealSigner, SignerKind, SigstoreDsseSigner, TransparencyDocument, VerifyChainReport,
+    DSSE_PAYLOAD_TYPE_TRANSPARENCY, ENV_REQUIRE_LOCAL_DURABLE, ENV_SEAL_SIGNING_KEY,
+    TRANSPARENCY_SCHEMA_VERSION,
 };
 pub use exit_code::ExitCode as VaaExitCode;
 pub use harness::{HarnessConfig, HarnessTemplate};

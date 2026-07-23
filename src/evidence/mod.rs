@@ -1,6 +1,7 @@
 pub mod bundle;
 pub mod chain;
 pub mod durability;
+pub mod fulcio;
 #[cfg(feature = "pkcs11")]
 pub mod pkcs11_softhsm;
 pub mod rekor;
@@ -20,6 +21,12 @@ pub use chain::{verify_chain, ChainIdentity, VerifyChainReport};
 pub use durability::{
     may_claim_verified, probe_durability, publish_files_seal_last, DurabilityClass,
     DurabilityProbeReport, ENV_REQUIRE_LOCAL_DURABLE,
+};
+#[cfg(feature = "fulcio")]
+pub use fulcio::UreqFulcioTransport;
+pub use fulcio::{
+    dry_run_oidc_token, keyless_sign_dsse, keyless_sign_transparency, oidc_subject, FulcioError,
+    FulcioSigningResult, FulcioTransport, MockFulcioTransport,
 };
 #[cfg(feature = "pkcs11")]
 pub use pkcs11_softhsm::{

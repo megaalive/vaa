@@ -107,7 +107,6 @@ cargo run -q -- evidence verify-chain \
 ### Still out of scope / later waves
 
 - Disposable VM higher-assurance mode (§15.3)
-- Fulcio keyless OIDC (DSSE uses practice keys today)
 - Hardware HSM (SoftHSM PKCS#11 Linux smoke is Done under P8-K — not a trust root)
 - Embedding CryptOpt engine upstream
 
@@ -123,6 +122,7 @@ cargo run -q -- evidence verify-chain \
 | **P8-H** | CI Actions Node 24 pins | **Done** |
 | **P8-F** | Fuller fuzz smoke (`fuzz/` + CI) | **Done** (not a formal audit) |
 | **P8-K** | SoftHSM PKCS#11 live signer | **Done** (Linux smoke; SoftHSM ≠ hardware) |
+| **P8-I** | Fulcio keyless DSSE opt-in | **Done** (manual workflow; Gate offline; ≠ SemASM Verified) |
 
 ### Planned vertical-slice waves (after R2c)
 
