@@ -255,8 +255,8 @@ jobs:
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: count_byte + find_first_byte SemASM/VAA bridges (Thin Th1/Th2).
-          ref: 5e29a4442b7db01c4bb396aea363e01d8067b750
+          # Pin: memset SemASM/VAA bridge leaf (Thin Th5).
+          ref: b0ef50ffc9de06f4cb8695d861980ea5286d9e92
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
