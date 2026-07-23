@@ -24,5 +24,5 @@ Regenerate committed NASM (requires `hla64` on PATH or `dotnet run` via script):
 ```
 
 Honesty: Gate-1 without `--allow-execution` → Incomplete. Gate-2 with
-`--allow-execution` → Verified. HlaX64 `-Wverify` ≠ SemASM `verified`.
+`--allow-execution` → Verified. HlaX64 `-Wverify` ≠ SemASM `verified`. `search --ingest` ≠ CryptOpt; SoftHSM ≠ hardware HSM.
 `find_first_byte` only reads `buffer` (read-only, like `memcmp`/`find_last_byte`/`count_byte`).

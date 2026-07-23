@@ -24,7 +24,7 @@ Regenerate committed NASM (requires `hla64` on PATH or `dotnet run` via script):
 ```
 
 Honesty: Gate-1 without `--allow-execution` → Incomplete. Gate-2 with
-`--allow-execution` → Verified. HlaX64 `-Wverify` ≠ SemASM `verified`.
+`--allow-execution` → Verified. HlaX64 `-Wverify` ≠ SemASM `verified`. `search --ingest` ≠ CryptOpt; SoftHSM ≠ hardware HSM.
 `memcpy` writes to `dst` and reads `src` (not read-only, unlike
 `memcmp`/`find_last_byte`); `dst`/`src` are assumed distinct, non-overlapping
 buffers (SemASM ADR 0003, "overlap fail-closed").

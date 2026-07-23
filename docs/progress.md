@@ -394,7 +394,7 @@ SemASM Verified; local transparency artifact ≠ remote log.
 |---|---|---|
 | **H0–H6** | Horizon Closeout program | **Done** |
 
-SemASM pin: `c036551cd74dd88ed137bf63d80f20086738f85d`
+SemASM pin: `bb4484c46a2242bc17ca4a7ffec13dff2172e048`
 
 ### W4 — HlaX64 `replace_byte` bridge
 
