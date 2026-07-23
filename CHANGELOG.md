@@ -11,6 +11,8 @@ for **crate** versions. Git tag `v0.1.0` marks the alpha release; see
 
 ### Added
 
+- **Release packaging** — `.github/workflows/release-binaries.yml` builds portable
+  Windows + Linux archives + `SHA256SUMS` on `v*` tags (no MSI/Docker/installer).
 - **P7-S** — Container C1 binds + path remap, bundled seccomp, rootless probe,
   `--generator-jail` for external generators; Gate exec honesty (SemASM path).
 - **P7-D** — `vaa evidence durability-probe` + multi-file seal-last helper.
@@ -18,6 +20,10 @@ for **crate** versions. Git tag `v0.1.0` marks the alpha release; see
 - **P7-T** — Rekor publish/verify with mock transport; `--features rekor` for live HTTP;
   optional `transparency-rekor.yml` workflow_dispatch.
 - **P7-C** — `vaa search` nop-slide / external mutator staging loop (no CryptOpt embed).
+
+### Fixed
+
+- CHANGELOG `[0.1.0]` non-goals: remove stray `Done` after OS-level FS isolation line.
 
 ## [0.1.0] — 2026-07-23
 
@@ -68,7 +74,7 @@ Alpha release (`git tag v0.1.0`). Gate CI artifacts and practice seals are
 ### Explicit non-goals (still deferred)
 
 - CryptOpt search / remote Rekor / HSM / Sigstore
-- Hardened seccomp / verified rootless / OS-level generator FS isolation Done
+- Hardened seccomp / verified rootless / OS-level generator FS isolation
 - Full cargo-fuzz PR-022 security certification
 - Auto `cargo publish`
 - Cross-host bit-identical builds / cache as a trust root

@@ -32,6 +32,7 @@ Release (see ceremony section). Practice seals and Gate artifacts remain
 | Negative corpus thin (**PR-022**) | `fixtures/negative/` (not full fuzz) |
 | CHANGELOG + prep scripts (**R-notes** / **PR-023** docs) | `CHANGELOG.md`, `scripts/release-prep-check.*` |
 | **R-tag** | **Done** — annotated `v0.1.0` + GitHub Release (2026-07-23) |
+| Portable binaries on tag | **`v0.1.0`:** source archives only; **next (`v0.1.1+`):** [`release-binaries.yml`](../.github/workflows/release-binaries.yml) |
 
 ## Explicit non-goals for `v0.1.0`
 

@@ -1,0 +1,111 @@
+# Build and attach portable binaries to a GitHub Release.
+# Trigger: push of an annotated tag matching v* (e.g. v0.1.1).
+#
+# Assets (anti-bloat — no MSI/Docker/installer):
+#   vaa-<tag>-x86_64-pc-windows-msvc.zip
+#   vaa-<tag>-x86_64-unknown-linux-gnu.tar.gz
+#   SHA256SUMS
+#
+# Does not replace Gate CI. Does not claim production trust root.
+
+name: release-binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  build-linux:
+    name: Linux x86_64 gnu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release binary
+        run: cargo build --release --locked
+      - name: Package
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          STAGE="vaa-${TAG}-x86_64-unknown-linux-gnu"
+          mkdir -p "${STAGE}"
+          cp target/release/vaa "${STAGE}/"
+          cp README.md LICENSE-APACHE LICENSE-MIT CHANGELOG.md "${STAGE}/" 2>/dev/null || true
+          tar -czf "${STAGE}.tar.gz" "${STAGE}"
+          sha256sum "${STAGE}.tar.gz" > SHA256SUMS-linux.txt
+          echo "ASSET=${STAGE}.tar.gz" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-gnu
+          path: |
+            vaa-*.tar.gz
+            SHA256SUMS-linux.txt
+
+  build-windows:
+    name: Windows x86_64 msvc
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release binary
+        run: cargo build --release --locked
+      - name: Package
+        shell: pwsh
+        run: |
+          $Tag = $env:GITHUB_REF_NAME
+          $Stage = "vaa-$Tag-x86_64-pc-windows-msvc"
+          New-Item -ItemType Directory -Force -Path $Stage | Out-Null
+          Copy-Item target\release\vaa.exe "$Stage\"
+          foreach ($f in @("README.md", "LICENSE-APACHE", "LICENSE-MIT", "CHANGELOG.md")) {
+            if (Test-Path $f) { Copy-Item $f "$Stage\" }
+          }
+          Compress-Archive -Path $Stage -DestinationPath "$Stage.zip" -Force
+          $hash = (Get-FileHash -Algorithm SHA256 "$Stage.zip").Hash.ToLower()
+          Set-Content -Path SHA256SUMS-windows.txt -Value "$hash  $Stage.zip" -NoNewline
+          Add-Content -Path SHA256SUMS-windows.txt -Value ""
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-msvc
+          path: |
+            vaa-*.zip
+            SHA256SUMS-windows.txt
+
+  publish:
+    name: Attach to GitHub Release
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Merge SHA256SUMS
+        run: |
+          mkdir -p out
+          find dist -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp -v {} out/ \;
+          {
+            cat dist/linux-gnu/SHA256SUMS-linux.txt
+            cat dist/windows-msvc/SHA256SUMS-windows.txt
+          } | sed '/^$/d' | sort > out/SHA256SUMS
+          ls -la out
+          cat out/SHA256SUMS
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Create release if missing (annotated tag push); otherwise upload into existing.
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "Portable binaries for ${TAG}. See CHANGELOG.md. Practice seals ≠ trust root." \
+              --verify-tag
+          fi
+          gh release upload "$TAG" out/* --clobber
