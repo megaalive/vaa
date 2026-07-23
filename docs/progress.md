@@ -190,7 +190,7 @@ Honesty: Gate-1 Incomplete ≠ Verified. Gate-2 search Verified is a SemASM
 Default CI remains Gate-1 fail-closed (no `--allow-execution` on search).
 
 Closeout tips: SemASM `ca959f39924a34a3bca2a5effe71e96e63238250`;
-VAA `3e90223803d53aa13d876ef54400db82f30c5193`.
+VAA `37a468ac5697786237e1a2bca6126429125d7621`.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
