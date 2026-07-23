@@ -86,5 +86,27 @@ sandbox claim ≠ container isolation; SoftHSM/Fulcio ≠ Verified.
   `memcmp` bridge (H5) is a third emit leaf (dual-buffer `-1/0/1`). Default CI
   remains Gate-1 fail-closed.
 - **Maturity inflection:** leaf/search/HlaX64 treadmill paused after Z for thin
-  bridges. Write-shape `replace_byte` (ADR 0003 Accepted) is the SemASM/VAA
-  cliff (W0–W3). W\* memcpy / HlaX64 replace / Gate-2 I2 remain deferred.
+  bridges. Write-shape + Thin + Horizon Closeout (H0–H6) followed; see
+  `docs/progress.md` Horizon map.
+
+## Remote transparency honesty (H5)
+
+Local and opt-in paths today:
+
+- Gate CI uploads `vaa-transparency-v1` export artifacts (T0/T1).
+- Opt-in Rekor publish/verify (`--features rekor`) and Fulcio keyless
+  (`--features fulcio`, manual workflow).
+
+**Local export + CI artifact ≠ operated remote append-only log.** Practice keys
+≠ trust root. Opt-in Rekor/Fulcio ≠ default Gate remote transparency.
+
+"Remote transparency" may only be claimed when all hold:
+
+1. An operated append-only remote log (or always-on production Rekor) is the
+   default verify path for Gate jobs that claim remote transparency.
+2. Verify-from-remote fails closed when the log is unreachable.
+3. Docs name the log endpoint and key policy (not practice-only).
+
+Until then, wording must keep: CI artifact / dry-run Rekor / Fulcio identity
+attest ≠ remote transparency service; SoftHSM ≠ hardware HSM; Fulcio ≠ SemASM
+Verified.

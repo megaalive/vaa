@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
-          ref: eb79db5411ae1159efdda688746639bc8dbecb95
+          # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
+          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
-          ref: eb79db5411ae1159efdda688746639bc8dbecb95
+          # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
+          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
-          ref: eb79db5411ae1159efdda688746639bc8dbecb95
+          # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
+          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -380,8 +380,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
-          ref: eb79db5411ae1159efdda688746639bc8dbecb95
+          # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
+          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -459,8 +459,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM Thin tip (Th8 residual pure-int inventory close; decode/lower stay partial).
-          ref: eb79db5411ae1159efdda688746639bc8dbecb95
+          # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
+          ref: 6d04ae4b9bb060a4303dbd09fc6f5591c10c06cc
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
