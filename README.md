@@ -92,13 +92,17 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-**`v0.1.1`** is the first tagged release with portable Win/Linux binaries + `SHA256SUMS`
-(see [Releases](https://github.com/megaalive/vaa/releases)). Alpha **`v0.1.0`** remains
-source-archive-only historically.
-Post-alpha P7 is Done — [`docs/post-alpha-harden.md`](docs/post-alpha-harden.md).
-Known limits: container ≠ absolute isolation; Rekor/Sigstore ≠ SemASM Verified;
-HSM is scaffold; search is staging-only (not CryptOpt embed).
-Later: disposable VM mode, Fulcio keyless, live PKCS#11, fuller fuzz.
+`main` is past tagged **`v0.1.1`** (portable Win/Linux binaries + `SHA256SUMS` —
+see [Releases](https://github.com/megaalive/vaa/releases)). See
+[`CHANGELOG.md`](CHANGELOG.md) **[Unreleased]** for the architectural summary
+since that tag (Thin bridges, write-shape Gate, isolation, Horizon honesty,
+Dx-era SemASM pin). Alpha **`v0.1.0`** remains source-archive-only historically.
+
+Post-alpha harden notes: [`docs/post-alpha-harden.md`](docs/post-alpha-harden.md).
+Known limits: container ≠ absolute isolation; Rekor/Sigstore/SoftHSM ≠ SemASM
+Verified or hardware HSM; `search --ingest` ≠ CryptOpt; local transparency
+artifact ≠ remote append-only log. Next release should narrate the stack leap,
+not only commit lists — no rush to tag until CHANGELOG + checklist agree.
 
 ## License
 

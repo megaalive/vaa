@@ -8,26 +8,51 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
 
 ## [Unreleased]
 
+`main` is **materially past** the `v0.1.1` tag. This section is the
+architectural summary for the **next** release notes — not a claim that a tag
+has shipped. SoftHSM ≠ hardware HSM; `search --ingest` ≠ CryptOpt; Incomplete ≠
+Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log.
+
+### Stack identity (SemASM + VAA)
+
+VAA owns task lock, candidate lifecycle, sandbox profiles, proof/seal chain,
+signing, and transparency exports. SemASM owns object policy, decode/lower,
+ABI/CFG, capabilities, behavioral oracles, and verification evidence. Generators
+(HlaX64, search mutators, humans, LLMs) never decide acceptance.
+
 ### Added
 
-- **P2 / SemASM Tranche P** — `find_first_byte` Gate-1 Incomplete + Gate-2 Verified
-  fixtures (`fixtures/semasm/find_first_byte/`); SemASM pin `511bb45…`.
-  Gate-1 Incomplete ≠ Verified.
-- **N2 / SemASM Tranche N** — `max_usize` Gate-1 Incomplete + Gate-2 Verified fixtures
-  (`fixtures/semasm/max_usize/`); SemASM pin `623d22c…`. Gate-1 Incomplete ≠ Verified.
-- **M4 / SemASM Tranche M** — `min_usize` Gate-1 Incomplete + Gate-2 Verified fixtures
-  (`fixtures/semasm/min_usize/`); SemASM pin `1eddf84…`. Gate-1 Incomplete ≠ Verified.
-- **P8-F** — `fuzz/` cargo-fuzz targets (`task_toml`, `seal_envelope`, `transparency_doc`,
-  `cache_verification_record`) + ubuntu CI smoke (30s/target). Not a security certification.
-- **P8-K** — SoftHSM2 PKCS#11 live signer behind `--features pkcs11` (`rsa-pkcs1-sha256`);
-  optional ubuntu CI job `pkcs11-softhsm`. SoftHSM ≠ hardware HSM / trust root.
-- **P8-I** — Fulcio keyless DSSE (`vaa evidence fulcio-sign`, `--features fulcio`) +
-  manual `fulcio-sign.yml`. Gate stays offline; Fulcio ≠ SemASM Verified.
+- **Thin leaf bridges (Th1–Th8)** — HlaX64 Win64 ingest + Gate for
+  `count_byte`, `find_first_byte`, `memset`, `memcpy`, `min_usize`, `max_usize`
+  (plus earlier `sum_i64` / `find_last_byte` / `memcmp` / `replace_byte`).
+  Emit/`-Wverify` ≠ SemASM Verified.
+- **Write-shape Gate parity** — `replace_byte` / `memset` / `memcpy` fixture
+  run + `search --ingest` (nop-before-ret); Gate-1 Incomplete without
+  `--allow-execution`.
+- **Execution isolation (I2)** — `execution_isolation` + `--execution-sandbox`
+  on Gate paths (profile ≠ absolute OS isolation).
+- **Horizon Closeout (consumer side)** — progress/map honesty; remote-
+  transparency non-claim (local export / opt-in Rekor/Fulcio ≠ operated remote
+  log); SoftHSM/CryptOpt honesty on leaf READMEs.
+- **P8-F / P8-K / P8-I** — cargo-fuzz smoke; SoftHSM PKCS#11 live signer
+  (`--features pkcs11`); Fulcio keyless DSSE (`--features fulcio`). Not a
+  trust root; Gate stays offline by default.
+- Older Unreleased fixtures still in tree: `find_first_byte` / `min_usize` /
+  `max_usize` SemASM Gate packs (pins superseded by later tips — see
+  `docs/progress.md`).
 
 ### Changed
 
-- **P8-H** — GitHub Actions pins for Node.js 24: `checkout@v6`, `upload-artifact@v6`,
-  `download-artifact@v7`, `setup-dotnet@v5`; `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
+- SemASM pin tracks post-Horizon tip (x86 decode/lower sign-off, A64/RV
+  write-shape harness, MemCmp A64/RV, guard-byte Rmem). See SemASM
+  `CHANGELOG` Unreleased for producer-side detail.
+- GitHub Actions Node 24 pin bump (`checkout@v6`, artifact v6/v7, etc.).
+- README “What works today” table markdown fixed; honesty lines tightened.
+
+### Honesty / non-goals (unchanged)
+
+- No CryptOpt embed; no hardware HSM; no live-model Gate CI default; no claim
+  that practice seals or SoftHSM are a production trust root.
 
 ## [0.1.1] — 2026-07-23
 
