@@ -108,7 +108,7 @@ cargo run -q -- evidence verify-chain \
 
 - Disposable VM higher-assurance mode (§15.3)
 - Fulcio keyless OIDC (DSSE uses practice keys today)
-- Live HSM PKCS#11 (scaffold only)
+- Hardware HSM (SoftHSM PKCS#11 Linux smoke is Done under P8-K — not a trust root)
 - Embedding CryptOpt engine upstream
 
 ### Post-alpha harden (P7) — see [`docs/post-alpha-harden.md`](post-alpha-harden.md)
@@ -120,6 +120,9 @@ cargo run -q -- evidence verify-chain \
 | **P7-A** | SealSigner trait + DSSE + HSM scaffold | **Done** (practice keys ≠ trust root) |
 | **P7-T** | Rekor publish/verify (mock + `--features rekor`) | **Done** (opt-in; Gate offline) |
 | **P7-C** | `vaa search` nop-slide / mutator staging | **Done** (not formal superopt) |
+| **P8-H** | CI Actions Node 24 pins | **Done** |
+| **P8-F** | Fuller fuzz smoke (`fuzz/` + CI) | **Done** (not a formal audit) |
+| **P8-K** | SoftHSM PKCS#11 live signer | **Done** (Linux smoke; SoftHSM ≠ hardware) |
 
 ### Planned vertical-slice waves (after R2c)
 

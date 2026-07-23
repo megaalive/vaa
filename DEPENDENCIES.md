@@ -30,7 +30,8 @@ This document is the human-readable companion to `deny.toml`.
 | `rand` | CSPRNG for `vaa evidence keygen-seal` only |
 | `base64` | Encode/decode seal `public_key_b64` / `sig_b64` |
 | `win32job` (Windows only) | Job Object ownership so timeout/overflow kills the full process tree |
-| `ureq` (**optional**, feature `live-model`) | Sync OpenAI-compatible HTTP for PR-019 — never default |
+| `ureq` (**optional**, feature `live-model` / `rekor` / `fulcio`) | Sync HTTP — never default Gate |
+| `cryptoki` + `rsa` (**optional**, feature `pkcs11`) | SoftHSM PKCS#11 sign + local RSA public verify (private key stays in module) |
 
 ## Optional features
 
@@ -39,6 +40,9 @@ This document is the human-readable companion to `deny.toml`.
 default = ["local-cli"]
 local-cli = []
 live-model = ["dep:ureq"]
+rekor = ["dep:ureq"]
+pkcs11 = ["dep:cryptoki", "dep:rsa"]
+fulcio = ["dep:ureq"]
 ```
 
 Default features remain offline and free of live provider SDKs. Enable live generate with:
@@ -46,6 +50,13 @@ Default features remain offline and free of live provider SDKs. Enable live gene
 ```bash
 cargo run --features live-model -- generate task.vaa.toml --output out.asm --live
 # requires VAA_MODEL_API_KEY; optional VAA_MODEL_BASE_URL / VAA_MODEL_NAME
+```
+
+SoftHSM PKCS#11 (Linux smoke):
+
+```bash
+cargo test --features pkcs11 softhsm_live_round_trip
+# VAA_PKCS11_LIVE=1 VAA_HSM_MODULE=... SOFTHSM2_CONF=...
 ```
 
 ## License allow-list

@@ -24,6 +24,8 @@ pub const ENV_SEAL_SIGNING_KEY: &str = "VAA_SEAL_SIGNING_KEY";
 pub const ENV_REQUIRE_SEAL_SIGNATURE: &str = "VAA_REQUIRE_SEAL_SIGNATURE";
 
 pub const SIGNATURE_ALG: &str = "ed25519";
+/// SoftHSM / PKCS#11 RSA signatures (feature `pkcs11` live path).
+pub const SIGNATURE_ALG_RSA_PKCS1_SHA256: &str = "rsa-pkcs1-sha256";
 pub const SIGNED_OVER_ACCEPTANCE: &str = "acceptance_digest";
 
 /// Optional authenticity block on [`SealEnvelope`] (schema 0.2 additive).
@@ -137,12 +139,6 @@ pub fn verify_envelope_signature(envelope: &SealEnvelope) -> Result<(), SealErro
             Ok(())
         }
         Some(sig) => {
-            if sig.alg != SIGNATURE_ALG {
-                return Err(SealError::Signature(format!(
-                    "unsupported signature alg: {}",
-                    sig.alg
-                )));
-            }
             if sig.signed_over != SIGNED_OVER_ACCEPTANCE {
                 return Err(SealError::Signature(format!(
                     "unsupported signed_over: {}",
@@ -152,23 +148,46 @@ pub fn verify_envelope_signature(envelope: &SealEnvelope) -> Result<(), SealErro
             let pk_bytes = B64
                 .decode(sig.public_key_b64.as_bytes())
                 .map_err(|e| SealError::Signature(format!("public_key_b64: {e}")))?;
-            let pk_arr: [u8; 32] = pk_bytes
-                .try_into()
-                .map_err(|_| SealError::Signature("public_key_b64 must be 32 bytes".into()))?;
-            let verifying_key = VerifyingKey::from_bytes(&pk_arr)
-                .map_err(|e| SealError::Signature(format!("public key: {e}")))?;
-
             let sig_bytes = B64
                 .decode(sig.sig_b64.as_bytes())
                 .map_err(|e| SealError::Signature(format!("sig_b64: {e}")))?;
-            let sig_arr: [u8; 64] = sig_bytes
-                .try_into()
-                .map_err(|_| SealError::Signature("sig_b64 must be 64 bytes".into()))?;
-            let signature = Signature::from_bytes(&sig_arr);
 
-            verifying_key
-                .verify(envelope.acceptance_digest.as_bytes(), &signature)
-                .map_err(|_| SealError::Signature("ed25519 verify failed".into()))
+            if sig.alg == SIGNATURE_ALG {
+                let pk_arr: [u8; 32] = pk_bytes
+                    .try_into()
+                    .map_err(|_| SealError::Signature("public_key_b64 must be 32 bytes".into()))?;
+                let verifying_key = VerifyingKey::from_bytes(&pk_arr)
+                    .map_err(|e| SealError::Signature(format!("public key: {e}")))?;
+                let sig_arr: [u8; 64] = sig_bytes
+                    .try_into()
+                    .map_err(|_| SealError::Signature("sig_b64 must be 64 bytes".into()))?;
+                let signature = Signature::from_bytes(&sig_arr);
+                return verifying_key
+                    .verify(envelope.acceptance_digest.as_bytes(), &signature)
+                    .map_err(|_| SealError::Signature("ed25519 verify failed".into()));
+            }
+
+            if sig.alg == SIGNATURE_ALG_RSA_PKCS1_SHA256 {
+                #[cfg(feature = "pkcs11")]
+                {
+                    return super::pkcs11_softhsm::verify_rsa_pkcs1_sha256_spki(
+                        &pk_bytes,
+                        envelope.acceptance_digest.as_bytes(),
+                        &sig_bytes,
+                    );
+                }
+                #[cfg(not(feature = "pkcs11"))]
+                {
+                    return Err(SealError::Signature(
+                        "rsa-pkcs1-sha256 requires --features pkcs11".into(),
+                    ));
+                }
+            }
+
+            Err(SealError::Signature(format!(
+                "unsupported signature alg: {}",
+                sig.alg
+            )))
         }
     }
 }

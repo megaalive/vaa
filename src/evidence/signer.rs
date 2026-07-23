@@ -1,4 +1,5 @@
-//! SealSigner backends (P7-A): practice Ed25519, Sigstore-shaped DSSE, HSM scaffold.
+//! SealSigner backends (P7-A / P8-K): practice Ed25519, Sigstore-shaped DSSE,
+//! SoftHSM PKCS#11 (feature `pkcs11`).
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -168,10 +169,12 @@ pub fn verify_dsse_envelope(env: &DsseEnvelope) -> Result<(), SealError> {
         .map_err(|e| SealError::Signature(format!("dsse verify: {e}")))
 }
 
-/// PKCS#11 / HSM scaffold — not a live HSM client.
+/// SoftHSM / PKCS#11 signer. Without `--features pkcs11`, signing fail-closes as scaffold.
 pub struct HsmPkcs11Signer {
     pub module_path: PathBuf,
     pub key_label: String,
+    pub pin: String,
+    pub slot_index: usize,
 }
 
 impl HsmPkcs11Signer {
@@ -180,7 +183,25 @@ impl HsmPkcs11Signer {
         Self {
             module_path: module_path.into(),
             key_label: key_label.into(),
+            pin: std::env::var("VAA_HSM_PIN").unwrap_or_else(|_| "1234".into()),
+            slot_index: std::env::var("VAA_HSM_SLOT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0),
         }
+    }
+
+    #[must_use]
+    pub fn from_env_paths() -> Self {
+        let module = std::env::var("VAA_HSM_MODULE").unwrap_or_else(|_| {
+            if cfg!(windows) {
+                "softhsm2.dll".into()
+            } else {
+                "/usr/lib/softhsm/libsofthsm2.so".into()
+            }
+        });
+        let label = std::env::var("VAA_HSM_KEY_LABEL").unwrap_or_else(|_| "vaa".into());
+        Self::scaffold(module, label)
     }
 }
 
@@ -189,12 +210,26 @@ impl SealSigner for HsmPkcs11Signer {
         SignerKind::HsmPkcs11
     }
 
-    fn sign_acceptance_digest(&self, _acceptance_digest: &str) -> Result<SealSignature, SealError> {
-        Err(SealError::Signature(format!(
-            "HSM PKCS#11 backend is scaffold only (module={}, label={})",
-            self.module_path.display(),
-            self.key_label
-        )))
+    fn sign_acceptance_digest(&self, acceptance_digest: &str) -> Result<SealSignature, SealError> {
+        #[cfg(feature = "pkcs11")]
+        {
+            super::pkcs11_softhsm::sign_acceptance_digest_rsa(
+                &self.module_path,
+                &self.pin,
+                &self.key_label,
+                self.slot_index,
+                acceptance_digest,
+            )
+        }
+        #[cfg(not(feature = "pkcs11"))]
+        {
+            let _ = acceptance_digest;
+            Err(SealError::Signature(format!(
+                "HSM PKCS#11 backend requires --features pkcs11 (module={}, label={})",
+                self.module_path.display(),
+                self.key_label
+            )))
+        }
     }
 }
 
@@ -208,11 +243,7 @@ pub fn signer_from_env() -> Result<Option<Box<dyn SealSigner>>, SealError> {
         "dsse" | "sigstore" => {
             Ok(SigstoreDsseSigner::from_env()?.map(|s| Box::new(s) as Box<dyn SealSigner>))
         }
-        "hsm" | "pkcs11" => {
-            let module = std::env::var("VAA_HSM_MODULE").unwrap_or_else(|_| "pkcs11.so".into());
-            let label = std::env::var("VAA_HSM_KEY_LABEL").unwrap_or_else(|_| "vaa".into());
-            Ok(Some(Box::new(HsmPkcs11Signer::scaffold(module, label))))
-        }
+        "hsm" | "pkcs11" => Ok(Some(Box::new(HsmPkcs11Signer::from_env_paths()))),
         other => Err(SealError::Signature(format!(
             "unknown VAA_SEAL_SIGNER={other}"
         ))),
@@ -253,10 +284,14 @@ mod tests {
     }
 
     #[test]
-    fn hsm_scaffold_errors() {
-        let s = HsmPkcs11Signer::scaffold("lib.so", "k");
+    fn hsm_without_live_module_fail_closed() {
+        let s = HsmPkcs11Signer::scaffold("/nonexistent/libsofthsm2.so", "k");
         let err = s.sign_acceptance_digest("sha256:x").unwrap_err();
-        assert!(err.to_string().contains("scaffold"));
+        let msg = err.to_string();
+        #[cfg(feature = "pkcs11")]
+        assert!(msg.contains("not found"), "{msg}");
+        #[cfg(not(feature = "pkcs11"))]
+        assert!(msg.contains("pkcs11"), "{msg}");
     }
 
     #[test]

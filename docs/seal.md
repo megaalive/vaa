@@ -8,7 +8,7 @@ attestation of publisher identity.
 | Property | Supported today? | Meaning |
 |---|---|---|
 | **Content integrity** | Yes | Detect drift or corruption between `evidence.json` and the sealed digests, and (via `verify-bundle` / `verify-chain`) between digests and on-disk artifacts. |
-| **Authenticity** | Opt-in | Optional Ed25519 signature over `acceptance_digest` when `VAA_SEAL_SIGNING_KEY` is set. Not a certificate chain / HSM / Sigstore. |
+| **Authenticity** | Opt-in | Optional Ed25519 over `acceptance_digest` when `VAA_SEAL_SIGNING_KEY` is set. SoftHSM PKCS#11 RSA (`--features pkcs11`) is Linux-smoke only — not a hardware trust root / Fulcio identity. |
 
 Unsigned seals remain valid unless `VAA_REQUIRE_SEAL_SIGNATURE=1`. Anyone who can
 rewrite both evidence and seal without a signing key can still re-hash digests;
@@ -34,8 +34,16 @@ the signature binds a known public key to technical acceptance.
    (`scripts/ci-gate-sign-setup.ps1`) and sets `VAA_REQUIRE_SEAL_SIGNATURE=1`.
    That key is a **practice key only — not a trust root**.
 
-Deferred: remote append-only transparency service, HSM / hardware keys, cosign,
-committed production signing seeds, **OS-level** generator FS isolation.
+Deferred: remote append-only production trust root, **hardware** HSM keys, cosign
+as Gate default, committed production signing seeds, **OS-level** generator FS isolation.
+
+### SoftHSM PKCS#11 (P8-K, opt-in)
+
+- Feature `pkcs11` + `VAA_SEAL_SIGNER=hsm` uses SoftHSM2 (`VAA_HSM_MODULE`,
+  `VAA_HSM_PIN`, `VAA_HSM_KEY_LABEL`, optional `VAA_HSM_SLOT`).
+- Signs with `rsa-pkcs1-sha256` (SPKI public key in the seal block). Gate default
+  remains practice Ed25519; Windows Gate does **not** require SoftHSM.
+- SoftHSM ≠ hardware HSM ≠ production trust root.
 
 ## Seal schema 0.2
 

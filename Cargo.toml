@@ -19,6 +19,10 @@ local-cli = []
 live-model = ["dep:ureq"]
 # Opt-in live Rekor HTTP client (ureq). Mock transport always available.
 rekor = ["dep:ureq"]
+# SoftHSM / PKCS#11 live signer (Linux SoftHSM2). Not a hardware HSM claim.
+pkcs11 = ["dep:cryptoki", "dep:rsa"]
+# Fulcio keyless client (ureq). Manual workflow only; Gate stays offline.
+fulcio = ["dep:ureq"]
 
 [dependencies]
 base64 = "0.22"
@@ -32,6 +36,8 @@ thiserror = "2.0"
 toml = { version = "0.8", default-features = false, features = ["parse", "display"] }
 object = { version = "0.36", default-features = false, features = ["read", "elf", "pe", "macho", "unaligned"] }
 ureq = { version = "2.12", optional = true, default-features = true, features = ["json"] }
+cryptoki = { version = "0.12", optional = true }
+rsa = { version = "0.9", optional = true, default-features = false, features = ["std", "sha2"] }
 
 [target.'cfg(windows)'.dependencies]
 win32job = "2.0.3"

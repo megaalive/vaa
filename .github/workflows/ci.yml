@@ -50,6 +50,42 @@ jobs:
             echo "::endgroup::"
           done
 
+  # P8-K: SoftHSM2 PKCS#11 live signer smoke (Linux only; not hardware HSM).
+  pkcs11-softhsm:
+    name: SoftHSM PKCS#11 smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install SoftHSM2
+        run: sudo apt-get update && sudo apt-get install -y softhsm2
+      - name: Configure SoftHSM token
+        run: |
+          set -euo pipefail
+          TOK="${RUNNER_TEMP}/softhsm/tokens"
+          mkdir -p "$TOK"
+          cat > "${RUNNER_TEMP}/softhsm/softhsm2.conf" <<EOF
+          directories.tokendir = ${TOK}
+          objectstore.backend = file
+          EOF
+          echo "SOFTHSM2_CONF=${RUNNER_TEMP}/softhsm/softhsm2.conf" >> "$GITHUB_ENV"
+          MODULE=""
+          for p in /usr/lib/softhsm/libsofthsm2.so /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so; do
+            if [ -f "$p" ]; then MODULE="$p"; break; fi
+          done
+          test -n "$MODULE"
+          echo "VAA_HSM_MODULE=${MODULE}" >> "$GITHUB_ENV"
+          softhsm2-util --init-token --free --label vaa-ci --pin 1234 --so-pin 5678
+      - name: SoftHSM round-trip test
+        env:
+          VAA_PKCS11_LIVE: "1"
+          VAA_HSM_PIN: "1234"
+          VAA_HSM_SO_PIN: "5678"
+          VAA_HSM_KEY_LABEL: vaa
+        run: cargo test --features pkcs11 softhsm_live_round_trip -- --nocapture
+
   # Gate-1: live SemASM Incomplete smoke (count_byte Win64, no --allow-execution).
   # This is NOT a Verified vertical slice — see docs/progress.md.
   semasm-gate1:

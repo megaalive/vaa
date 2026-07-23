@@ -17,12 +17,14 @@ Honesty constraints for waves after `v0.1.0`.
 - `VAA_REQUIRE_LOCAL_DURABLE=1` promotes best-effort to refuse-verified.
 - Not a formal FS correctness proof; network/lying FS remain fail-closed labels.
 
-## Signing + Rekor (P7-A / P7-T)
+## Signing + Rekor (P7-A / P7-T) + SoftHSM (P8-K)
 
-- `SealSigner` backends: practice Ed25519, Sigstore-shaped DSSE, HSM PKCS#11 scaffold.
+- `SealSigner` backends: practice Ed25519, Sigstore-shaped DSSE, SoftHSM PKCS#11
+  (`--features pkcs11`; Linux smoke CI job `pkcs11-softhsm`).
 - `vaa evidence publish-rekor --dry-run` builds DSSE + hashedrekord without network.
 - Live Rekor HTTP requires `--features rekor` (optional workflow).
-- Rekor / Sigstore ≠ SemASM Verified; practice keys ≠ trust root.
+- Rekor / Sigstore / SoftHSM ≠ SemASM Verified; practice keys ≠ trust root;
+  SoftHSM ≠ hardware HSM.
 
 ## Search (P7-C)
 
