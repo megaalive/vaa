@@ -1363,6 +1363,54 @@ fn gate2_verify_hlax64_memset_win64_verified() {
 }
 
 #[test]
+#[ignore = "requires `semasm` on PATH, Win64 toolchain, and SemASM --allow-execution"]
+fn gate2_verify_hlax64_memcpy_win64_verified() {
+    let task = root().join("fixtures/ingest/hlax64_memcpy/memcpy.vaa.toml");
+    let source = root().join("fixtures/ingest/hlax64_memcpy/candidate.asm");
+    let contract = root().join("fixtures/ingest/hlax64_memcpy/memcpy.sem.toml");
+
+    let output = Command::new(vaa_bin())
+        .args([
+            "verify",
+            task.to_str().unwrap(),
+            "--source",
+            source.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--allow-execution",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run vaa verify --allow-execution");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(v) => v,
+        Err(error) => {
+            eprintln!("skipping Gate-2 hlax64 memcpy: no evidence JSON ({error})\n{stdout}");
+            return;
+        }
+    };
+
+    if value["doctor"]["status"] == "Unavailable" {
+        eprintln!("skipping Gate-2 hlax64 memcpy: SemASM unavailable");
+        return;
+    }
+
+    assert_eq!(
+        value["final_status"], "Verified",
+        "Gate-2 hlax64 memcpy expects Verified: {value}"
+    );
+    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    let raw_json = value["verify_report"]["raw_json"]
+        .as_str()
+        .expect("verify_report.raw_json");
+    let raw: serde_json::Value = serde_json::from_str(raw_json).expect("raw_json parse");
+    assert_eq!(raw["behavior_oracle"]["id"], "builtin.buffer.memcpy");
+}
+
+#[test]
 #[cfg(target_os = "linux")]
 #[ignore = "requires `semasm` on PATH, Linux toolchain, and SemASM --allow-execution"]
 fn gate2_ingest_count_byte_linux_verified_seal_chain() {

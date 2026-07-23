@@ -255,8 +255,8 @@ jobs:
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: memset SemASM/VAA bridge leaf (Thin Th5).
-          ref: b0ef50ffc9de06f4cb8695d861980ea5286d9e92
+          # Pin: memcpy SemASM/VAA bridge leaf (Thin Th7).
+          ref: 209ac5b13b954c771fca8f2257cde7486873a846
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -309,6 +309,7 @@ jobs:
             @{ Name = "count_byte"; Script = "regen-hlax64-count_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/count_byte/count_byte.hla64"; Fixture = "fixtures/ingest/hlax64_count_byte/candidate.asm" }
             @{ Name = "find_first_byte"; Script = "regen-hlax64-find_first_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/find_first_byte/find_first_byte.hla64"; Fixture = "fixtures/ingest/hlax64_find_first_byte/candidate.asm" }
             @{ Name = "memset"; Script = "regen-hlax64-memset.ps1"; Source = "hlax64/examples/interop/semasm-vaa/memset/memset.hla64"; Fixture = "fixtures/ingest/hlax64_memset/candidate.asm" }
+            @{ Name = "memcpy"; Script = "regen-hlax64-memcpy.ps1"; Source = "hlax64/examples/interop/semasm-vaa/memcpy/memcpy.hla64"; Fixture = "fixtures/ingest/hlax64_memcpy/candidate.asm" }
           )) {
             $tmp = Join-Path $env:RUNNER_TEMP ("hlax64-" + $leaf.Name + ".asm")
             dotnet run --project hlax64/src/HlaX64.Cli --no-launch-profile -- emit-nasm `
@@ -341,6 +342,8 @@ jobs:
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_find_first_byte_win64_verified -- --ignored --nocapture
           cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_memset_verify_chain -- --ignored --nocapture
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_memset_win64_verified -- --ignored --nocapture
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_memcpy_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_memcpy_win64_verified -- --ignored --nocapture
 
       - name: Export + verify-transparency (HlaX64 Gate-1)
         shell: pwsh

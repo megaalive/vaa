@@ -269,6 +269,7 @@ implementation plan only after SemASM ADR 0003 is Accepted.
 | `min_usize` / `max_usize` | yes | — | — |
 | `replace_byte` | yes (W3) | — | yes (W4) |
 | `memset` | yes (Wm3) | — | yes (Th5) |
+| `memcpy` | yes (Wc) | yes (Th6) | yes (Th7) |
 
 **Intentionally not continued now:** pure-int (`min_usize`/`max_usize`)
 HlaX64 bridges; A64/RV MemCmp/replace harness; CryptOpt embed; formal
@@ -481,6 +482,48 @@ Honesty: HlaX64 emit / `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete
 on SemASM, not this bridge). Update the D0 inventory table: `memset` HlaX64
 bridge moves from "—" to "yes (Th5)".
 
+### Th7 — HlaX64 `memcpy` bridge
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`fb2dac5d6e32c86beac15e13f1f64ceb78fd5ab6`
+(unchanged from Th5/Th6 — current `megaalive/semasm` tip; no new SemASM
+behavioral change is required for this bridge).
+
+HlaX64 pin (`hlax64-bridge`):
+`209ac5b13b954c771fca8f2257cde7486873a846`
+(`examples: add memcpy SemASM/VAA bridge leaf`).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **Th7** | HlaX64 `memcpy.hla64` emit + VAA `fixtures/ingest/hlax64_memcpy/` + Gate-1/2 + CI | **Done** |
+
+Eighth HlaX64 leaf (after `sum_i64` H1, `find_last_byte` H4, `memcmp` H5,
+`replace_byte` W4, `count_byte`/`find_first_byte` Th1/Th2, `memset` Th5).
+`memcpy` writes to `dst` and reads `src` — dual-pointer like `memcmp`, write
+like `replace_byte`/`memset` — same oracle as the write-shape v3 `memcpy`
+fixtures already Gate-1/2'd under `fixtures/semasm/memcpy/`
+(`builtin.buffer.memcpy`, landed in **Wc**; search-ingest parity landed in
+**Th6**); this wave only adds the HlaX64 emit bridge
+(`fixtures/ingest/hlax64_memcpy/` + `scripts/regen-hlax64-memcpy.{ps1,sh}` +
+`hlax64-bridge` CI wiring), mirroring **Th5**'s `memset` bridge shape
+exactly.
+
+`memcpy.hla64` loads each `src` byte into a scratch register (`r8`) and
+stores it straight into `dst`. Unlike `memset`/`replace_byte` (whose stored
+value is a stack-spilled parameter, so the byte-store lowering routes it
+through `rax`/`al` as scratch), the loaded `src` byte here is already
+register-resident, so the emitted store lowers directly
+(`movzx r8, byte [r11]` / `mov byte [r10], r8b`) with no `rax`/`al` scratch
+routing at all. The constant status return (`rax = 0`) is still set only
+once, after the copy loop, for the same defense-in-depth reason as **Th5**.
+
+Honesty: HlaX64 emit / `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete
+(no `--allow-execution`) ≠ Gate-2 Verified. `memcpy` oracle/vectors ≠ formal
+`ensures`/region-precise store proof (that remains Rmem's honesty statement,
+on SemASM, not this bridge). Non-overlapping `dst`/`src` assumed (SemASM ADR
+0003, "overlap fail-closed"). Update the D0 inventory table: `memcpy` HlaX64
+bridge moves from "—" to "yes (Th7)".
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):
@@ -494,7 +537,7 @@ Roles (do not conflate):
 First leaf: `sum_i64` (Win64). Second leaf: `find_last_byte` (Win64, H4).
 Third leaf: `memcmp` (Win64, H5). Fourth leaf: `replace_byte` (Win64, W4).
 Fifth/sixth leaves: `count_byte` / `find_first_byte` (Win64, Th1/Th2).
-Seventh leaf: `memset` (Win64, Th5).
+Seventh leaf: `memset` (Win64, Th5). Eighth leaf: `memcpy` (Win64, Th7).
 Generator label: `--generator hlax64`.
 
 | Wave | Focus | Claim when done |
@@ -759,6 +802,7 @@ Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 | `fixtures/ingest/count_byte/README.md` | R2 generator-agnostic ingest |
 | `fixtures/ingest/hlax64_sum_i64/README.md` | HlaX64 → VAA ingest bridge (`sum_i64`) |
 | `fixtures/ingest/hlax64_memset/README.md` | HlaX64 → VAA ingest bridge (`memset`, Th5) |
+| `fixtures/ingest/hlax64_memcpy/README.md` | HlaX64 → VAA ingest bridge (`memcpy`, Th7) |
 | `fixtures/semasm/README.md` | Handshake fixtures |
 | `fixtures/negative/` | N6 fail-closed validate/transparency vectors |
 
