@@ -41,7 +41,9 @@ Release (see ceremony section). Practice seals and Gate artifacts remain
 | Tag | `v0.1.1` |
 | Date | 2026-07-23 |
 | Focus | Portable binaries + P7 notes dated in CHANGELOG |
-| Tip | recorded at tag time |
+| Tip | `4b1f51e9ecda3fc15ab44913f7447516e7de42c6` |
+| Release | https://github.com/megaalive/vaa/releases/tag/v0.1.1 |
+| Assets | Win zip + Linux tar.gz + `SHA256SUMS` |
 
 ## Explicit non-goals for `v0.1.0`
 
