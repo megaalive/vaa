@@ -218,6 +218,28 @@ Closeout tips: SemASM `0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620`;
 HlaX64 `3641428a6af4f22b6e7cd12febfeca65ac0d8d1b`;
 VAA Gate handoff `1c432364be6d11bf31cd4bd99466258676e89270`.
 
+### Next waves (X5 + H5 + Z) — caps sync, memcmp bridge, find_first search
+
+SemASM pin (Gate-1 / Gate-2 / `hlax64-bridge`):
+`03058461651629d880f3a2b08f92d2e101b6a450`
+(X5 tip: SysV write/indirect + A64/RV evidence sync).
+
+HlaX64 pin (`hlax64-bridge`):
+`eeac3ba0c9f40f02b3e7fef487c29554df0c6573`
+(`memcmp` SemASM/VAA bridge leaf).
+
+| Wave | Focus | Status |
+|---|---|---|
+| **X5** | SemASM caps SysV write/indirect + A64/RV evidence | **Done** (`0305846`) |
+| **H5** | HlaX64 `memcmp` emit + VAA ingest/Gate bridge | **Done** (`85a2dba`) |
+| **Z0** | Docs honesty: memcmp bridge + find_first search parity | **Done** |
+| **Z1** | `find_first` `00_write_broken` + search Gate-1/2 smokes | **in progress** |
+| **Z2** | Closeout docs + pin tip | pending |
+
+Honesty: Gate-1 Incomplete ≠ Verified. Gate-2 search Verified is SemASM
+`--allow-execution` only (≠ CryptOpt). HlaX64 `-Wverify` ≠ SemASM Verified.
+MemCmp harness remains x86-only; A64/RV fail closed.
+
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
 Roles (do not conflate):
@@ -229,7 +251,7 @@ Roles (do not conflate):
 | **VAA** | Task lock, `ingest`/`verify`, seal chain | Generating assembly |
 
 First leaf: `sum_i64` (Win64). Second leaf: `find_last_byte` (Win64, H4).
-Generator label: `--generator hlax64`.
+Third leaf: `memcmp` (Win64, H5). Generator label: `--generator hlax64`.
 
 | Wave | Focus | Claim when done |
 |---|---|---|
@@ -238,6 +260,7 @@ Generator label: `--generator hlax64`.
 | **H2** | `scripts/regen-hlax64-sum_i64` | **Done** |
 | **H3** | CI checkout HlaX64 + emit-nasm + verify | **Done** (`hlax64-bridge` job) |
 | **H4** | `find_last_byte` example + ingest freeze + Gate | **Done** |
+| **H5** | `memcmp` example + ingest freeze + Gate | **Done** |
 
 Honesty: HlaX64 `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete ≠ Verified.
 

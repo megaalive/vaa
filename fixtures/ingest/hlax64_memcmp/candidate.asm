@@ -13,26 +13,26 @@ memcmp:
     mov rax, 0
     mov r9, 0
     mov r10, qword [rbp-8]
-    mov r14, qword [rbp-16]
+    mov r11, qword [rbp-16]
     jmp while_header_0
 while_header_0:
     cmp r9, qword [rbp-24]
     jge endwhile_0
     jmp while_body_0
 while_body_0:
-    movzx r11, byte [r10]
-    movzx r12, byte [r14]
-    cmp r11, r12
+    movzx r8, byte [r10]
+    movzx rdx, byte [r11]
+    cmp r8, rdx
     jne then_1
     jmp else_1
 then_1:
-    cmp r11, r12
+    cmp r8, rdx
     jl then_2
     jmp else_2
 else_1:
     add r9, 1
     add r10, 1
-    add r14, 1
+    add r11, 1
     jmp endif_1
 then_2:
     mov rax, 0

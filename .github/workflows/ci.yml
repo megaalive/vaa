@@ -255,8 +255,8 @@ jobs:
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: memcmp SemASM/VAA bridge leaf (H5).
-          ref: 79d6ecdddd064fb78a202db8bfdb439f3e729259
+          # Pin: memcmp SemASM/VAA bridge leaf (H5 ABI fix).
+          ref: eeac3ba0c9f40f02b3e7fef487c29554df0c6573
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
