@@ -29,3 +29,6 @@ coverage/
 /fuzz/target/
 /fuzz/artifacts/
 /fuzz/coverage/
+
+.cursor/
+
