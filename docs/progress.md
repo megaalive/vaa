@@ -384,9 +384,10 @@ Multi-tranche + Thin + **Horizon Closeout (H0-H6)** are **closed**.
 Landed in Horizon: guard-byte Rmem (H2), A64/RV MemCmp harness (H3), Dx deepen
 without maturity bump (H4), multi-ISA ADR 0005 (H1), remote-transparency honesty
 (H5). **Post-Horizon priority landed:** A64/RV write-shape harness
-(`replace_byte`/`memset`/`memcpy`). **Horizon-locked deferred:** formal ensures,
-full symbolic alias, CryptOpt embed, live-model Gate CI, hardware HSM,
-decode/lower `verified_in_ci`.
+(`replace_byte`/`memset`/`memcpy`). **Post-Horizon:** x86-64 `decode`/`lower`
+→ `verified_in_ci` (Dx owner sign-off; A64/RV stay `partial`).
+**Horizon-locked deferred:** formal ensures, full symbolic alias, CryptOpt
+embed, live-model Gate CI, hardware HSM.
 
 Honesty: SoftHSM ≠ HSM; search ≠ CryptOpt; Incomplete ≠ Verified; HlaX64 ≠
 SemASM Verified; local transparency artifact ≠ remote log.
@@ -395,7 +396,7 @@ SemASM Verified; local transparency artifact ≠ remote log.
 |---|---|---|
 | **H0–H6** | Horizon Closeout program | **Done** |
 
-SemASM pin: `ac04e2ea7d3ca04a628190b6d537531f89fdc591`
+SemASM pin: `ed447fba0496e417cc6f74c707ce5b9b62dd3f14`
 
 ### W4 — HlaX64 `replace_byte` bridge
 
@@ -588,10 +589,10 @@ Honesty: HlaX64 emit / `-Wverify` ≠ SemASM `verified`. Gate-1 Incomplete
 oracle/vectors ≠ formal `ensures`/general theorem proving. Update the D0
 inventory table: `min_usize`/`max_usize` HlaX64 bridge moves from "—" to
 "yes (Th8)". **Residual Thin is now closed** — Thin Th1–Th8 are all
-**Done**. Horizon Closeout (H0–H6) is also **closed**; residual cliffs are
-**Horizon-locked deferred** (formal ensures, CryptOpt embed, hardware HSM,
-live-model Gate CI, decode/lower
-`verified_in_ci` bump) — see Next maturity program above.
+**Done**. Horizon Closeout (H0–H6) is also **closed**; x86-64 `decode`/`lower`
+→ `verified_in_ci` landed under Dx owner sign-off (A64/RV stay `partial`).
+**Horizon-locked deferred:** formal ensures, CryptOpt embed, hardware HSM,
+live-model Gate CI — see Next maturity program above.
 
 ### HlaX64 → SemASM → VAA bridge (after S4)
 
