@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
-          ref: ca959f39924a34a3bca2a5effe71e96e63238250
+          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
+          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
-          ref: ca959f39924a34a3bca2a5effe71e96e63238250
+          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
+          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,16 +247,16 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
-          ref: ca959f39924a34a3bca2a5effe71e96e63238250
+          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
+          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: sum_i64 SemASM/VAA bridge leaf example (H1).
-          ref: 4c797893e0714f64faf1ae2f67ddf26c44f06d91
+          # Pin: find_last_byte SemASM/VAA bridge leaf (H4).
+          ref: 3641428a6af4f22b6e7cd12febfeca65ac0d8d1b
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -301,24 +301,31 @@ jobs:
         env:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
-          $tmp = Join-Path $env:RUNNER_TEMP "hlax64-sum_i64.asm"
-          dotnet run --project hlax64/src/HlaX64.Cli --no-launch-profile -- emit-nasm `
-            hlax64/examples/interop/semasm-vaa/sum_i64/sum_i64.hla64 `
-            --target windows-x64-msabi --output-kind shared-library -o $tmp
-          $committed = (Get-Content -Raw fixtures/ingest/hlax64_sum_i64/candidate.asm) -replace "`r`n", "`n"
-          $emitted = (Get-Content -Raw $tmp) -replace "`r`n", "`n"
-          if ($committed -ne $emitted) {
-            Write-Error "Committed candidate.asm drifts from HlaX64 emit-nasm. Run scripts/regen-hlax64-sum_i64.ps1"
+          foreach ($leaf in @(
+            @{ Name = "sum_i64"; Script = "regen-hlax64-sum_i64.ps1"; Source = "hlax64/examples/interop/semasm-vaa/sum_i64/sum_i64.hla64"; Fixture = "fixtures/ingest/hlax64_sum_i64/candidate.asm" },
+            @{ Name = "find_last_byte"; Script = "regen-hlax64-find_last_byte.ps1"; Source = "hlax64/examples/interop/semasm-vaa/find_last_byte/find_last_byte.hla64"; Fixture = "fixtures/ingest/hlax64_find_last_byte/candidate.asm" }
+          )) {
+            $tmp = Join-Path $env:RUNNER_TEMP ("hlax64-" + $leaf.Name + ".asm")
+            dotnet run --project hlax64/src/HlaX64.Cli --no-launch-profile -- emit-nasm `
+              $leaf.Source `
+              --target windows-x64-msabi --output-kind shared-library -o $tmp
+            $committed = (Get-Content -Raw $leaf.Fixture) -replace "`r`n", "`n"
+            $emitted = (Get-Content -Raw $tmp) -replace "`r`n", "`n"
+            if ($committed -ne $emitted) {
+              Write-Error "Committed $($leaf.Fixture) drifts from HlaX64 emit-nasm. Run scripts/$($leaf.Script)"
+            }
+            Write-Host "$($leaf.Name) candidate.asm matches HlaX64 emit"
           }
-          Write-Host "candidate.asm matches HlaX64 emit"
 
-      - name: Gate ingest + Gate-2 verify for hlax64 sum_i64
+      - name: Gate ingest + Gate-2 verify for hlax64 leaves
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path target/vaa-transparency/hlax64-gate1 | Out-Null
           ./scripts/ci-gate-sign-setup.ps1 -PublicKeyOut target/vaa-transparency/hlax64-gate1/public_key.txt
           cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_sum_i64_verify_chain -- --ignored --nocapture
           cargo test --test semasm_gate2_smoke gate2_verify_hlax64_sum_i64_win64_verified -- --ignored --nocapture
+          cargo test --test semasm_gate1_smoke gate1_ingest_hlax64_find_last_byte_verify_chain -- --ignored --nocapture
+          cargo test --test semasm_gate2_smoke gate2_verify_hlax64_find_last_byte_win64_verified -- --ignored --nocapture
 
       - name: Export + verify-transparency (HlaX64 Gate-1)
         shell: pwsh
@@ -349,8 +356,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
-          ref: ca959f39924a34a3bca2a5effe71e96e63238250
+          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
+          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -428,8 +435,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM U1 tip (X3 memcmp + U Gate pack).
-          ref: ca959f39924a34a3bca2a5effe71e96e63238250
+          # Pin: SemASM X4 tip (A64/RV memcmp fail-closed).
+          ref: 0c12bf732c0a1ad6ba0a7acaf15d1f84b3a4e620
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
