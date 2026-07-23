@@ -66,11 +66,10 @@ jobs:
           set -euo pipefail
           TOK="${RUNNER_TEMP}/softhsm/tokens"
           mkdir -p "$TOK"
-          cat > "${RUNNER_TEMP}/softhsm/softhsm2.conf" <<EOF
-          directories.tokendir = ${TOK}
-          objectstore.backend = file
-          EOF
-          echo "SOFTHSM2_CONF=${RUNNER_TEMP}/softhsm/softhsm2.conf" >> "$GITHUB_ENV"
+          CONF="${RUNNER_TEMP}/softhsm/softhsm2.conf"
+          printf 'directories.tokendir = %s\nobjectstore.backend = file\n' "$TOK" > "$CONF"
+          export SOFTHSM2_CONF="$CONF"
+          echo "SOFTHSM2_CONF=${CONF}" >> "$GITHUB_ENV"
           MODULE=""
           for p in /usr/lib/softhsm/libsofthsm2.so /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so; do
             if [ -f "$p" ]; then MODULE="$p"; break; fi
