@@ -100,7 +100,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 196059ab5139fb41179c07f5ccec549755964495
+          ref: 1726f73c868d434dcf810457731fc72c15d2363d
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -177,7 +177,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 196059ab5139fb41179c07f5ccec549755964495
+          ref: 1726f73c868d434dcf810457731fc72c15d2363d
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -248,7 +248,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 196059ab5139fb41179c07f5ccec549755964495
+          ref: 1726f73c868d434dcf810457731fc72c15d2363d
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -381,7 +381,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 196059ab5139fb41179c07f5ccec549755964495
+          ref: 1726f73c868d434dcf810457731fc72c15d2363d
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -460,7 +460,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: SemASM Horizon Closeout tip (H0-H6; decode/lower stay partial).
-          ref: 196059ab5139fb41179c07f5ccec549755964495
+          ref: 1726f73c868d434dcf810457731fc72c15d2363d
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
