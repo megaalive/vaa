@@ -90,11 +90,11 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-**R-tag** (`git tag v0.1.0`) is deferred until maintainer sign-off — see
+Alpha **`v0.1.0`** is tagged — see [`CHANGELOG.md`](CHANGELOG.md) and
 [`docs/release-v0.1-checklist.md`](docs/release-v0.1-checklist.md).
-Phase 6 (PR-020 cache, PR-021 repro, thin PR-022/023 docs) is Done.
-Known limits: cache is local-only; repro is same-host; live model is feature-gated.
-Deferred: CryptOpt, Rekor/HSM, OS-level generator isolation, auto-publish.
+Known limits: cache is local-only; repro is same-host; live model is feature-gated;
+container remains Scaffold; practice seals ≠ trust root.
+Post-alpha: CryptOpt, Rekor/HSM, OS-level generator isolation, fuller fuzz, auto-publish.
 
 ## License
 

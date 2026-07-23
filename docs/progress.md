@@ -111,8 +111,10 @@ cargo run -q -- evidence verify-chain \
 - HSM / hardware keys / certificate chains
 - Formal multi-file transactional seals on network / lying filesystems
 - CryptOpt randomized search engine
-- `v0.1.0` release tag ceremony
-- Fuller fuzz entry points (PR-022 beyond N5/N6)### Planned vertical-slice waves (after R2c)
+- Fuller fuzz entry points (PR-022 beyond N5/N6)
+- Remote transparency / HSM / hardened OS sandbox (see below)
+
+### Planned vertical-slice waves (after R2c)
 
 | Wave | Focus | Claim when done |
 |---|---|---|
@@ -280,9 +282,10 @@ Later: remote transparency service, HSM, full PR-010 hardened sandbox, live mode
 | **PR-020** | Content-addressed cache | **Done** (local `.vaa/cache`; `--cache` opt-in; not remote log) |
 | **PR-021** | Reproducibility report | **Done** (same-host twin assemble/build; not cross-host) |
 | **PR-022** | Negative corpus + fuzz entry points | **Partial Done** (N5/N6 + cache negatives; not full fuzz) |
-| **PR-023 / R-tag** | Alpha release gate + git tag | **Docs Done** (checklist ready; tag deferred) |
+| **PR-023 / R-tag** | Alpha release gate + git tag | **Done** (`v0.1.0` annotated tag + GitHub Release, 2026-07-23) |
 
 Honesty: `--live` never runs in Gate CI; API keys are env-only and never sealed.
+Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 
 | Document | Role |
 |---|---|
@@ -291,8 +294,8 @@ Honesty: `--live` never runs in Gate CI; API keys are env-only and never sealed.
 | `docs/task-schema.md` | Task schema 0.1 |
 | `docs/progress.md` | This file |
 | `docs/seal.md` | Integrity vs authenticity; seal schema 0.2; verify-chain |
-| `docs/release-v0.1-checklist.md` | Prep checklist before any `v0.1.0` git tag |
-| `CHANGELOG.md` | Release notes (Unreleased + crate 0.1.0 prep) |
+| `docs/release-v0.1-checklist.md` | Alpha checklist + R-tag record |
+| `CHANGELOG.md` | Release notes (`[0.1.0]` dated) |
 | `scripts/release-prep-check.*` | Local fmt/clippy/test prep (never tags) |
 | `docs/cache.md` | PR-020 local cache layout + honesty |
 | `docs/vaa-canonical-json-v1.md` | Named canonical JSON profile |

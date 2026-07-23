@@ -4,10 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-for **crate** versions. The git tag `v0.1.0` is **not** cut until the release
-checklist and maintainer sign-off are complete (see `docs/release-v0.1-checklist.md`).
+for **crate** versions. Git tag `v0.1.0` marks the alpha release; see
+`docs/release-v0.1-checklist.md`.
 
 ## [Unreleased]
+
+## [0.1.0] — 2026-07-23
+
+Alpha release (`git tag v0.1.0`). Gate CI artifacts and practice seals are
+**illustrative**, not a trust root.
 
 ### Added
 
@@ -19,8 +24,9 @@ checklist and maintainer sign-off are complete (see `docs/release-v0.1-checklist
   Incomplete/Failed never promoted to Verified.
 - **PR-021** — Same-host reproducibility: `vaa build --check-reproducible` + required
   `reproducible_build` evidence check (twin NASM assemble). Not cross-host bit-identical.
-- **PR-022/023** — Thin cache negative fixtures + release checklist / `docs/cache.md`
-  closeout (git tag still deferred).
+- **PR-022** — Thin negative corpus under `fixtures/negative/` (validate / transparency /
+  cache fail-closed vectors; not full fuzz).
+- **PR-023** — Release checklist closeout + `docs/cache.md`; alpha tag ceremony.
 - **G1** — External argv generator (`vaa generate --run-dir … --command …`) writes
   only under `staging/` (`GeneratorMeta.kind = external-argv`). Logical barrier only;
   not OS ACL / job-object FS isolation.
@@ -30,19 +36,8 @@ checklist and maintainer sign-off are complete (see `docs/release-v0.1-checklist
   (`semasm-gate1-linux`, `semasm-gate2-linux`) on the pinned SemASM SHA. Gate-2 Linux
   uses `qemu-x86_64` (SemASM `__native__` is Windows-only on this pin). VAA+SemASM
   smoke only — not a claim that SemASM Linux assemble/link is upstream CI-verified.
-- **N6** — Light negative corpus under `fixtures/negative/` (fail-closed validate /
-  transparency vectors; not full fuzz).
-- **R-notes** — This changelog + release prep check scripts
-  (`scripts/release-prep-check.sh` / `.ps1`). Tag ceremony remains deferred.
-
-### Changed
-
-- **D3** — Docs / checklist point “next” at release prep after E1/G1/Linux Gate.
-
-## [0.1.0] — crate version (git tag deferred)
-
-Crate `version = "0.1.0"` in `Cargo.toml` tracks the prep surface below. Do **not**
-treat this section as a published release until `git tag v0.1.0` exists.
+- **N6** — Light negative corpus (fail-closed validate / transparency vectors).
+- **R-notes** — Release prep check scripts (`scripts/release-prep-check.sh` / `.ps1`).
 
 ### Highlights (I0–E1 and Gate surface)
 
@@ -56,8 +51,14 @@ treat this section as a published release until `git tag v0.1.0` exists.
 - Container build backend remains **Scaffold** (not hardened isolation).
 - Resume from sealed runs (`vaa run --resume`) — E1 unit + E1b Gate CI.
 
+### Changed
+
+- **D3** — Docs / checklist point past E1/G1/Linux Gate toward release prep, then alpha tag.
+
 ### Explicit non-goals (still deferred)
 
-- Live model adapter / CryptOpt search / remote Rekor / HSM / Sigstore
+- CryptOpt search / remote Rekor / HSM / Sigstore
 - Hardened seccomp / verified rootless / OS-level generator FS isolation Done
+- Full cargo-fuzz PR-022 security certification
 - Auto `cargo publish`
+- Cross-host bit-identical builds / cache as a trust root

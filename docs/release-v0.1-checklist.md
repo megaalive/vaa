@@ -1,8 +1,8 @@
-# VAA `v0.1.0` release checklist (R-prep)
+# VAA `v0.1.0` release checklist (R-prep → R-tag)
 
-This is a **prep checklist**, not a release ceremony. Do **not** treat this file as
-authorization to `git tag v0.1.0` until every required row is explicitly signed off
-**and** a maintainer requests the tag in a separate session.
+Prep checklist for alpha. **R-tag complete:** annotated `git tag v0.1.0` + GitHub
+Release (see ceremony section). Practice seals and Gate artifacts remain
+**illustrative**, not a trust root.
 
 ## Required before tagging
 
@@ -31,7 +31,7 @@ authorization to `git tag v0.1.0` until every required row is explicitly signed 
 | Reproducibility (**PR-021**) | `vaa build --check-reproducible` (same-host) |
 | Negative corpus thin (**PR-022**) | `fixtures/negative/` (not full fuzz) |
 | CHANGELOG + prep scripts (**R-notes** / **PR-023** docs) | `CHANGELOG.md`, `scripts/release-prep-check.*` |
-| Next | **R-tag** ceremony deferred until maintainer sign-off |
+| **R-tag** | **Done** — annotated `v0.1.0` + GitHub Release (2026-07-23) |
 
 ## Explicit non-goals for `v0.1.0`
 
@@ -54,13 +54,19 @@ authorization to `git tag v0.1.0` until every required row is explicitly signed 
 
 Runs fmt/clippy/test (+ `cargo deny` if installed). Never creates a tag.
 
-## Tag ceremony (deferred)
-
-When the table above is done and maintainers agree:
+## Tag ceremony
 
 1. Confirm tip SHA and CI run URL (all Gate jobs green).
-2. Move `CHANGELOG.md` Unreleased notes under a dated `[0.1.0]` git-tag section.
-3. `git tag -a v0.1.0` + signed tag policy of the org.
-4. GitHub Release linking Gate artifact digests as **illustrative**, not as a trust root.
+2. Move `CHANGELOG.md` Unreleased notes under a dated `[0.1.0]` section.
+3. `git tag -a v0.1.0` (GPG-signed when org signing keys are available).
+4. GitHub Release linking Gate artifact digests / CI run as **illustrative**, not as a trust root.
 
-Until then, crate version may remain `0.1.0` in `Cargo.toml` while the **git tag** stays uncut.
+### Record (alpha cut)
+
+| Field | Value |
+|---|---|
+| Tag | `v0.1.0` |
+| Date | 2026-07-23 |
+| Tip (docs commit) | recorded at tag time |
+| CI (pre-tag tip green) | https://github.com/megaalive/vaa/actions/runs/29969786616 (`4508326`) |
+| Signing | annotated tag (GPG not available on cut host) |
