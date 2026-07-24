@@ -3,6 +3,7 @@
 //! Generator-agnostic VAA core for the verified-repair bridge plan.
 //! HlaX64 is an instance pack under `integrations/`, not a VAA core dependency.
 
+mod diagnostics;
 mod error;
 mod generate;
 mod identity;
@@ -16,6 +17,10 @@ mod stack_lock;
 mod suite;
 mod triage;
 
+pub use diagnostics::{
+    diagnostics_by_category, is_well_formed_diagnostic_code, lookup_diagnostic,
+    validate_diagnostic_code, DiagnosticEntry, DiagnosticView, DIAGNOSTIC_REGISTRY,
+};
 pub use error::GeneratorError;
 pub use generate::{
     expand_generation_command, generate_candidate, GenerationOutcome, GenerationRequest,

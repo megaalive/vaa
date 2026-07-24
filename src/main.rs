@@ -620,6 +620,17 @@ enum GeneratorCommands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// List or look up stable diagnostic codes (plan §12 registry).
+    Diagnostics {
+        /// Optional exact code to look up (e.g. `ABI_CALLEE_SAVED_001`).
+        code: Option<String>,
+        /// Filter by category prefix (e.g. `ABI`, `GEN`, `POLICY`).
+        #[arg(long)]
+        category: Option<String>,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -1028,6 +1039,11 @@ fn run_cli() -> ExitCode {
             GeneratorCommands::Triage { status, format } => {
                 generator_triage_command(&status, format)
             }
+            GeneratorCommands::Diagnostics {
+                code,
+                category,
+                format,
+            } => generator_diagnostics_command(code.as_deref(), category.as_deref(), format),
         },
         Commands::GeneratorRun {
             spec,
@@ -1813,6 +1829,78 @@ fn generator_triage_command(status: &str, format: OutputFormat) -> ExitCode {
                 "ok": true,
                 "status": status,
                 "decision": decision,
+            });
+            println!("{body}");
+        }
+    }
+    VaaExitCode::Success.as_std()
+}
+
+fn generator_diagnostics_command(
+    code: Option<&str>,
+    category: Option<&str>,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{
+        diagnostics_by_category, lookup_diagnostic, DiagnosticView, DIAGNOSTIC_REGISTRY,
+    };
+
+    if let Some(code) = code {
+        if let Some(entry) = lookup_diagnostic(code) {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: diagnostic code registered");
+                    println!("  code: {}", entry.code);
+                    println!("  category: {}", entry.category);
+                    println!("  triage: {:?}", entry.triage);
+                    println!("  description: {}", entry.description);
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "diagnostic": DiagnosticView::from(entry),
+                    });
+                    println!("{body}");
+                }
+            }
+            return VaaExitCode::Success.as_std();
+        }
+        match format {
+            OutputFormat::Terminal => {
+                eprintln!("error: diagnostic code `{code}` is not registered");
+            }
+            OutputFormat::Json => {
+                let body = serde_json::json!({
+                    "ok": false,
+                    "error": format!("diagnostic code `{code}` is not registered"),
+                });
+                println!("{body}");
+            }
+        }
+        return VaaExitCode::InvalidInput.as_std();
+    }
+
+    let entries: Vec<&vaa::generator::DiagnosticEntry> = match category {
+        Some(cat) => diagnostics_by_category(cat),
+        None => DIAGNOSTIC_REGISTRY.iter().collect(),
+    };
+    match format {
+        OutputFormat::Terminal => {
+            println!("ok: {} diagnostic code(s)", entries.len());
+            for entry in &entries {
+                println!(
+                    "  {:<38} {:<8} {:?}: {}",
+                    entry.code, entry.category, entry.triage, entry.description
+                );
+            }
+        }
+        OutputFormat::Json => {
+            let views: Vec<DiagnosticView> =
+                entries.iter().map(|e| DiagnosticView::from(*e)).collect();
+            let body = serde_json::json!({
+                "ok": true,
+                "count": views.len(),
+                "diagnostics": views,
             });
             println!("{body}");
         }

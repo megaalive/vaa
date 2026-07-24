@@ -106,6 +106,10 @@ pub fn build_repair_packet(
     spec: &GeneratorSpec,
     input: &RepairPacketInput,
 ) -> Result<RepairPacket, GeneratorError> {
+    if let Some(code) = &input.diagnostic_code {
+        crate::generator::diagnostics::validate_diagnostic_code(code)?;
+    }
+
     let decision = triage_status(&input.status);
     if !decision.suggest_generator_repair {
         return Err(GeneratorError::Validation(format!(

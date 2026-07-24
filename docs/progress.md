@@ -39,7 +39,9 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 **P0 + P1 done (unit-tested):** suite, patch evidence, path-policy CLI,
 generator-vs-verifier triage. **P2.11 done:** `vaa repair export` /
 `vaa repair verify` (JSON + Markdown brief; export refuses non-generator
-failures per triage). Next: P2.12 stable diagnostics. Placeholder pack ≠
+failures per triage). **P2.12 done:** stable diagnostic registry +
+`vaa generator diagnostics` (verifier-gap codes never route to generator
+repair). Next: P2.13 source mapping join. Placeholder pack ≠
 live HlaX64 Gate. Incomplete ≠ Verified; under_preconditions ≠ verified.
 
 | Gate | Status | Evidence level | Notes |

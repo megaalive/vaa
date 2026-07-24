@@ -21,7 +21,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   P2.11: `vaa repair export` / `vaa repair verify` — repair packet JSON +
   Markdown brief pointing agents at generator source (allowed/forbidden
   paths, fixed commands, constraints); refuses export when triage says the
-  failure is not a generator defect. Honesty locks unchanged.
+  failure is not a generator defect. P2.12: stable diagnostic registry
+  (plan §12, 18 codes, append-only) + `vaa generator diagnostics`; repair
+  export validates code shape; CFG/DECODE/LOWER/alias codes route to
+  verifier-incomplete, never generator repair. Honesty locks unchanged.
 
 ### Changed
 
