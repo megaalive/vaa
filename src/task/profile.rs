@@ -61,6 +61,10 @@ pub fn builtin_semantic_evidence(name: &str) -> Option<SemanticEvidenceRequireme
 }
 
 fn leaf_pure_v1() -> SemanticEvidenceRequirements {
+    // Soft profile for single-buffer observational leaves: require living
+    // alias evidence when `[function.memory]` is present; do not require
+    // contract-expr (many leaf ensures are outside the v1 subset and SemASM
+    // omits the slice when every expression is not_evaluated).
     SemanticEvidenceRequirements {
         alias: SemanticEvidenceSliceReq {
             required: true,
@@ -71,14 +75,7 @@ fn leaf_pure_v1() -> SemanticEvidenceRequirements {
             allow_not_evaluated: false,
         },
         region_access: SemanticEvidenceSliceReq::default(),
-        contract_expressions: SemanticEvidenceSliceReq {
-            required: true,
-            model: Some(CONTRACT_EXPR_MODEL_V1.to_owned()),
-            allow_incomplete: true,
-            allow_caller_obligations: false,
-            allow_unknown_accesses: false,
-            allow_not_evaluated: true,
-        },
+        contract_expressions: SemanticEvidenceSliceReq::default(),
     }
 }
 
@@ -200,16 +197,11 @@ mod tests {
         assert!(task.verification.semantic_evidence.alias.allow_incomplete);
         assert!(!task.verification.semantic_evidence.region_access.required);
         assert!(
-            task.verification
+            !task
+                .verification
                 .semantic_evidence
                 .contract_expressions
                 .required
-        );
-        assert!(
-            task.verification
-                .semantic_evidence
-                .contract_expressions
-                .allow_not_evaluated
         );
     }
 

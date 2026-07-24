@@ -102,8 +102,7 @@ mod tests {
             Some(ALIAS_MODEL_REGION_AFFINE_V1)
         );
         assert!(se.alias.allow_incomplete);
-        assert!(se.contract_expressions.required);
-        assert!(se.contract_expressions.allow_not_evaluated);
+        assert!(!se.contract_expressions.required);
         assert!(!se.region_access.required);
         assert!(locked.digest_matches());
 
