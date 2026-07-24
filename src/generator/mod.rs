@@ -11,6 +11,7 @@ mod patch;
 mod path_policy;
 mod repair;
 mod repo_guard;
+mod rules;
 mod run;
 mod source_map;
 mod spec;
@@ -45,6 +46,7 @@ pub use repo_guard::{
     check_repository, glob_match, path_policy_violations, resolve_repository_path, RepoGuardConfig,
     RepoGuardReport,
 };
+pub use rules::{render_agent_rules, write_agent_rules, RuleCommands};
 pub use run::{
     resolve_maybe_relative, run_generator_case, GeneratorRunConfig, GeneratorRunError,
     GeneratorRunOutcome, VerifySummary,

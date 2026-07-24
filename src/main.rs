@@ -395,6 +395,30 @@ enum RepairCommands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Render agent/editor repair rules Markdown from a generator spec.
+    Rules {
+        /// Path to the generator spec TOML.
+        #[arg(long)]
+        spec: PathBuf,
+        /// One-case regeneration command template.
+        #[arg(long)]
+        regenerate_command: String,
+        /// Per-case verification command template.
+        #[arg(long)]
+        verify_command: String,
+        /// Full regression suite command.
+        #[arg(long)]
+        suite_command: String,
+        /// Override the build command (default: spec build argv).
+        #[arg(long)]
+        build_command: Option<String>,
+        /// Write Markdown here instead of stdout.
+        #[arg(long)]
+        output: Option<PathBuf>,
+        /// Output format (`terminal` prints the Markdown itself).
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -1207,6 +1231,23 @@ fn run_cli() -> ExitCode {
                 repair_export_command(&config, format)
             }
             RepairCommands::Verify { file, format } => repair_verify_command(&file, format),
+            RepairCommands::Rules {
+                spec,
+                regenerate_command,
+                verify_command,
+                suite_command,
+                build_command,
+                output,
+                format,
+            } => repair_rules_command(
+                &spec,
+                &regenerate_command,
+                &verify_command,
+                &suite_command,
+                build_command.as_deref(),
+                output.as_deref(),
+                format,
+            ),
         },
     }
 }
@@ -2282,6 +2323,74 @@ fn repair_export_command(config: &RepairExportConfig, format: OutputFormat) -> E
                 "ok": true,
                 "path": config.output,
                 "packet": packet,
+            });
+            println!("{body}");
+        }
+    }
+    VaaExitCode::Success.as_std()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn repair_rules_command(
+    spec_path: &Path,
+    regenerate_command: &str,
+    verify_command: &str,
+    suite_command: &str,
+    build_command: Option<&str>,
+    output: Option<&Path>,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{
+        load_generator_spec, render_agent_rules, write_agent_rules, RuleCommands,
+    };
+
+    let spec = match load_generator_spec(spec_path) {
+        Ok(s) => s,
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    let commands = RuleCommands {
+        build: build_command.map_or_else(
+            || spec.build.command.join(" "),
+            std::borrow::ToOwned::to_owned,
+        ),
+        regenerate: regenerate_command.to_owned(),
+        verify: verify_command.to_owned(),
+        suite: suite_command.to_owned(),
+    };
+
+    if let Some(output) = output {
+        if let Err(error) = write_agent_rules(output, &spec, &commands) {
+            emit_generator_error(output, format, &error);
+            return VaaExitCode::ToolFailure.as_std();
+        }
+        match format {
+            OutputFormat::Terminal => {
+                println!("ok: wrote agent rules {}", output.display());
+                println!("  generator_id: {}", spec.generator_id);
+            }
+            OutputFormat::Json => {
+                let body = serde_json::json!({
+                    "ok": true,
+                    "path": output,
+                    "generator_id": spec.generator_id,
+                });
+                println!("{body}");
+            }
+        }
+        return VaaExitCode::Success.as_std();
+    }
+
+    let rendered = render_agent_rules(&spec, &commands);
+    match format {
+        OutputFormat::Terminal => println!("{rendered}"),
+        OutputFormat::Json => {
+            let body = serde_json::json!({
+                "ok": true,
+                "generator_id": spec.generator_id,
+                "markdown": rendered,
             });
             println!("{body}");
         }

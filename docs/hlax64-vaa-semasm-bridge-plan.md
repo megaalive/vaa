@@ -1033,6 +1033,11 @@ workflow remains optional.
 
 ## Milestone 4 — Repair packet
 
+**Status:** **Done** (code surface) — `vaa repair export/verify/rules`,
+diagnostic registry (`vaa generator diagnostics`), triage routing; export
+fails closed for non-generator failures. Live agent-repair exercise on a
+deliberately broken backend case remains open.
+
 **Deliverables**
 
 - JSON and Markdown repair packets;
@@ -1048,6 +1053,10 @@ workflow remains optional.
 ---
 
 ## Milestone 5 — Source mapping
+
+**Status:** **Done** (code surface) — `candidate.map.json` schema 0.1 +
+`vaa generator map-join` + `repair export --map` offset join with explicit
+§13.3 fallback. Live HlaX64 map emission remains open (pack side).
 
 **Deliverables**
 
@@ -1243,7 +1252,7 @@ P2
 11. repair packet export — **done**
 12. stable diagnostics — **done**
 13. optional source mapping join — **done**
-14. agent/editor rules and command templates
+14. agent/editor rules and command templates — **done**
 
 P3
 15. backend feature corpus expansion (HlaX64 pack)

@@ -43,8 +43,11 @@ failures per triage). **P2.12 done:** stable diagnostic registry +
 `vaa generator diagnostics` (verifier-gap codes never route to generator
 repair). **P2.13 done:** `candidate.map.json` join (`vaa generator
 map-join`; `repair export --map`; missing map never downgrades status).
-Next: P2.14 agent/editor rules + command templates. Placeholder pack ≠
-live HlaX64 Gate. Incomplete ≠ Verified; under_preconditions ≠ verified.
+**P2.14 done:** `vaa repair rules` (agent/editor rules from spec;
+`integrations/hlax64/agent-rules.md` generated). **P2 complete.** Next:
+P3 (backend corpus, target/ABI parity, CryptOpt-lineage pack, CI matrix).
+Placeholder pack ≠ live HlaX64 Gate; live agent-repair exercise open.
+Incomplete ≠ Verified; under_preconditions ≠ verified.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

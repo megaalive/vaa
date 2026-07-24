@@ -15,7 +15,7 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Added
 
-- **External generator bridge (P0 + P1 complete; P2 in progress)** — suite
+- **External generator bridge (P0 + P1 + P2 complete)** — suite
   runner, patch evidence, `vaa generator check-paths`, and `vaa generator
   triage` (Incomplete / verified_under_preconditions ≠ generator defect).
   P2.11: `vaa repair export` / `vaa repair verify` — repair packet JSON +
@@ -28,7 +28,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   `candidate.map.json` source-map join (`vaa generator map-join`; `vaa
   repair export --map` auto-fills source mapping by instruction offset;
   missing map/entry falls back to assembly context, never downgrades
-  status). Honesty locks unchanged.
+  status). P2.14: `vaa repair rules` renders agent/editor repair rules
+  Markdown from the spec (allowed/forbidden paths, fixed commands,
+  evidence-only acceptance); `integrations/hlax64/agent-rules.md` is
+  generated output. Honesty locks unchanged.
 
 ### Changed
 
