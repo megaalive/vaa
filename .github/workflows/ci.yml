@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip d2ce02d (memcmp memory-leaf + Sei).
-          ref: d2ce02da57bdfa1671528cf5c71b7a92db29bc52
+          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
+          ref: 928bd66569320674cd49e4dd7758da17b03338c2
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip d2ce02d (memcmp memory-leaf + Sei).
-          ref: d2ce02da57bdfa1671528cf5c71b7a92db29bc52
+          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
+          ref: 928bd66569320674cd49e4dd7758da17b03338c2
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip d2ce02d (memcmp memory-leaf + Sei).
-          ref: d2ce02da57bdfa1671528cf5c71b7a92db29bc52
+          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
+          ref: 928bd66569320674cd49e4dd7758da17b03338c2
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -380,8 +380,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip d2ce02d (memcmp memory-leaf + Sei).
-          ref: d2ce02da57bdfa1671528cf5c71b7a92db29bc52
+          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
+          ref: 928bd66569320674cd49e4dd7758da17b03338c2
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -459,8 +459,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip d2ce02d (memcmp memory-leaf + Sei).
-          ref: d2ce02da57bdfa1671528cf5c71b7a92db29bc52
+          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
+          ref: 928bd66569320674cd49e4dd7758da17b03338c2
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |

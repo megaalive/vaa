@@ -486,11 +486,7 @@ fn gate2_verify_find_first_byte_linux_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 Linux find_first_byte expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 Linux find_first_byte");
 }
 
 #[test]
@@ -529,11 +525,7 @@ fn gate2_verify_find_first_byte_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 find_first_byte expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 find_first_byte Win64");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -579,11 +571,7 @@ fn gate2_verify_find_last_byte_linux_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 Linux find_last_byte expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 Linux find_last_byte");
 }
 
 #[test]
@@ -622,11 +610,7 @@ fn gate2_verify_find_last_byte_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 find_last_byte expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 find_last_byte Win64");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1081,11 +1065,7 @@ fn gate2_verify_hlax64_find_last_byte_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 hlax64 find_last_byte expects Verified: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 hlax64 find_last_byte");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1266,11 +1246,7 @@ fn gate2_verify_hlax64_find_first_byte_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 hlax64 find_first_byte expects Verified: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 hlax64 find_first_byte");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1689,9 +1665,12 @@ fn gate2_search_ingest_allow_execution_verified() {
     );
     assert!(
         stdout.contains("reason=verified")
+            || stdout.contains("reason=verified_under_preconditions")
             || stdout.contains("stopped_reason=verified")
-            || stdout.contains("\"stopped_reason\":\"verified\""),
-        "Gate-2 search must stop because SemASM verified the candidate: {stdout}"
+            || stdout.contains("stopped_reason=verified_under_preconditions")
+            || stdout.contains("\"stopped_reason\":\"verified\"")
+            || stdout.contains("\"stopped_reason\":\"verified_under_preconditions\""),
+        "Gate-2 search must stop on SemASM verified(_under_preconditions): {stdout}"
     );
     let stdout_lower = stdout.to_lowercase();
     assert!(
@@ -1822,9 +1801,12 @@ fn gate2_search_ingest_find_first_allow_execution_verified() {
     );
     assert!(
         stdout.contains("reason=verified")
+            || stdout.contains("reason=verified_under_preconditions")
             || stdout.contains("stopped_reason=verified")
-            || stdout.contains("\"stopped_reason\":\"verified\""),
-        "Gate-2 find_first search must stop because SemASM verified the candidate: {stdout}"
+            || stdout.contains("stopped_reason=verified_under_preconditions")
+            || stdout.contains("\"stopped_reason\":\"verified\"")
+            || stdout.contains("\"stopped_reason\":\"verified_under_preconditions\""),
+        "Gate-2 find_first search must stop on SemASM verified(_under_preconditions): {stdout}"
     );
     let stdout_lower = stdout.to_lowercase();
     assert!(

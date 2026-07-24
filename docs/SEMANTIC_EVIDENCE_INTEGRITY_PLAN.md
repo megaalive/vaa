@@ -14,11 +14,11 @@ VAA slices in that plan:
    built-in named profiles (`leaf-pure-v1`, `memory-leaf-affine-v1`) expand
    deterministically into frozen `semantic_evidence` on lock (P1b).
    Gate `count_byte` wired to `leaf-pure-v1` (Vd9). Gate `memcpy` /
-   `memset` / `replace_byte` / `memcmp` wired to `memory-leaf-affine-v1`
-   (Vd11–Vd14).
+   `memset` / `replace_byte` / `memcmp` / `find_first_byte` /
+   `find_last_byte` wired to `memory-leaf-affine-v1` (Vd11–Vd15).
 2. **`verified_under_preconditions`** — mapped distinctly; not promoted to
    `verified` without explicit policy.
-3. Gate CI pin SemASM tip `d2ce02d` (Vd14); Gate memory leaves on
+3. Gate CI pin SemASM tip `928bd66` (Vd15); Gate memory leaves on
    `memory-leaf-affine-v1`; HlaX64 `count_byte` on `leaf-pure-v1`.
 
 Isolation (P3) and trust-root (P4) stay behind semantic evidence stability unless

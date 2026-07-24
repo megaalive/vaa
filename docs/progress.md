@@ -22,11 +22,12 @@ is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `d2ce02d` (memcmp memory regions +
+**G1–G5 closed.** SemASM tip `928bd66` (find_first/find_last equal atoms +
 region_access under_preconditions + Sei P0/Ra; report schema `0.5`). Gate pin
-tracks tip ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md) Vd14); Gate `count_byte`
+tracks tip ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md) Vd15); Gate `count_byte`
 (including HlaX64) uses `leaf-pure-v1`; Gate `memcpy` / `memset` /
-`replace_byte` / `memcmp` use `memory-leaf-affine-v1`. SemASM **Co** + **Mm** + Tw/Ff/Ab
+`replace_byte` / `memcmp` / `find_first_byte` / `find_last_byte` use
+`memory-leaf-affine-v1`. SemASM **Co** + **Mm** + Tw/Ff/Ab
 + Sei (sample ≠ CFG/CFI, region-precise store, or formal ABI / memory-safety
 proof). Tag **`v0.2.1`** remains the last release archive (`22d1543`).
 **Production** trust root / hardware HSM / operated remote log as Gate default
@@ -421,6 +422,9 @@ embed, live-model Gate CI, hardware HSM.
 **Next (planned):** further Sei hardening only when Gate needs it
 ([Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)). SoftHSM ≠
 HSM; Incomplete ≠ Verified; `verified_under_preconditions` ≠ `verified`.
+
+**Sei / Vd15** — Gate `find_first_byte` / `find_last_byte` (+ HlaX64) on
+`memory-leaf-affine-v1` after SemASM `regions.equal(buf, buf)` (`928bd66`).
 
 **Sei / Vd14** — Gate `memcmp` (+ HlaX64) on `memory-leaf-affine-v1` after
 SemASM dual-buffer regions + `regions.disjoint(a, b)` (`d2ce02d`).
