@@ -271,10 +271,7 @@ mod tests {
     fn parse_verified_under_preconditions_maps_distinct_status() {
         let json = minimal("verified_under_preconditions").replace("0.4", "0.5");
         let report = SemasmVerify::parse_report(&json).expect("parse");
-        assert_eq!(
-            report.outcome,
-            EvidenceStatus::VerifiedUnderPreconditions
-        );
+        assert_eq!(report.outcome, EvidenceStatus::VerifiedUnderPreconditions);
         assert_ne!(report.outcome, EvidenceStatus::Verified);
         assert_eq!(report.schema_version.as_deref(), Some("0.5"));
     }

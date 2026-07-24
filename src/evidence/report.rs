@@ -428,8 +428,7 @@ fn push_semantic_evidence_checks(
                 checks.push(CheckOutcome {
                     check_name: "caller_obligations_allowed".to_owned(),
                     required: true,
-                    passed: policy.alias.allow_caller_obligations
-                        || alias.obligation_count == 0,
+                    passed: policy.alias.allow_caller_obligations || alias.obligation_count == 0,
                     details: Some(format!("obligations={}", alias.obligation_count)),
                 });
             }

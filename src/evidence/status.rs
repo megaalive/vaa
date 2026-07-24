@@ -17,19 +17,13 @@ impl EvidenceStatus {
     pub fn is_terminal(&self) -> bool {
         matches!(
             self,
-            Self::Verified
-                | Self::VerifiedUnderPreconditions
-                | Self::Violated
-                | Self::Failed
+            Self::Verified | Self::VerifiedUnderPreconditions | Self::Violated | Self::Failed
         )
     }
 
     #[must_use]
     pub fn is_success(&self) -> bool {
-        matches!(
-            self,
-            Self::Verified | Self::VerifiedUnderPreconditions
-        )
+        matches!(self, Self::Verified | Self::VerifiedUnderPreconditions)
     }
 
     #[must_use]

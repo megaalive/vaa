@@ -11,8 +11,8 @@ pub use error::TaskError;
 pub use locked::LockedTask;
 pub use model::{
     ArtifactKind, Behavior, Budgets, Capabilities, Delivery, Entry, InputSpec, InstructionPolicy,
-    MemoryPolicy, Task, TaskTest, TomlValue, ValueKind, VerificationRequirements,
-    SemanticEvidenceRequirements, SemanticEvidenceSliceReq,
+    MemoryPolicy, SemanticEvidenceRequirements, SemanticEvidenceSliceReq, Task, TaskTest,
+    TomlValue, ValueKind, VerificationRequirements,
 };
 pub use validate::validate_task;
 

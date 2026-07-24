@@ -134,10 +134,12 @@ pub fn project_semantic_evidence(raw_json: &str) -> SemanticEvidenceSummary {
         accesses_unknown: r.accesses_unknown,
     });
 
-    let contract_expressions = proj.contract_expressions.map(|c| ContractExpressionSummary {
-        model: c.model.unwrap_or_default(),
-        status: c.status.unwrap_or_default(),
-    });
+    let contract_expressions = proj
+        .contract_expressions
+        .map(|c| ContractExpressionSummary {
+            model: c.model.unwrap_or_default(),
+            status: c.status.unwrap_or_default(),
+        });
 
     SemanticEvidenceSummary {
         alias,
