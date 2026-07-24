@@ -10,11 +10,11 @@ Milestone internal: **Semantic Evidence Integrity**.
 VAA slices in that plan:
 
 1. **P1** — Evidence Requirement Profiles (`SemanticEvidenceSummary`, task
-   `verification.semantic_evidence.*`, built-in profiles, sealed checks).
-2. **`verified_under_preconditions`** — do not promote to `verified` without
-   explicit policy.
-3. Gate CI for missing / incomplete / mismatched evidence after SemASM P0 pin.
+   `verification.semantic_evidence.*`, sealed checks) — **landed** (`ed6d961`);
+   built-in named profiles remain optional follow-up.
+2. **`verified_under_preconditions`** — mapped distinctly; not promoted to
+   `verified` without explicit policy.
+3. Gate CI pin SemASM tip `cf0206e` (Vd8) for schema 0.5 / region-access evidence.
 
-Do not implement VAA slices until the matching SemASM tip is pinned. Isolation
-(P3) and trust-root (P4) stay behind semantic evidence stability unless
+Isolation (P3) and trust-root (P4) stay behind semantic evidence stability unless
 public-untrusted execution forces them earlier.

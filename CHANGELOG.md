@@ -15,6 +15,12 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Changed
 
+- **Sei P1** — typed `SemanticEvidenceSummary` projection from raw SemASM
+  report JSON; opt-in `verification.semantic_evidence.*` task policy; accept
+  report schema `0.5`; map `verified_under_preconditions` without promoting to
+  `verified` (legacy digests unchanged when policy unset).
+- **Vd8 SemASM pin** — Gate workflows track SemASM tip `cf0206e` (Sei P0/Ra
+  region-access + alias obligations; sample ≠ formal memory safety).
 - **Vd7 SemASM pin** — Gate workflows track SemASM tip `bfd184e` (Tw/Ff/Ab
   post-`v0.2.1`; sample ≠ formal ABI / CFG / store proof).
 - **Vd6 SemASM pin** — Gate workflows track SemASM `v0.2.1` tip `22d1543`

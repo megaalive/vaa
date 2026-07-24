@@ -22,15 +22,15 @@ is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `bfd184e` (post-`v0.2.1`: Tw adversarial twins,
-Ff find-index packs, Ab `abi_analysis` → `verified_in_ci` on primary four)
-(ADR 0009 / Da0–Da5 + CI fix): A64/RV `decode`/`lower` → `verified_in_ci`
-(sample coverage; W+X fixtures use `.semasm_wx`). Gate pin tracks tip
-([plan](V0_2_CONTROLLER_DEPTH_PLAN.md)); SemASM **Co** + **Mm** + Tw/Ff/Ab
-(sample ≠ CFG/CFI, region-precise store, or formal ABI proof). Tag **`v0.2.1`**
-remains the last release archive (`22d1543`). **Production** trust root /
-hardware HSM / operated remote log as Gate default remain Horizon-locked.
-Authenticity ≠ semantic truth.
+**G1–G5 closed.** SemASM tip `cf0206e` (Sei P0/Ra: alias obligations +
+region-access evidence; report schema `0.5`; post-`v0.2.1` Tw/Ff/Ab retained).
+Gate pin tracks tip ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md) Vd8); VAA **Sei P1**
+Evidence Requirement Profiles are opt-in (`verification.semantic_evidence`).
+SemASM **Co** + **Mm** + Tw/Ff/Ab + Sei (sample ≠ CFG/CFI, region-precise
+store, or formal ABI / memory-safety proof). Tag **`v0.2.1`** remains the last
+release archive (`22d1543`). **Production** trust root / hardware HSM /
+operated remote log as Gate default remain Horizon-locked. Authenticity ≠
+semantic truth. `verified_under_preconditions` ≠ unconditional `verified`.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
@@ -417,10 +417,9 @@ without maturity bump (H4), multi-ISA ADR 0005 (H1), remote-transparency honesty
 **Horizon-locked deferred:** formal ensures, full symbolic alias, CryptOpt
 embed, live-model Gate CI, hardware HSM.
 
-**Next (planned):** [Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)
-(canonical plan in SemASM `docs/SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md`) — VAA
-Evidence Requirement Profiles + `verified_under_preconditions` after SemASM
-alias/obligation P0.
+**Next (planned):** Gate CI green on SemASM tip `cf0206e` (Vd8); optional
+built-in semantic-evidence profiles / fixture opt-in. SoftHSM ≠ HSM; Incomplete ≠
+Verified; `verified_under_preconditions` ≠ `verified`.
 
 Honesty: SoftHSM ≠ HSM; search ≠ CryptOpt; Incomplete ≠ Verified; HlaX64 ≠
 SemASM Verified; local transparency artifact ≠ remote log.
