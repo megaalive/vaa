@@ -417,10 +417,14 @@ without maturity bump (H4), multi-ISA ADR 0005 (H1), remote-transparency honesty
 **Horizon-locked deferred:** formal ensures, full symbolic alias, CryptOpt
 embed, live-model Gate CI, hardware HSM.
 
-**Next (planned):** optional built-in semantic-evidence profiles / fixture
-opt-in ([Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)).
-SoftHSM ≠ HSM; Incomplete ≠ Verified; `verified_under_preconditions` ≠
-`verified`.
+**Next (planned):** Gate CI opt-in for semantic-evidence profiles when a leaf
+is ready to require them
+([Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)). SoftHSM ≠
+HSM; Incomplete ≠ Verified; `verified_under_preconditions` ≠ `verified`.
+
+**Sei P1b** — built-in profiles `leaf-pure-v1` /
+`memory-leaf-affine-v1` expand on lock; fixtures under `fixtures/tasks/*_profile_*`
+(not Gate-wired).
 
 **Vd8 done** — Gate CI green on SemASM tip `cf0206e`
 ([run](https://github.com/megaalive/vaa/actions/runs/30089474652)).

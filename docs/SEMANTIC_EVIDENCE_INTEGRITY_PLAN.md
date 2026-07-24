@@ -11,7 +11,8 @@ VAA slices in that plan:
 
 1. **P1** — Evidence Requirement Profiles (`SemanticEvidenceSummary`, task
    `verification.semantic_evidence.*`, sealed checks) — **landed** (`ed6d961`);
-   built-in named profiles remain optional follow-up.
+   built-in named profiles (`leaf-pure-v1`, `memory-leaf-affine-v1`) expand
+   deterministically into frozen `semantic_evidence` on lock (P1b).
 2. **`verified_under_preconditions`** — mapped distinctly; not promoted to
    `verified` without explicit policy.
 3. Gate CI pin SemASM tip `cf0206e` (Vd8) for schema 0.5 / region-access evidence.

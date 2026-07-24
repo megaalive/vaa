@@ -15,6 +15,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Changed
 
+- **Sei P1b** — built-in `verification.profile` expansion (`leaf-pure-v1`,
+  `memory-leaf-affine-v1`) into frozen `semantic_evidence` on lock; opt-in
+  fixtures only (Gate tasks remain profile-free). Profile definition drift
+  cannot alter already-expanded digests.
 - **Sei P1** — typed `SemanticEvidenceSummary` projection from raw SemASM
   report JSON; opt-in `verification.semantic_evidence.*` task policy; accept
   report schema `0.5`; map `verified_under_preconditions` without promoting to
