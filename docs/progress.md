@@ -22,7 +22,7 @@ is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `a85deae` (ADR 0009 / Da0–Da5 + CI fix): A64/RV
+**G1–G5 closed.** SemASM tip `c5d8458` (v0.2.0) (ADR 0009 / Da0–Da5 + CI fix): A64/RV
 `decode`/`lower` → `verified_in_ci` (sample coverage; `control` still
 x86-only; W+X fixtures use `.semasm_wx`). **Production** trust root /
 hardware HSM / operated remote log as Gate default remain Horizon-locked.
