@@ -22,15 +22,14 @@ is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `cf0206e` (Sei P0/Ra: alias obligations +
-region-access evidence; report schema `0.5`; post-`v0.2.1` Tw/Ff/Ab retained).
-Gate pin tracks tip ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md) Vd8); VAA **Sei P1**
-Evidence Requirement Profiles are opt-in (`verification.semantic_evidence`).
-SemASM **Co** + **Mm** + Tw/Ff/Ab + Sei (sample ≠ CFG/CFI, region-precise
-store, or formal ABI / memory-safety proof). Tag **`v0.2.1`** remains the last
-release archive (`22d1543`). **Production** trust root / hardware HSM /
-operated remote log as Gate default remain Horizon-locked. Authenticity ≠
-semantic truth. `verified_under_preconditions` ≠ unconditional `verified`.
+**G1–G5 closed.** SemASM tip `b3c576e` (Sei P0/Ra + CI tuple fix; report
+schema `0.5`). Gate pin tracks tip ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md) Vd9);
+Gate `count_byte` uses `leaf-pure-v1` semantic-evidence profile. SemASM **Co**
++ **Mm** + Tw/Ff/Ab + Sei (sample ≠ CFG/CFI, region-precise store, or formal
+ABI / memory-safety proof). Tag **`v0.2.1`** remains the last release archive
+(`22d1543`). **Production** trust root / hardware HSM / operated remote log as
+Gate default remain Horizon-locked. Authenticity ≠ semantic truth.
+`verified_under_preconditions` ≠ unconditional `verified`.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
@@ -417,14 +416,13 @@ without maturity bump (H4), multi-ISA ADR 0005 (H1), remote-transparency honesty
 **Horizon-locked deferred:** formal ensures, full symbolic alias, CryptOpt
 embed, live-model Gate CI, hardware HSM.
 
-**Next (planned):** Gate CI opt-in for semantic-evidence profiles when a leaf
-is ready to require them
+**Next (planned):** optional `memory-leaf-affine-v1` on memcpy-class Gate leaves
+when SemASM region-access is Gate-ready
 ([Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)). SoftHSM ≠
 HSM; Incomplete ≠ Verified; `verified_under_preconditions` ≠ `verified`.
 
-**Sei P1b** — built-in profiles `leaf-pure-v1` /
-`memory-leaf-affine-v1` expand on lock; fixtures under `fixtures/tasks/*_profile_*`
-(not Gate-wired).
+**Sei P1b / Vd9** — `leaf-pure-v1` on Gate `count_byte`; SemASM pin `b3c576e`
+([SemASM CI](https://github.com/megaalive/semasm/actions/runs/30090784326)).
 
 **Vd8 done** — Gate CI green on SemASM tip `cf0206e`
 ([run](https://github.com/megaalive/vaa/actions/runs/30089474652)).

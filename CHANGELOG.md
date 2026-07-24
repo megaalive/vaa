@@ -15,10 +15,13 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Changed
 
+- **Vd9 / Sei Gate wire** — Gate `count_byte` tasks use
+  `verification.profile = leaf-pure-v1` (frozen alias + contract-expr
+  requirements on lock). SemASM pin `b3c576e` (Ra tuple CI fix). Sample ≠
+  formal memory safety; Incomplete ≠ Verified.
 - **Sei P1b** — built-in `verification.profile` expansion (`leaf-pure-v1`,
-  `memory-leaf-affine-v1`) into frozen `semantic_evidence` on lock; opt-in
-  fixtures only (Gate tasks remain profile-free). Profile definition drift
-  cannot alter already-expanded digests.
+  `memory-leaf-affine-v1`) into frozen `semantic_evidence` on lock. Profile
+  definition drift cannot alter already-expanded digests.
 - **Sei P1** — typed `SemanticEvidenceSummary` projection from raw SemASM
   report JSON; opt-in `verification.semantic_evidence.*` task policy; accept
   report schema `0.5`; map `verified_under_preconditions` without promoting to
