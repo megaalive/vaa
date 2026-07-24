@@ -22,14 +22,15 @@ is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `22d1543` / tag **`v0.2.1`** (v0.2.0 + Co
-control + Mm memory) (ADR 0009 / Da0–Da5 + CI fix): A64/RV `decode`/`lower`
-→ `verified_in_ci` (sample coverage; W+X fixtures use `.semasm_wx`).
-Post-release: **Vd** Gate pin ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md));
-SemASM **Co** + **Mm** port A64/RV `control`/`memory` (sample ≠ CFG/CFI or
-region-precise proof). **Production** trust root / hardware HSM / operated
-remote log as Gate default remain Horizon-locked. Authenticity ≠ semantic
-truth.
+**G1–G5 closed.** SemASM tip `bfd184e` (post-`v0.2.1`: Tw adversarial twins,
+Ff find-index packs, Ab `abi_analysis` → `verified_in_ci` on primary four)
+(ADR 0009 / Da0–Da5 + CI fix): A64/RV `decode`/`lower` → `verified_in_ci`
+(sample coverage; W+X fixtures use `.semasm_wx`). Gate pin tracks tip
+([plan](V0_2_CONTROLLER_DEPTH_PLAN.md)); SemASM **Co** + **Mm** + Tw/Ff/Ab
+(sample ≠ CFG/CFI, region-precise store, or formal ABI proof). Tag **`v0.2.1`**
+remains the last release archive (`22d1543`). **Production** trust root /
+hardware HSM / operated remote log as Gate default remain Horizon-locked.
+Authenticity ≠ semantic truth.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

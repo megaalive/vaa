@@ -15,6 +15,8 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Changed
 
+- **Vd7 SemASM pin** — Gate workflows track SemASM tip `bfd184e` (Tw/Ff/Ab
+  post-`v0.2.1`; sample ≠ formal ABI / CFG / store proof).
 - **Vd6 SemASM pin** — Gate workflows track SemASM `v0.2.1` tip `22d1543`
   (Co+Mm; sample ≠ CFG/CFI or region-precise proof).
 - **Vd5 SemASM pin** — Gate workflows track SemASM Mm tip `e991182`

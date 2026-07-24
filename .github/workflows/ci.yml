@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.1 tip (22d1543; Co+Mm).
-          ref: 22d15431efd28b68ac896579668adbeff5f6188b
+          # Pin: SemASM tip bfd184e (Tw/Ff/Ab post-v0.2.1).
+          ref: bfd184ebfc5be3bc937c0f3fee1e8d053d0bfb70
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.1 tip (22d1543; Co+Mm).
-          ref: 22d15431efd28b68ac896579668adbeff5f6188b
+          # Pin: SemASM tip bfd184e (Tw/Ff/Ab post-v0.2.1).
+          ref: bfd184ebfc5be3bc937c0f3fee1e8d053d0bfb70
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.1 tip (22d1543; Co+Mm).
-          ref: 22d15431efd28b68ac896579668adbeff5f6188b
+          # Pin: SemASM tip bfd184e (Tw/Ff/Ab post-v0.2.1).
+          ref: bfd184ebfc5be3bc937c0f3fee1e8d053d0bfb70
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -380,8 +380,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.1 tip (22d1543; Co+Mm).
-          ref: 22d15431efd28b68ac896579668adbeff5f6188b
+          # Pin: SemASM tip bfd184e (Tw/Ff/Ab post-v0.2.1).
+          ref: bfd184ebfc5be3bc937c0f3fee1e8d053d0bfb70
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -459,8 +459,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.1 tip (22d1543; Co+Mm).
-          ref: 22d15431efd28b68ac896579668adbeff5f6188b
+          # Pin: SemASM tip bfd184e (Tw/Ff/Ab post-v0.2.1).
+          ref: bfd184ebfc5be3bc937c0f3fee1e8d053d0bfb70
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
