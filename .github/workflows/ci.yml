@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
-          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
+          # Pin: SemASM tip 8924564 (replace_byte equal atom + Sei).
+          ref: 89245642e1ceb2c639e5f4466b9bf15273116408
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
-          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
+          # Pin: SemASM tip 8924564 (replace_byte equal atom + Sei).
+          ref: 89245642e1ceb2c639e5f4466b9bf15273116408
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
-          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
+          # Pin: SemASM tip 8924564 (replace_byte equal atom + Sei).
+          ref: 89245642e1ceb2c639e5f4466b9bf15273116408
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -380,8 +380,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
-          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
+          # Pin: SemASM tip 8924564 (replace_byte equal atom + Sei).
+          ref: 89245642e1ceb2c639e5f4466b9bf15273116408
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -459,8 +459,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
-          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
+          # Pin: SemASM tip 8924564 (replace_byte equal atom + Sei).
+          ref: 89245642e1ceb2c639e5f4466b9bf15273116408
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
