@@ -16,8 +16,9 @@ general alias analysis or formal memory safety. See SemASM
 SemASM evaluates a documented expression subset against living region/relation
 evidence (`contract-expr-v1` / `VerificationReport.contract_expressions`).
 VAA still only consumes `VerificationReport` — no expression engine in VAA.
-G3 (A64/RV memory-effect parity) is unlocked for a separate plan/ADR; G4–G5
-remain deferred.
+G3 (A64/RV memory-effect parity) is **unlocked** (SemASM ADR 0008 +
+`docs/A64_RV_MEMORY_EFFECT_PARITY_PLAN.md`, Me0 landed). VAA still only
+consumes `VerificationReport`. G4–G5 remain deferred.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
