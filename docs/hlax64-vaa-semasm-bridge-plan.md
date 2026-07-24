@@ -1242,7 +1242,7 @@ P1
 P2
 11. repair packet export — **done**
 12. stable diagnostics — **done**
-13. optional source mapping join
+13. optional source mapping join — **done**
 14. agent/editor rules and command templates
 
 P3

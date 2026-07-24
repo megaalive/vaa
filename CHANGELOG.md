@@ -24,7 +24,11 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   failure is not a generator defect. P2.12: stable diagnostic registry
   (plan §12, 18 codes, append-only) + `vaa generator diagnostics`; repair
   export validates code shape; CFG/DECODE/LOWER/alias codes route to
-  verifier-incomplete, never generator repair. Honesty locks unchanged.
+  verifier-incomplete, never generator repair. P2.13: optional
+  `candidate.map.json` source-map join (`vaa generator map-join`; `vaa
+  repair export --map` auto-fills source mapping by instruction offset;
+  missing map/entry falls back to assembly context, never downgrades
+  status). Honesty locks unchanged.
 
 ### Changed
 

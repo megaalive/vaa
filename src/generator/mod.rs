@@ -12,6 +12,7 @@ mod path_policy;
 mod repair;
 mod repo_guard;
 mod run;
+mod source_map;
 mod spec;
 mod stack_lock;
 mod suite;
@@ -47,6 +48,10 @@ pub use repo_guard::{
 pub use run::{
     resolve_maybe_relative, run_generator_case, GeneratorRunConfig, GeneratorRunError,
     GeneratorRunOutcome, VerifySummary,
+};
+pub use source_map::{
+    entry_to_repair_mapping, join_by_assembly_line, join_by_offset, load_source_map, parse_offset,
+    validate_source_map, SourceMap, SourceMapEntry, SOURCE_MAP_SCHEMA_VERSION,
 };
 pub use spec::{
     load_generator_spec, parse_generator_spec, validate_generator_spec, BuildSpec, GenerationSpec,

@@ -367,6 +367,10 @@ enum RepairCommands {
         /// Optional generator source reference (e.g. `src/backend/x64/emitter.rs:214`).
         #[arg(long)]
         map_source: Option<String>,
+        /// Optional `candidate.map.json`; joined by `--instruction-offset`
+        /// to auto-fill source mapping (fallback: assembly context only).
+        #[arg(long)]
+        map: Option<PathBuf>,
         /// Regenerate command shown to the agent.
         #[arg(long)]
         regenerate_command: String,
@@ -616,6 +620,20 @@ enum GeneratorCommands {
     Triage {
         /// Status string (e.g. `Verified`, `Incomplete`, `BehaviorFailed`).
         status: String,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Join an instruction offset or assembly line against `candidate.map.json`.
+    MapJoin {
+        /// Path to the source map JSON.
+        map: PathBuf,
+        /// Instruction offset to join (hex `0x…` or decimal).
+        #[arg(long, conflicts_with = "line")]
+        offset: Option<String>,
+        /// 1-based assembly line to join.
+        #[arg(long)]
+        line: Option<u64>,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -1039,6 +1057,12 @@ fn run_cli() -> ExitCode {
             GeneratorCommands::Triage { status, format } => {
                 generator_triage_command(&status, format)
             }
+            GeneratorCommands::MapJoin {
+                map,
+                offset,
+                line,
+                format,
+            } => generator_map_join_command(&map, offset.as_deref(), line, format),
             GeneratorCommands::Diagnostics {
                 code,
                 category,
@@ -1155,6 +1179,7 @@ fn run_cli() -> ExitCode {
                 map_input,
                 map_ir,
                 map_source,
+                map,
                 regenerate_command,
                 verify_command,
                 output,
@@ -1173,6 +1198,7 @@ fn run_cli() -> ExitCode {
                     map_input,
                     map_ir,
                     map_source,
+                    map,
                     regenerate_command,
                     verify_command,
                     output,
@@ -1836,6 +1862,95 @@ fn generator_triage_command(status: &str, format: OutputFormat) -> ExitCode {
     VaaExitCode::Success.as_std()
 }
 
+fn generator_map_join_command(
+    map_path: &Path,
+    offset: Option<&str>,
+    line: Option<u64>,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{join_by_assembly_line, join_by_offset, load_source_map};
+
+    let map = match load_source_map(map_path) {
+        Ok(m) => m,
+        Err(error) => {
+            emit_generator_error(map_path, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let (key, entry) = match (offset, line) {
+        (Some(offset), _) => (format!("offset {offset}"), join_by_offset(&map, offset)),
+        (None, Some(line)) => (format!("line {line}"), join_by_assembly_line(&map, line)),
+        (None, None) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: source map valid");
+                    println!("  entries: {}", map.entries.len());
+                    if let Some(rev) = &map.generator_revision {
+                        println!("  generator_revision: {rev}");
+                    }
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "entries": map.entries.len(),
+                        "generator_revision": map.generator_revision,
+                    });
+                    println!("{body}");
+                }
+            }
+            return VaaExitCode::Success.as_std();
+        }
+    };
+
+    if let Some(entry) = entry {
+        match format {
+            OutputFormat::Terminal => {
+                println!("ok: joined {key}");
+                if let Some(v) = entry.assembly_line {
+                    println!("  assembly_line: {v}");
+                }
+                if let Some(v) = &entry.instruction_offset {
+                    println!("  instruction_offset: {v}");
+                }
+                if let Some(v) = &entry.generator_input {
+                    println!("  generator_input: {v}");
+                }
+                if let Some(v) = &entry.ir_node {
+                    println!("  ir_node: {v}");
+                }
+                if let Some(v) = &entry.generator_source {
+                    println!("  generator_source: {v}");
+                }
+            }
+            OutputFormat::Json => {
+                let body = serde_json::json!({
+                    "ok": true,
+                    "joined": true,
+                    "entry": entry,
+                });
+                println!("{body}");
+            }
+        }
+        return VaaExitCode::Success.as_std();
+    }
+
+    // Plan §13.3: absence of a mapping is reported, not an error status.
+    match format {
+        OutputFormat::Terminal => {
+            println!("ok: no entry for {key} (fallback: assembly context only)");
+        }
+        OutputFormat::Json => {
+            let body = serde_json::json!({
+                "ok": true,
+                "joined": false,
+            });
+            println!("{body}");
+        }
+    }
+    VaaExitCode::Success.as_std()
+}
+
 fn generator_diagnostics_command(
     code: Option<&str>,
     category: Option<&str>,
@@ -2062,6 +2177,7 @@ struct RepairExportConfig {
     map_input: Option<String>,
     map_ir: Option<String>,
     map_source: Option<String>,
+    map: Option<PathBuf>,
     regenerate_command: String,
     verify_command: String,
     output: PathBuf,
@@ -2070,8 +2186,9 @@ struct RepairExportConfig {
 
 fn repair_export_command(config: &RepairExportConfig, format: OutputFormat) -> ExitCode {
     use vaa::generator::{
-        build_repair_packet, load_generator_spec, write_repair_packet, RepairCommands as Commands,
-        RepairPacketInput, RepairSourceMapping,
+        build_repair_packet, entry_to_repair_mapping, join_by_offset, load_generator_spec,
+        load_source_map, write_repair_packet, RepairCommands as Commands, RepairPacketInput,
+        RepairSourceMapping,
     };
 
     let spec = match load_generator_spec(&config.spec) {
@@ -2082,7 +2199,8 @@ fn repair_export_command(config: &RepairExportConfig, format: OutputFormat) -> E
         }
     };
 
-    let source_mapping =
+    // Explicit --map-* flags first; a map file join can override them.
+    let mut source_mapping =
         if config.map_input.is_some() || config.map_ir.is_some() || config.map_source.is_some() {
             Some(RepairSourceMapping {
                 generator_input: config.map_input.clone(),
@@ -2092,6 +2210,31 @@ fn repair_export_command(config: &RepairExportConfig, format: OutputFormat) -> E
         } else {
             None
         };
+    // A missing/unjoinable entry never fails the export (plan §13.3
+    // fallback: assembly context only). A malformed map file does fail.
+    if let Some(map_path) = &config.map {
+        match load_source_map(map_path) {
+            Ok(map) => {
+                if let Some(offset) = &config.instruction_offset {
+                    if let Some(entry) = join_by_offset(&map, offset) {
+                        source_mapping = Some(entry_to_repair_mapping(entry));
+                    } else {
+                        eprintln!(
+                            "note: no source map entry for offset {offset}; packet keeps assembly context only"
+                        );
+                    }
+                } else {
+                    eprintln!(
+                        "note: --map given without --instruction-offset; packet keeps assembly context only"
+                    );
+                }
+            }
+            Err(error) => {
+                emit_generator_error(map_path, format, &error);
+                return VaaExitCode::InvalidInput.as_std();
+            }
+        }
+    }
 
     let input = RepairPacketInput {
         task_id: config.task_id.clone(),
