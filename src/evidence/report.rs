@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 use super::status::EvidenceStatus;
 use crate::semasm::capabilities::CapabilityMatch;
 use crate::semasm::doctor::DoctorReport;
+use crate::semasm::project_semantic_evidence;
 use crate::semasm::verify::VerifyReport;
 use crate::task::LockedTask;
 
@@ -183,7 +184,10 @@ impl EvidenceAggregator {
 
         match &verify_report {
             Some(vr) => {
-                let passed = vr.outcome == EvidenceStatus::Verified;
+                let passed = matches!(
+                    vr.outcome,
+                    EvidenceStatus::Verified | EvidenceStatus::VerifiedUnderPreconditions
+                );
                 checks.push(CheckOutcome {
                     check_name: "semasm_verification".to_owned(),
                     required: true,
@@ -251,6 +255,8 @@ impl EvidenceAggregator {
                     passed: tool_ok,
                     details: Some(format!("{:?}", vr.tool_version)),
                 });
+
+                push_semantic_evidence_checks(&mut checks, task, &vr.raw_json);
             }
             None => checks.push(CheckOutcome {
                 check_name: "semasm_verification".to_owned(),
@@ -326,19 +332,29 @@ impl EvidenceAggregator {
         let final_status = if identity_failed {
             EvidenceStatus::Failed
         } else if required_failures.is_empty() {
-            EvidenceStatus::Verified
+            match verify_report.as_ref().map(|v| v.outcome) {
+                Some(EvidenceStatus::VerifiedUnderPreconditions) => {
+                    EvidenceStatus::VerifiedUnderPreconditions
+                }
+                _ => EvidenceStatus::Verified,
+            }
         } else if verify_report.is_none() {
             EvidenceStatus::Failed
         } else if let Some(vr) = verify_report.as_ref() {
             match vr.outcome {
-                EvidenceStatus::Verified => EvidenceStatus::Incomplete,
+                EvidenceStatus::Verified | EvidenceStatus::VerifiedUnderPreconditions => {
+                    EvidenceStatus::Incomplete
+                }
                 other => other,
             }
         } else {
             EvidenceStatus::Failed
         };
 
-        let summary = if final_status == EvidenceStatus::Verified {
+        let summary = if matches!(
+            final_status,
+            EvidenceStatus::Verified | EvidenceStatus::VerifiedUnderPreconditions
+        ) {
             format!(
                 "Accepted under policy `{}`; all {} required checks completed.",
                 task.task().task_id,
@@ -370,7 +386,131 @@ impl EvidenceAggregator {
     }
 }
 
-/// Accepted VerificationReport schemas: major 0, minor >= 4 and < 5 (i.e. 0.4.x).
+fn push_semantic_evidence_checks(
+    checks: &mut Vec<CheckOutcome>,
+    task: &LockedTask,
+    raw_json: &str,
+) {
+    let policy = &task.task().verification.semantic_evidence;
+    let summary = project_semantic_evidence(raw_json);
+
+    if policy.alias.required {
+        let present = summary.alias.is_some();
+        checks.push(CheckOutcome {
+            check_name: "alias_evidence_present".to_owned(),
+            required: true,
+            passed: present,
+            details: None,
+        });
+        if let Some(alias) = &summary.alias {
+            if let Some(expected) = &policy.alias.model {
+                let matched = alias.model == *expected;
+                checks.push(CheckOutcome {
+                    check_name: "alias_model_matches".to_owned(),
+                    required: true,
+                    passed: matched,
+                    details: Some(format!("expected={expected} actual={}", alias.model)),
+                });
+            }
+            let status_ok = match alias.status.as_str() {
+                "passed" => true,
+                "passed_under_preconditions" => policy.alias.allow_caller_obligations,
+                "incomplete" => policy.alias.allow_incomplete,
+                _ => false,
+            };
+            checks.push(CheckOutcome {
+                check_name: "alias_status_allowed".to_owned(),
+                required: true,
+                passed: status_ok,
+                details: Some(alias.status.clone()),
+            });
+            if alias.obligation_count > 0 || !policy.alias.allow_caller_obligations {
+                checks.push(CheckOutcome {
+                    check_name: "caller_obligations_allowed".to_owned(),
+                    required: true,
+                    passed: policy.alias.allow_caller_obligations
+                        || alias.obligation_count == 0,
+                    details: Some(format!("obligations={}", alias.obligation_count)),
+                });
+            }
+        }
+    }
+
+    if policy.region_access.required {
+        let present = summary.region_access.is_some();
+        checks.push(CheckOutcome {
+            check_name: "region_access_present".to_owned(),
+            required: true,
+            passed: present,
+            details: None,
+        });
+        if let Some(ra) = &summary.region_access {
+            if let Some(expected) = &policy.region_access.model {
+                checks.push(CheckOutcome {
+                    check_name: "region_access_model_matches".to_owned(),
+                    required: true,
+                    passed: ra.model == *expected,
+                    details: Some(format!("expected={expected} actual={}", ra.model)),
+                });
+            }
+            let status_ok = match ra.status.as_str() {
+                "passed" => true,
+                "incomplete" => policy.region_access.allow_incomplete,
+                _ => false,
+            };
+            let unknown_ok =
+                policy.region_access.allow_unknown_accesses || ra.accesses_unknown == 0;
+            checks.push(CheckOutcome {
+                check_name: "region_access_complete".to_owned(),
+                required: true,
+                passed: status_ok && unknown_ok,
+                details: Some(format!(
+                    "status={} unknown={}",
+                    ra.status, ra.accesses_unknown
+                )),
+            });
+        }
+    }
+
+    if policy.contract_expressions.required {
+        let present = summary.contract_expressions.is_some();
+        checks.push(CheckOutcome {
+            check_name: "contract_expressions_present".to_owned(),
+            required: true,
+            passed: present,
+            details: None,
+        });
+        if let Some(ce) = &summary.contract_expressions {
+            if let Some(expected) = &policy.contract_expressions.model {
+                checks.push(CheckOutcome {
+                    check_name: "contract_expressions_model_matches".to_owned(),
+                    required: true,
+                    passed: ce.model == *expected,
+                    details: Some(format!("expected={expected} actual={}", ce.model)),
+                });
+            }
+            let status_ok = match ce.status.as_str() {
+                "passed" => true,
+                "passed_under_preconditions" => {
+                    policy.contract_expressions.allow_caller_obligations
+                }
+                "incomplete" | "not_evaluated" => {
+                    policy.contract_expressions.allow_incomplete
+                        || policy.contract_expressions.allow_not_evaluated
+                }
+                _ => false,
+            };
+            checks.push(CheckOutcome {
+                check_name: "contract_expressions_complete".to_owned(),
+                required: true,
+                passed: status_ok,
+                details: Some(ce.status.clone()),
+            });
+        }
+    }
+}
+
+/// Accepted VerificationReport schemas: major 0, minor >= 4 and < 6 (0.4 / 0.5).
 #[must_use]
 pub fn schema_version_compatible(version: &str) -> bool {
     let mut parts = version.split('.');
@@ -380,7 +520,7 @@ pub fn schema_version_compatible(version: &str) -> bool {
     let Some(minor) = parts.next().and_then(|p| p.parse::<u32>().ok()) else {
         return false;
     };
-    major == 0 && (4..5).contains(&minor)
+    major == 0 && (4..6).contains(&minor)
 }
 
 fn iso_timestamp() -> String {
@@ -661,10 +801,11 @@ mod tests {
     }
 
     #[test]
-    fn schema_pin_accepts_0_4() {
+    fn schema_pin_accepts_0_4_and_0_5() {
         assert!(schema_version_compatible("0.4"));
+        assert!(schema_version_compatible("0.5"));
         assert!(!schema_version_compatible("0.3"));
-        assert!(!schema_version_compatible("0.5"));
+        assert!(!schema_version_compatible("0.6"));
         assert!(!schema_version_compatible("1.0"));
     }
 }

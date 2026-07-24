@@ -182,6 +182,59 @@ pub struct VerificationRequirements {
     pub require_behavioral_tests: bool,
     /// Require reproducible build evidence.
     pub require_reproducible_build: bool,
+    /// Optional SemASM semantic-evidence requirements (Sei P1).
+    ///
+    /// Default empty / not required so locked legacy tasks keep the same digest
+    /// when the field is absent from TOML (skipped in canonical JSON).
+    #[serde(
+        default,
+        skip_serializing_if = "SemanticEvidenceRequirements::is_unset"
+    )]
+    pub semantic_evidence: SemanticEvidenceRequirements,
+}
+
+/// Which SemASM semantic evidence slices a task requires (Sei P1).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields, default)]
+pub struct SemanticEvidenceRequirements {
+    #[serde(default)]
+    pub alias: SemanticEvidenceSliceReq,
+    #[serde(default)]
+    pub region_access: SemanticEvidenceSliceReq,
+    #[serde(default)]
+    pub contract_expressions: SemanticEvidenceSliceReq,
+}
+
+impl SemanticEvidenceRequirements {
+    /// True when no slice is required and no knobs are set (legacy digest stable).
+    #[must_use]
+    pub fn is_unset(&self) -> bool {
+        self == &Self::default()
+    }
+}
+
+/// Per-slice requirement knobs.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields, default)]
+pub struct SemanticEvidenceSliceReq {
+    /// When true, missing evidence fails closed (Incomplete).
+    #[serde(default)]
+    pub required: bool,
+    /// Expected model id when set (e.g. `region-affine-v1`).
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Allow `incomplete` slice status.
+    #[serde(default)]
+    pub allow_incomplete: bool,
+    /// Allow `passed_under_preconditions` / caller obligations (alias).
+    #[serde(default)]
+    pub allow_caller_obligations: bool,
+    /// Allow non-zero `accesses_unknown` (region_access).
+    #[serde(default)]
+    pub allow_unknown_accesses: bool,
+    /// Allow `not_evaluated` / incomplete contract-expr aggregates.
+    #[serde(default)]
+    pub allow_not_evaluated: bool,
 }
 
 /// Generation and repair budgets.

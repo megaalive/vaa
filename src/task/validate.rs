@@ -234,6 +234,7 @@ mod tests {
                 require_object_inspection: true,
                 require_behavioral_tests: false,
                 require_reproducible_build: false,
+                semantic_evidence: Default::default(),
             },
             budgets: Budgets {
                 max_candidates: 1,

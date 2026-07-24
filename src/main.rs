@@ -925,6 +925,9 @@ fn verify_command(
                         let store = vaa::CacheStore::open(vaa::resolve_cache_root());
                         let status = match report.outcome {
                             EvidenceStatus::Verified => "Verified",
+                            EvidenceStatus::VerifiedUnderPreconditions => {
+                                "VerifiedUnderPreconditions"
+                            }
                             EvidenceStatus::Violated => "Violated",
                             EvidenceStatus::Incomplete => "Incomplete",
                             EvidenceStatus::Failed => "Failed",

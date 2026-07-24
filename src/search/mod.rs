@@ -269,6 +269,7 @@ pub fn run_search(
         previous_seal_digest = Some(outcome.seal.envelope_digest.clone());
         let status_label = match outcome.evidence.final_status {
             EvidenceStatus::Verified => "verified",
+            EvidenceStatus::VerifiedUnderPreconditions => "verified_under_preconditions",
             EvidenceStatus::Violated => "violated",
             EvidenceStatus::Incomplete => "incomplete",
             EvidenceStatus::Failed => "failed",
@@ -294,6 +295,12 @@ pub fn run_search(
                 // Only reachable with --allow-execution; honesty: Verified only if SemASM Verified.
                 verified = true;
                 stopped_reason = "verified".into();
+                break;
+            }
+            EvidenceStatus::VerifiedUnderPreconditions => {
+                // Success under recorded preconditions — not unconditional Verified.
+                verified = true;
+                stopped_reason = "verified_under_preconditions".into();
                 break;
             }
             EvidenceStatus::Violated | EvidenceStatus::Failed => {

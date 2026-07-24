@@ -1,4 +1,4 @@
-//! SemASM `agent verify` adapter: stdout-only VerificationReport 0.4 parse.
+//! SemASM `agent verify` adapter: stdout-only VerificationReport parse (0.4+).
 
 use std::path::Path;
 use std::time::Duration;
@@ -17,9 +17,9 @@ pub struct SemasmDiagnostic {
     pub location: Option<String>,
 }
 
-/// Tolerant subset of SemASM [`VerificationReport`] schema 0.4.
+/// Tolerant subset of SemASM [`VerificationReport`] schema 0.4+.
 ///
-/// Unknown nested fields (`semantic`, `behavior`, `behavior_oracle`, …) are
+/// Unknown nested fields (`semantic`, `behavior`, `alias_analysis`, …) are
 /// ignored by serde so the adapter stays compatible with additive report growth.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerifyReportRaw {
@@ -212,25 +212,26 @@ impl SemasmVerify {
         })
     }
 
-    /// Accept only VerificationReport schemas in `[0.4, 0.5)`.
+    /// Accept VerificationReport schemas in `[0.4, 0.6)`.
     fn check_schema_version(version: Option<&str>) -> Result<(), VerifyError> {
         let Some(version) = version else {
             return Err(VerifyError::ParseFailed(
-                "missing schema_version (required >=0.4,<0.5)".to_owned(),
+                "missing schema_version (required >=0.4,<0.6)".to_owned(),
             ));
         };
         if !schema_version_compatible(version) {
             return Err(VerifyError::ParseFailed(format!(
-                "unsupported VerificationReport schema_version `{version}` (accepted >=0.4,<0.5)"
+                "unsupported VerificationReport schema_version `{version}` (accepted >=0.4,<0.6)"
             )));
         }
         Ok(())
     }
 
-    /// Map SemASM `VerificationReport.status` to VAA 4-outcome vocabulary.
+    /// Map SemASM `VerificationReport.status` to VAA evidence vocabulary.
     fn map_status(status: &str) -> EvidenceStatus {
         match status {
             "verified" => EvidenceStatus::Verified,
+            "verified_under_preconditions" => EvidenceStatus::VerifiedUnderPreconditions,
             "semantic_failed" | "executable_failed" | "behavior_failed" => EvidenceStatus::Violated,
             "execution_denied" => EvidenceStatus::Incomplete,
             _ => EvidenceStatus::Failed,
@@ -264,6 +265,18 @@ mod tests {
         assert_eq!(report.target.as_deref(), Some("x86_64-unknown-linux-gnu"));
         assert_eq!(report.tool_version.as_deref(), Some("semasm 0.1.0"));
         assert_eq!(report.schema_version.as_deref(), Some("0.4"));
+    }
+
+    #[test]
+    fn parse_verified_under_preconditions_maps_distinct_status() {
+        let json = minimal("verified_under_preconditions").replace("0.4", "0.5");
+        let report = SemasmVerify::parse_report(&json).expect("parse");
+        assert_eq!(
+            report.outcome,
+            EvidenceStatus::VerifiedUnderPreconditions
+        );
+        assert_ne!(report.outcome, EvidenceStatus::Verified);
+        assert_eq!(report.schema_version.as_deref(), Some("0.5"));
     }
 
     #[test]

@@ -48,6 +48,7 @@ pub fn may_reuse_build(record: &BuildCacheRecord) -> CacheReuseDecision {
 fn parse_status(s: &str) -> EvidenceStatus {
     match s {
         "Verified" => EvidenceStatus::Verified,
+        "VerifiedUnderPreconditions" => EvidenceStatus::VerifiedUnderPreconditions,
         "Violated" => EvidenceStatus::Violated,
         "Incomplete" => EvidenceStatus::Incomplete,
         _ => EvidenceStatus::Failed,
