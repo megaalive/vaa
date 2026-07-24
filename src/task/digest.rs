@@ -53,7 +53,8 @@ mod tests {
     use super::*;
     use crate::task::model::{
         ArtifactKind, Behavior, Budgets, Capabilities, Delivery, Entry, InstructionPolicy,
-        MemoryPolicy, TaskTest, TomlValue, ValueKind, VerificationRequirements,
+        MemoryPolicy, SemanticEvidenceRequirements, TaskTest, TomlValue, ValueKind,
+        VerificationRequirements,
     };
     use std::collections::BTreeMap;
 
@@ -102,7 +103,7 @@ mod tests {
                 require_object_inspection: true,
                 require_behavioral_tests: true,
                 require_reproducible_build: true,
-                semantic_evidence: Default::default(),
+                semantic_evidence: SemanticEvidenceRequirements::default(),
             },
             budgets: Budgets {
                 max_candidates: 4,
