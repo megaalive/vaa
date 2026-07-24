@@ -7,11 +7,13 @@ mod error;
 mod generate;
 mod identity;
 mod patch;
+mod path_policy;
 mod repo_guard;
 mod run;
 mod spec;
 mod stack_lock;
 mod suite;
+mod triage;
 
 pub use error::GeneratorError;
 pub use generate::{
@@ -26,6 +28,7 @@ pub use patch::{
     validate_patch_evidence, verify_patch_evidence_file, write_patch_evidence, PatchEvidence,
     PatchEvidenceInput, PatchStatus, PATCH_EVIDENCE_SCHEMA_VERSION,
 };
+pub use path_policy::{check_path_policy, check_paths_against_spec, PathPolicyReport};
 pub use repo_guard::{
     check_repository, glob_match, path_policy_violations, resolve_repository_path, RepoGuardConfig,
     RepoGuardReport,
@@ -48,3 +51,4 @@ pub use suite::{
     SuiteEvidence, SuiteGeneratorRef, SuiteManifest, SuitePolicy, SuiteRunConfig, SuiteRunReport,
     SuiteStatus, SUITE_SCHEMA_VERSION,
 };
+pub use triage::{should_export_repair_packet, triage_status, TriageClass, TriageDecision};

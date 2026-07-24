@@ -1236,8 +1236,8 @@ P0  (generic VAA core + first HlaX64 pack config)
 P1
 7. suite manifest and runner — **done**
 8. patch-level evidence — **done**
-9. allowed/forbidden patch paths
-10. generator-versus-verifier triage
+9. allowed/forbidden patch paths — **done**
+10. generator-versus-verifier triage — **done**
 
 P2
 11. repair packet export

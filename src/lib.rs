@@ -59,21 +59,22 @@ pub use evidence::{
 pub use exit_code::ExitCode as VaaExitCode;
 pub use generator::{
     aggregate_suite_status, build_and_identify, build_generator, build_patch_evidence,
-    check_repository, establish_binary_identity, expand_generation_command, generate_candidate,
-    git_changed_files, load_generator_spec, load_patch_evidence, load_stack_lock,
-    load_suite_manifest, parse_generator_spec, parse_stack_lock, parse_suite_manifest,
-    patch_evidence_digest, path_policy_violations, resolve_case_paths, resolve_generator_binary,
-    resolve_maybe_relative, resolve_repository_path, run_generator_case, run_suite,
-    stack_lock_digest, suite_manifest_digest, validate_generator_spec, validate_patch_evidence,
+    check_path_policy, check_paths_against_spec, check_repository, establish_binary_identity,
+    expand_generation_command, generate_candidate, git_changed_files, load_generator_spec,
+    load_patch_evidence, load_stack_lock, load_suite_manifest, parse_generator_spec,
+    parse_stack_lock, parse_suite_manifest, patch_evidence_digest, path_policy_violations,
+    resolve_case_paths, resolve_generator_binary, resolve_maybe_relative, resolve_repository_path,
+    run_generator_case, run_suite, should_export_repair_packet, stack_lock_digest,
+    suite_manifest_digest, triage_status, validate_generator_spec, validate_patch_evidence,
     validate_stack_lock, validate_suite_manifest, verify_patch_evidence_file, write_patch_evidence,
     BuildSpec, CasePaths, ComponentPin, GenerationOutcome, GenerationRequest, GenerationSpec,
     GeneratorBinaryIdentity, GeneratorError, GeneratorPin, GeneratorRepository, GeneratorRunConfig,
     GeneratorRunError, GeneratorRunOutcome, GeneratorSpec, IdentityPolicy, PatchEvidence,
-    PatchEvidenceInput, PatchPolicy, PatchStatus, RepoGuardConfig, RepoGuardReport, StackLock,
-    StackLockDigest, SuiteCaseResult, SuiteEvidence, SuiteGeneratorRef, SuiteManifest, SuitePolicy,
-    SuiteRunConfig, SuiteRunReport, SuiteStatus, ToolchainPin, VerifySummary,
-    GENERATOR_SPEC_SCHEMA_VERSION, PATCH_EVIDENCE_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION,
-    SUITE_SCHEMA_VERSION,
+    PatchEvidenceInput, PatchPolicy, PatchStatus, PathPolicyReport, RepoGuardConfig,
+    RepoGuardReport, StackLock, StackLockDigest, SuiteCaseResult, SuiteEvidence, SuiteGeneratorRef,
+    SuiteManifest, SuitePolicy, SuiteRunConfig, SuiteRunReport, SuiteStatus, ToolchainPin,
+    TriageClass, TriageDecision, VerifySummary, GENERATOR_SPEC_SCHEMA_VERSION,
+    PATCH_EVIDENCE_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION, SUITE_SCHEMA_VERSION,
 };
 pub use harness::{HarnessConfig, HarnessTemplate};
 pub use inspect::{ArtifactInfo, ArtifactInspector};

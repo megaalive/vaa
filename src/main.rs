@@ -532,6 +532,25 @@ enum GeneratorCommands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Check changed paths against generator patch_policy allow/deny lists.
+    CheckPaths {
+        /// Path to the generator spec file.
+        spec: PathBuf,
+        /// Changed file path (repeatable).
+        #[arg(long = "changed", required = true)]
+        changed: Vec<String>,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Triage a status string for generator-vs-verifier repair routing.
+    Triage {
+        /// Status string (e.g. `Verified`, `Incomplete`, `BehaviorFailed`).
+        status: String,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -932,6 +951,14 @@ fn run_cli() -> ExitCode {
                     format,
                 )
             }
+            GeneratorCommands::CheckPaths {
+                spec,
+                changed,
+                format,
+            } => generator_check_paths_command(&spec, &changed, format),
+            GeneratorCommands::Triage { status, format } => {
+                generator_triage_command(&status, format)
+            }
         },
         Commands::GeneratorRun {
             spec,
@@ -1047,7 +1074,7 @@ fn print_status() {
     println!(
         "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
     );
-    println!("generator bridge: P0 + suite + patch evidence; path-policy CLI + triage next");
+    println!("generator bridge: P0+P1 complete (suite/patch/paths/triage); P2 repair packet next");
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
     println!("evidence note: opt-in Ed25519 when VAA_SEAL_SIGNING_KEY is set (practice; not a trust root)");
@@ -1611,6 +1638,77 @@ fn suite_run_command(
             VaaExitCode::InvalidInput.as_std()
         }
     }
+}
+
+fn generator_check_paths_command(
+    spec_path: &Path,
+    changed: &[String],
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{check_path_policy, load_generator_spec};
+
+    let spec = match load_generator_spec(spec_path) {
+        Ok(s) => s,
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    let report = check_path_policy(changed, &spec.patch_policy);
+    match format {
+        OutputFormat::Terminal => {
+            if report.ok {
+                println!(
+                    "ok: path policy passed ({} path(s))",
+                    report.changed_files.len()
+                );
+            } else {
+                eprintln!("error: path policy violated");
+                for v in &report.violations {
+                    eprintln!("  - {v}");
+                }
+            }
+        }
+        OutputFormat::Json => {
+            let body = serde_json::json!({
+                "ok": report.ok,
+                "report": report,
+            });
+            println!("{body}");
+        }
+    }
+    if report.ok {
+        VaaExitCode::Success.as_std()
+    } else {
+        VaaExitCode::InvalidInput.as_std()
+    }
+}
+
+fn generator_triage_command(status: &str, format: OutputFormat) -> ExitCode {
+    use vaa::generator::triage_status;
+
+    let decision = triage_status(status);
+    match format {
+        OutputFormat::Terminal => {
+            println!("ok: triage");
+            println!("  status: {status}");
+            println!("  class: {:?}", decision.class);
+            println!(
+                "  suggest_generator_repair: {}",
+                decision.suggest_generator_repair
+            );
+            println!("  rationale: {}", decision.rationale);
+        }
+        OutputFormat::Json => {
+            let body = serde_json::json!({
+                "ok": true,
+                "status": status,
+                "decision": decision,
+            });
+            println!("{body}");
+        }
+    }
+    VaaExitCode::Success.as_std()
 }
 
 fn patch_evidence_verify_command(path: &Path, format: OutputFormat) -> ExitCode {
