@@ -27,6 +27,7 @@ Forbidden: claiming Horizon cliffs (HSM, live model, CryptOpt) as Done.
 | **Vd11** | Wire `memory-leaf-affine-v1` on Gate `memcpy` + pin SemASM `55f2542` | **done** |
 | **Vd12** | Wire `memory-leaf-affine-v1` on Gate `memset` + pin SemASM `0f9cd1e` | **done** |
 | **Vd13** | Wire `memory-leaf-affine-v1` on Gate `replace_byte` + pin SemASM `8924564` | **done** |
+| **Vd14** | Wire `memory-leaf-affine-v1` on Gate `memcmp` + pin SemASM `d2ce02d` | **done** |
 
 ## Non-goals
 

@@ -15,6 +15,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Changed
 
+- **Vd14 / memcmp memory-leaf** — SemASM pin `d2ce02d`. Gate `memcmp`
+  (+ HlaX64) uses `memory-leaf-affine-v1` with dual-buffer regions +
+  `regions.disjoint(a, b)`. Sample ≠ formal memory safety;
+  `verified_under_preconditions` ≠ unconditional `verified`.
 - **Vd13 / replace_byte memory-leaf** — SemASM pin `8924564`. Gate
   `replace_byte` (+ HlaX64) uses `memory-leaf-affine-v1`. Sample ≠ formal
   memory safety; `verified_under_preconditions` ≠ unconditional `verified`.
