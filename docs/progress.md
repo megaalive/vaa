@@ -23,10 +23,11 @@ is **done** (Io0–Io5 at `c040828`:
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
 **G1–G5 closed.** SemASM tip `c5d8458` (v0.2.0) (ADR 0009 / Da0–Da5 + CI fix): A64/RV
-`decode`/`lower` → `verified_in_ci` (sample coverage; `control` still
-x86-only; W+X fixtures use `.semasm_wx`). **Production** trust root /
-hardware HSM / operated remote log as Gate default remain Horizon-locked.
-Authenticity ≠ semantic truth.
+`decode`/`lower` → `verified_in_ci` (sample coverage; W+X fixtures use
+`.semasm_wx`). Post-release: **Vd** Gate pin to `v0.2.0` ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md));
+SemASM **Co** ports A64/RV `control` (memory still skipped). **Production**
+trust root / hardware HSM / operated remote log as Gate default remain
+Horizon-locked. Authenticity ≠ semantic truth.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
