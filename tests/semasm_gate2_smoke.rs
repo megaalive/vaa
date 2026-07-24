@@ -1994,6 +1994,11 @@ fn gate2_verify_count_byte_win64_execution_sandbox() {
         "I2: --execution-sandbox must claim execution_isolation=sandbox: {value}"
     );
     assert_eq!(
+        value["execution_sandbox_backend"].as_str(),
+        Some("local"),
+        "G4: sandbox path must name LocalBackend (≠ container): {value}"
+    );
+    assert_eq!(
         value["final_status"], "Verified",
         "Gate-2 sandbox path expects Verified (LocalBackend scaffold, not container): {value}"
     );

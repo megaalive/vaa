@@ -32,12 +32,26 @@ Criteria before any doc or CI label may say Gate-2 uses process isolation:
 
 | Phase | Meaning | Status |
 |---|---|---|
-| **I0** | Gate-2 = SemASM `--allow-execution` on host; Verified ≠ isolation | **current** |
+| **I0** | Gate-2 = SemASM `--allow-execution` on host; Verified ≠ isolation | **current default** |
 | **I1** | Evidence field `execution_isolation: semasm_host \| sandbox`; Gate-2 CI asserts `semasm_host` by default | **landed** |
 | **I2** | Opt-in `--execution-sandbox` on `vaa verify` wires `ExecutionSandbox` (LocalBackend); CI asserts `execution_isolation=sandbox`; fail-closed if sandbox cannot run | **landed** (LocalBackend scaffold ≠ absolute isolation; C-012) |
+| **G4** | Isolation **ops** proof (claim matrix + backend id + network/credential argv checklist) | **done** — see [`ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md); public-untrusted escalate remains out of scope |
 
 I1 does not change default Gate behavior (still `semasm_host`). I2 is opt-in;
 sandbox claim ≠ container isolation; SoftHSM/Fulcio ≠ Verified.
+
+### Isolation claim matrix (G4)
+
+| Surface | What exists | May claim | Must not claim |
+|---|---|---|---|
+| Gate-2 default | SemASM `--allow-execution` host process | `execution_isolation=semasm_host` | Process/container isolation |
+| Gate-2 `--execution-sandbox` | `ExecutionSandbox` + **LocalBackend** | `execution_isolation=sandbox` + backend `local` | Container isolation; absolute OS isolation |
+| `vaa build --sandbox container` | Docker/Podman argv (C0/C1, seccomp opt-in) | Network-disabled build argv scaffold | Hardened isolation Done; Gate exec sandbox |
+| Generator jail | Container with `staging/` at `/work` | Logical + optional OS FS jail when enforced | Absolute multi-tenant isolation |
+| SoftHSM / practice seals | PKCS#11 smoke / Ed25519 practice keys | Integrity / practice authenticity | Trust root; Fulcio identity = Verified |
+
+**Public untrusted execution** remains an **escalation** product bar (VM /
+stronger boundary), not a G4 DoD.
 
 ## Seal durability (P7-D)
 

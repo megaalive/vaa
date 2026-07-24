@@ -31,6 +31,11 @@ ABI/CFG, capabilities, behavioral oracles, and verification evidence. Generators
   `--allow-execution`.
 - **Execution isolation (I2)** — `execution_isolation` + `--execution-sandbox`
   on Gate paths (profile ≠ absolute OS isolation).
+- **Isolation ops proof (G4 / Io0–Io5)** — claim matrix
+  (`docs/ISOLATION_OPS_PROOF_PLAN.md`); doctor honesty (sandbox wired, not
+  library-only); optional `execution_sandbox_backend` (`local`);
+  ContainerBackend network/socket/credential-env argv checklist. **Not**
+  public-untrusted ready; LocalBackend ≠ container; C-012.
 - **Horizon Closeout (consumer side)** — progress/map honesty; remote-
   transparency non-claim (local export / opt-in Rekor/Fulcio ≠ operated remote
   log); SoftHSM/CryptOpt honesty on leaf READMEs.

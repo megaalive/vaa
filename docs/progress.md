@@ -18,8 +18,11 @@ evidence (`contract-expr-v1` / `VerificationReport.contract_expressions`).
 VAA still only consumes `VerificationReport` — no expression engine in VAA.
 G3 (A64/RV memory-effect parity) is **done** (SemASM ADR 0008 Me0–Me5 at
 `51e8a96`: collectors + verify wire + ± fixtures; A64/RV `decode`/`lower`
-stay `partial`). VAA still only consumes `VerificationReport`. G4–G5 remain
-deferred.
+stay `partial`). G4 (isolation ops proof) is **done** (Io0–Io5:
+[`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md) — claim
+matrix, doctor honesty, `execution_sandbox_backend=local`, network/credential
+argv checklist). **Not** public-untrusted ready / absolute isolation / trust
+root. G5 (trust root nyata) remains last / deferred.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

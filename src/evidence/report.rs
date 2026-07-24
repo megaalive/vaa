@@ -38,6 +38,11 @@ pub struct EvidenceReport {
     /// `sandbox` (via [`crate::sandbox::ExecutionSandbox`]). Not absolute isolation.
     #[serde(default = "default_execution_isolation")]
     pub execution_isolation: String,
+    /// When `execution_isolation` is `sandbox`, which backend ran the wrap
+    /// (`local` today; `container` reserved — Gate path still uses LocalBackend).
+    /// Absent for `semasm_host`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_sandbox_backend: Option<String>,
 }
 
 fn default_execution_isolation() -> String {
@@ -360,6 +365,7 @@ impl EvidenceAggregator {
             final_status,
             summary,
             execution_isolation: default_execution_isolation(),
+            execution_sandbox_backend: None,
         }
     }
 }

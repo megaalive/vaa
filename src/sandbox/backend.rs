@@ -339,6 +339,53 @@ mod tests {
     }
 
     #[test]
+    fn container_backend_ops_deny_network_socket_and_credential_env() {
+        let backend = ContainerBackend::new("docker", "ubuntu:24.04");
+        let cfg = SandboxConfig::default();
+        let pc = backend.wrap_process("nasm", &["-v".to_owned()], &cfg);
+        // Network + capability ops (argv proof; not a runtime pen-test).
+        assert!(pc.args.windows(2).any(|w| w == ["--network", "none"]));
+        assert!(pc.args.windows(2).any(|w| w == ["--cap-drop", "ALL"]));
+        // Never bind the Docker socket.
+        assert!(
+            !pc.args
+                .iter()
+                .any(|a| a.contains("docker.sock") || a.contains("podman.sock")),
+            "socket mount leaked into argv: {:?}",
+            pc.args
+        );
+        // Default allowed_env must not forward credential-shaped keys.
+        for forbidden in [
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+            "GITHUB_TOKEN",
+            "VAA_SEAL_SIGNING_KEY",
+            "DOCKER_AUTH_CONFIG",
+        ] {
+            assert!(
+                !pc.allowed_env.iter().any(|e| e == forbidden),
+                "credential env {forbidden} must not be in default allowed_env"
+            );
+        }
+        assert!(pc.allowed_env.iter().any(|e| e == "PATH"));
+        assert!(pc.allowed_env.iter().any(|e| e == "HOME"));
+    }
+
+    #[test]
+    fn local_backend_default_env_excludes_credential_keys() {
+        let backend = LocalBackend;
+        let cfg = SandboxConfig::default();
+        let pc = backend.wrap_process("semasm", &["version".to_owned()], &cfg);
+        assert_eq!(backend.name(), "local");
+        for forbidden in ["AWS_SECRET_ACCESS_KEY", "VAA_SEAL_SIGNING_KEY", "GITHUB_TOKEN"] {
+            assert!(
+                !pc.allowed_env.iter().any(|e| e == forbidden),
+                "credential env {forbidden} must not be in LocalBackend default allowed_env"
+            );
+        }
+    }
+
+    #[test]
     fn container_backend_bind_mounts_replace_work_tmpfs() {
         let backend = ContainerBackend::new("docker", "ubuntu:24.04");
         let cfg = SandboxConfig {

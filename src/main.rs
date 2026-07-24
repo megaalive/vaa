@@ -715,7 +715,7 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                 evidence_policy.os_fs_isolation
             );
             println!(
-                "  execution: Gate uses SemASM --allow-execution; ExecutionSandbox is library-only"
+                "  execution: default Gate = SemASM --allow-execution (semasm_host); opt-in --execution-sandbox = LocalBackend process wrapper (sandbox + backend=local; ≠ container; C-012)"
             );
             for detail in &report.details {
                 println!("  {detail}");
@@ -731,6 +731,11 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                 "live_probe": report.live_probe,
                 "container_runtime": container_runtime,
                 "evidence_policy": evidence_policy,
+                "execution": {
+                    "default": "semasm_host",
+                    "opt_in_execution_sandbox": "local",
+                    "note": "LocalBackend ≠ container; C-012; Verified ≠ isolation",
+                },
             });
             println!("{body}");
         }
@@ -974,6 +979,11 @@ fn verify_command(
                         } else {
                             "semasm_host".to_owned()
                         },
+                        execution_sandbox_backend: if execution_sandbox {
+                            Some("local".to_owned())
+                        } else {
+                            None
+                        },
                     };
                     return emit_evidence_report(&report, format);
                 }
@@ -1012,6 +1022,11 @@ fn verify_command(
         "sandbox".to_owned()
     } else {
         "semasm_host".to_owned()
+    };
+    report.execution_sandbox_backend = if execution_sandbox {
+        Some("local".to_owned())
+    } else {
+        None
     };
     emit_evidence_report(&report, format)
 }
