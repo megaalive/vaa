@@ -19,6 +19,7 @@ Forbidden: claiming Horizon cliffs (HSM, live model, CryptOpt) as Done.
 | **Vd3** | CI Gate jobs green on new pin | **done** (`2815aa3`) |
 | **Vd4** | `vaa run` wrong→repair Gate-1 for replace/memset/memcpy | **done** |
 | **Vd5** | Re-pin Gate workflows to SemASM Mm tip `e991182` | **done** (`8d1286f`) |
+| **Vd6** | Re-pin Gate workflows to SemASM `v0.2.1` tip `22d1543` | **in progress** |
 
 ## Non-goals
 
