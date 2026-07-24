@@ -13,6 +13,11 @@ architectural summary for the **next** release notes — not a claim that a tag
 has shipped. SoftHSM ≠ hardware HSM; `search --ingest` ≠ CryptOpt; Incomplete ≠
 Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log.
 
+### Changed
+
+- **Vd5 SemASM pin** — Gate workflows track SemASM Mm tip `e991182`
+  (A64/RV `memory` leaf; sample ≠ region-precise proof).
+
 ### Stack identity (SemASM + VAA)
 
 VAA owns task lock, candidate lifecycle, sandbox profiles, proof/seal chain,
