@@ -15,6 +15,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Changed
 
+- **Vd10** — SemASM pin `671c5e2` (x86 frame-spill affinity); HlaX64
+  `count_byte` joins Gate `leaf-pure-v1`. Alias Incomplete from lost spill
+  tracking no longer forces `semantic_failed`. Sample ≠ formal memory safety;
+  `region_access` Incomplete remains observational.
 - **Vd9 / Sei Gate wire** — Gate `count_byte` tasks use
   `verification.profile = leaf-pure-v1` (frozen alias + contract-expr
   requirements on lock). SemASM pin `b3c576e` (Ra tuple CI fix). Sample ≠

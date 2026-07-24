@@ -22,9 +22,9 @@ is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `b3c576e` (Sei P0/Ra + CI tuple fix; report
-schema `0.5`). Gate pin tracks tip ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md) Vd9);
-Gate `count_byte` uses `leaf-pure-v1` semantic-evidence profile. SemASM **Co**
+**G1–G5 closed.** SemASM tip `671c5e2` (frame-spill affinity + Sei P0/Ra;
+report schema `0.5`). Gate pin tracks tip ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md)
+Vd10); Gate `count_byte` (including HlaX64) uses `leaf-pure-v1`. SemASM **Co**
 + **Mm** + Tw/Ff/Ab + Sei (sample ≠ CFG/CFI, region-precise store, or formal
 ABI / memory-safety proof). Tag **`v0.2.1`** remains the last release archive
 (`22d1543`). **Production** trust root / hardware HSM / operated remote log as
@@ -417,15 +417,15 @@ without maturity bump (H4), multi-ISA ADR 0005 (H1), remote-transparency honesty
 embed, live-model Gate CI, hardware HSM.
 
 **Next (planned):** optional `memory-leaf-affine-v1` on memcpy-class Gate leaves
-when SemASM region-access is Gate-ready
+when region-access is Gate-ready
 ([Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)). SoftHSM ≠
 HSM; Incomplete ≠ Verified; `verified_under_preconditions` ≠ `verified`.
 
+**Sei / Vd10** — HlaX64 `count_byte` on `leaf-pure-v1` after SemASM frame-spill
+affinity (`671c5e2`).
+
 **Sei P1b / Vd9** — `leaf-pure-v1` on Gate `count_byte` (ingest/semasm/run;
-`[function.memory]` for alias evidence). HlaX64 `count_byte` stays profile-free
-until Win64 effects collection is complete (Incomplete alias → SemASM
-`semantic_failed`). SemASM pin `b3c576e`
-([SemASM CI](https://github.com/megaalive/semasm/actions/runs/30090784326)).
+`[function.memory]` for alias evidence).
 
 **Vd8 done** — Gate CI green on SemASM tip `cf0206e`
 ([run](https://github.com/megaalive/vaa/actions/runs/30089474652)).
@@ -924,3 +924,4 @@ Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 
 Do not claim formal proof, production readiness, hardened sandbox isolation, or
 CI-proven SemASM vertical slices until the corresponding evidence exists.
+                                                                                                                                   

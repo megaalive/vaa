@@ -16,7 +16,8 @@ VAA slices in that plan:
    Gate `count_byte` wired to `leaf-pure-v1` (Vd9).
 2. **`verified_under_preconditions`** — mapped distinctly; not promoted to
    `verified` without explicit policy.
-3. Gate CI pin SemASM tip `b3c576e` (Vd9; Ra tuple fix on schema 0.5 tip).
+3. Gate CI pin SemASM tip `671c5e2` (Vd10; frame-spill affinity); HlaX64
+   `count_byte` on `leaf-pure-v1`.
 
 Isolation (P3) and trust-root (P4) stay behind semantic evidence stability unless
 public-untrusted execution forces them earlier.
