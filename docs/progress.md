@@ -417,6 +417,11 @@ without maturity bump (H4), multi-ISA ADR 0005 (H1), remote-transparency honesty
 **Horizon-locked deferred:** formal ensures, full symbolic alias, CryptOpt
 embed, live-model Gate CI, hardware HSM.
 
+**Next (planned):** [Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)
+(canonical plan in SemASM `docs/SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md`) — VAA
+Evidence Requirement Profiles + `verified_under_preconditions` after SemASM
+alias/obligation P0.
+
 Honesty: SoftHSM ≠ HSM; search ≠ CryptOpt; Incomplete ≠ Verified; HlaX64 ≠
 SemASM Verified; local transparency artifact ≠ remote log.
 
