@@ -965,7 +965,7 @@ authority ownership checklist, and binary identity remain open.
 
 ## Milestone 1 — External generator runner
 
-**Status:** In progress — repository guard + binary identity landed; generate /
+**Status:** In progress — guard, identity, and deterministic generate landed;
 `generator-run` open.
 
 **Deliverables**
@@ -973,7 +973,7 @@ authority ownership checklist, and binary identity remain open.
 - `ExternalGeneratorSpec` — **done**;
 - repository guard — **done** (`vaa generator check-repo`);
 - generator build identity — **done** (`vaa generator identity`);
-- deterministic candidate generation;
+- deterministic candidate generation — **done** (`vaa generator generate`);
 - `vaa generator-run` (optional alias `compiler-run`).
 
 **Acceptance**
@@ -1219,7 +1219,7 @@ P0  (generic VAA core + first HlaX64 pack config)
 2. ExternalGeneratorSpec — **done**
 3. repository guard — **done**
 4. generator binary identity — **done**
-5. deterministic generation
+5. deterministic generation — **done**
 6. vaa generator-run
 
 P1

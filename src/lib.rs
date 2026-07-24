@@ -59,9 +59,10 @@ pub use evidence::{
 pub use exit_code::ExitCode as VaaExitCode;
 pub use generator::{
     build_and_identify, build_generator, check_repository, establish_binary_identity,
-    load_generator_spec, load_stack_lock, parse_generator_spec, parse_stack_lock,
-    path_policy_violations, resolve_generator_binary, resolve_repository_path, stack_lock_digest,
-    validate_generator_spec, validate_stack_lock, BuildSpec, ComponentPin, GenerationSpec,
+    expand_generation_command, generate_candidate, load_generator_spec, load_stack_lock,
+    parse_generator_spec, parse_stack_lock, path_policy_violations, resolve_generator_binary,
+    resolve_repository_path, stack_lock_digest, validate_generator_spec, validate_stack_lock,
+    BuildSpec, ComponentPin, GenerationOutcome, GenerationRequest, GenerationSpec,
     GeneratorBinaryIdentity, GeneratorError, GeneratorPin, GeneratorRepository, GeneratorSpec,
     IdentityPolicy, PatchPolicy, RepoGuardConfig, RepoGuardReport, StackLock, StackLockDigest,
     ToolchainPin, GENERATOR_SPEC_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION,

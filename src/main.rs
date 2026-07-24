@@ -314,6 +314,29 @@ enum GeneratorCommands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Run locked deterministic generation (no SemASM verify).
+    Generate {
+        /// Path to the generator spec file.
+        spec: PathBuf,
+        /// Generator binary path (`{generator}`).
+        #[arg(long)]
+        generator: PathBuf,
+        /// Primary input path (`{input}`).
+        #[arg(long)]
+        input: PathBuf,
+        /// Output assembly path (`{output}`).
+        #[arg(long)]
+        output: PathBuf,
+        /// Target label (`{target}`).
+        #[arg(long, default_value = "x86_64-pc-windows-msvc")]
+        target: String,
+        /// Twin-run and require identical digests.
+        #[arg(long, default_value_t = false)]
+        check_deterministic: bool,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -639,6 +662,23 @@ fn main() -> ExitCode {
                 skip_build,
                 format,
             } => generator_identity_command(&spec, repo.as_deref(), skip_build, format),
+            GeneratorCommands::Generate {
+                spec,
+                generator,
+                input,
+                output,
+                target,
+                check_deterministic,
+                format,
+            } => generator_generate_command(
+                &spec,
+                &generator,
+                &input,
+                &output,
+                &target,
+                check_deterministic,
+                format,
+            ),
         },
     }
 }
@@ -658,7 +698,7 @@ fn print_status() {
         "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
     );
     println!(
-        "generator bridge: validate-lock / validate-spec / check-repo / identity (P0; generate-run next)"
+        "generator bridge: validate-lock / validate-spec / check-repo / identity / generate (P0)"
     );
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
@@ -989,6 +1029,63 @@ fn generator_identity_command(
                     let body = serde_json::json!({
                         "ok": true,
                         "identity": identity,
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn generator_generate_command(
+    spec_path: &Path,
+    generator: &Path,
+    input: &Path,
+    output: &Path,
+    target: &str,
+    check_deterministic: bool,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{generate_candidate, load_generator_spec, GenerationRequest};
+
+    let spec = match load_generator_spec(spec_path) {
+        Ok(s) => s,
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let request = GenerationRequest {
+        generator_binary: generator.to_path_buf(),
+        input: input.to_path_buf(),
+        target: target.to_owned(),
+        output: output.to_path_buf(),
+        working_directory: None,
+        clean_output: spec.generation.clean_output_directory,
+        check_deterministic,
+    };
+
+    match generate_candidate(&spec, &request) {
+        Ok(outcome) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: candidate generated");
+                    println!("  output: {}", outcome.output_path.display());
+                    println!("  digest: {}", outcome.candidate_digest);
+                    println!("  size_bytes: {}", outcome.size_bytes);
+                    println!("  deterministic_checked: {}", outcome.deterministic_checked);
+                    println!("  command: {:?}", outcome.command);
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "outcome": outcome,
                     });
                     println!("{body}");
                 }
