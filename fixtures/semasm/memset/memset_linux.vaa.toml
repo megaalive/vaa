@@ -54,6 +54,11 @@ require_object_inspection = true
 require_behavioral_tests = true
 require_reproducible_build = true
 
+# Sei: memory-leaf-affine-v1 (alias + region_access + contract-expr).
+# Symbolic lengths → SemASM passed_under_preconditions (not unconditional verified).
+[verification.profile]
+name = "memory-leaf-affine-v1"
+
 [budgets]
 max_candidates = 4
 max_repairs_per_candidate = 2

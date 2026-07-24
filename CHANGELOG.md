@@ -15,6 +15,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Changed
 
+- **Vd12 / memset memory-leaf** — SemASM pin `0f9cd1e` (`regions.equal`
+  atom on memset). Gate `memset` (+ HlaX64) uses `memory-leaf-affine-v1`.
+  Sample ≠ formal memory safety; `verified_under_preconditions` ≠
+  unconditional `verified`.
 - **Vd11 / memory-leaf Gate** — SemASM pin `55f2542` (`region_access`
   `passed_under_preconditions` for symbolic lengths). Gate `memcpy` (+ HlaX64
   ingest/run) uses `memory-leaf-affine-v1` with `[function.memory]` + disjoint

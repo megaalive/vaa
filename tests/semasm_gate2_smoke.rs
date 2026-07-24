@@ -770,11 +770,7 @@ fn gate2_verify_memset_linux_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 Linux memset expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 Linux memset");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -819,11 +815,7 @@ fn gate2_verify_memset_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 memset expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 memset Win64");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1346,11 +1338,7 @@ fn gate2_verify_hlax64_memset_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 hlax64 memset expects Verified: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 hlax64 memset");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -2035,9 +2023,12 @@ fn gate2_search_ingest_memset_allow_execution_verified() {
     );
     assert!(
         stdout.contains("reason=verified")
+            || stdout.contains("reason=verified_under_preconditions")
             || stdout.contains("stopped_reason=verified")
-            || stdout.contains("\"stopped_reason\":\"verified\""),
-        "Gate-2 memset search must stop because SemASM verified the candidate: {stdout}"
+            || stdout.contains("stopped_reason=verified_under_preconditions")
+            || stdout.contains("\"stopped_reason\":\"verified\"")
+            || stdout.contains("\"stopped_reason\":\"verified_under_preconditions\""),
+        "Gate-2 memset search must stop on SemASM verified(_under_preconditions): {stdout}"
     );
     let stdout_lower = stdout.to_lowercase();
     assert!(
@@ -2100,9 +2091,12 @@ fn gate2_search_ingest_memcpy_allow_execution_verified() {
     );
     assert!(
         stdout.contains("reason=verified")
+            || stdout.contains("reason=verified_under_preconditions")
             || stdout.contains("stopped_reason=verified")
-            || stdout.contains("\"stopped_reason\":\"verified\""),
-        "Gate-2 memcpy search must stop because SemASM verified the candidate: {stdout}"
+            || stdout.contains("stopped_reason=verified_under_preconditions")
+            || stdout.contains("\"stopped_reason\":\"verified\"")
+            || stdout.contains("\"stopped_reason\":\"verified_under_preconditions\""),
+        "Gate-2 memcpy search must stop on SemASM verified(_under_preconditions): {stdout}"
     );
     let stdout_lower = stdout.to_lowercase();
     assert!(

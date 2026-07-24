@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 55f2542 (region_access under_preconditions + Sei).
-          ref: 55f254247e844e9ad451cb14677eaaebe092ed0b
+          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
+          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 55f2542 (region_access under_preconditions + Sei).
-          ref: 55f254247e844e9ad451cb14677eaaebe092ed0b
+          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
+          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 55f2542 (region_access under_preconditions + Sei).
-          ref: 55f254247e844e9ad451cb14677eaaebe092ed0b
+          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
+          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -380,8 +380,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 55f2542 (region_access under_preconditions + Sei).
-          ref: 55f254247e844e9ad451cb14677eaaebe092ed0b
+          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
+          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -459,8 +459,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 55f2542 (region_access under_preconditions + Sei).
-          ref: 55f254247e844e9ad451cb14677eaaebe092ed0b
+          # Pin: SemASM tip 0f9cd1e (memset equal atom + Sei).
+          ref: 0f9cd1ecb7cb16deb47704e3c65db72c58801e4b
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
