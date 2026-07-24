@@ -377,7 +377,11 @@ mod tests {
         let cfg = SandboxConfig::default();
         let pc = backend.wrap_process("semasm", &["version".to_owned()], &cfg);
         assert_eq!(backend.name(), "local");
-        for forbidden in ["AWS_SECRET_ACCESS_KEY", "VAA_SEAL_SIGNING_KEY", "GITHUB_TOKEN"] {
+        for forbidden in [
+            "AWS_SECRET_ACCESS_KEY",
+            "VAA_SEAL_SIGNING_KEY",
+            "GITHUB_TOKEN",
+        ] {
             assert!(
                 !pc.allowed_env.iter().any(|e| e == forbidden),
                 "credential env {forbidden} must not be in LocalBackend default allowed_env"

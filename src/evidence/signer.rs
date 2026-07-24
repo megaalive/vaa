@@ -307,7 +307,10 @@ mod tests {
     fn dsse_keyid_is_practice_not_trust_root() {
         let signer = SigstoreDsseSigner::from_seed([9u8; 32]);
         let env = signer
-            .sign_payload(DSSE_PAYLOAD_TYPE_TRANSPARENCY, br#"{"schema":"vaa-transparency-v1"}"#)
+            .sign_payload(
+                DSSE_PAYLOAD_TYPE_TRANSPARENCY,
+                br#"{"schema":"vaa-transparency-v1"}"#,
+            )
             .expect("dsse");
         assert_eq!(env.signatures[0].keyid, "vaa-practice");
     }
@@ -321,13 +324,18 @@ mod tests {
             .expect_err("scaffold without pkcs11");
         let msg = err.to_string();
         assert!(msg.contains("pkcs11"), "{msg}");
-        assert!(msg.contains("trust root") || msg.contains("hardware"), "{msg}");
+        assert!(
+            msg.contains("trust root") || msg.contains("hardware"),
+            "{msg}"
+        );
     }
 
     #[test]
     fn hsm_signer_kind_label_is_hsm_pkcs11() {
         assert_eq!(
-            HsmPkcs11Signer::scaffold("softhsm2.so", "vaa").kind().as_str(),
+            HsmPkcs11Signer::scaffold("softhsm2.so", "vaa")
+                .kind()
+                .as_str(),
             SIGNER_KIND_HSM_PKCS11
         );
     }
