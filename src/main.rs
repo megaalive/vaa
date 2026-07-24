@@ -300,6 +300,20 @@ enum GeneratorCommands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Hash a generator binary (and optionally build first).
+    Identity {
+        /// Path to the generator spec file.
+        spec: PathBuf,
+        /// Override repository path.
+        #[arg(long)]
+        repo: Option<PathBuf>,
+        /// Skip `build.command` and only hash an existing binary.
+        #[arg(long, default_value_t = false)]
+        skip_build: bool,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -619,6 +633,12 @@ fn main() -> ExitCode {
                 no_path_policy,
                 format,
             } => generator_check_repo_command(&spec, repo.as_deref(), no_path_policy, format),
+            GeneratorCommands::Identity {
+                spec,
+                repo,
+                skip_build,
+                format,
+            } => generator_identity_command(&spec, repo.as_deref(), skip_build, format),
         },
     }
 }
@@ -638,7 +658,7 @@ fn print_status() {
         "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
     );
     println!(
-        "generator bridge: validate-lock / validate-spec / check-repo (P0; not generate-run yet)"
+        "generator bridge: validate-lock / validate-spec / check-repo / identity (P0; generate-run next)"
     );
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
@@ -900,6 +920,75 @@ fn generator_check_repo_command(
                     let body = serde_json::json!({
                         "ok": true,
                         "report": report,
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn generator_identity_command(
+    spec_path: &Path,
+    repo_override: Option<&Path>,
+    skip_build: bool,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{
+        build_and_identify, load_generator_spec, resolve_repository_path, GeneratorError,
+    };
+
+    let spec = match load_generator_spec(spec_path) {
+        Ok(s) => s,
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let repo = if let Some(repo) = repo_override {
+        match std::fs::canonicalize(repo) {
+            Ok(p) => p,
+            Err(source) => {
+                emit_generator_error(
+                    repo,
+                    format,
+                    &GeneratorError::Io {
+                        path: repo.to_path_buf(),
+                        source,
+                    },
+                );
+                return VaaExitCode::InvalidInput.as_std();
+            }
+        }
+    } else {
+        match resolve_repository_path(spec_path, &spec.repository.path) {
+            Ok(p) => p,
+            Err(error) => {
+                emit_generator_error(spec_path, format, &error);
+                return VaaExitCode::InvalidInput.as_std();
+            }
+        }
+    };
+
+    match build_and_identify(&spec, &repo, skip_build) {
+        Ok(identity) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: generator binary identity established");
+                    println!("  path: {}", identity.binary_path.display());
+                    println!("  digest: {}", identity.digest);
+                    println!("  size_bytes: {}", identity.size_bytes);
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "identity": identity,
                     });
                     println!("{body}");
                 }

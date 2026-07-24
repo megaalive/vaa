@@ -15,13 +15,11 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Added
 
-- **External generator bridge (P0.1–P0.3)** — typed `stack.lock.toml` +
-  `ExternalGeneratorSpec` load/validate (`vaa generator validate-lock` /
-  `validate-spec`) plus repository guard (`check-repo`: exact revision,
-  clean worktree, allow/deny path globs). HlaX64 pack under
-  `integrations/hlax64/`. Not yet: binary identity, generate, `generator-run`,
-  suite, or patch acceptance. Guard ≠ verified repair. Floating revisions
-  rejected. HlaX64 = pack, not VAA dependency.
+- **External generator bridge (P0.1–P0.4)** — stack lock +
+  `ExternalGeneratorSpec` validate, repository guard (`check-repo`), and
+  generator binary identity (`identity` / optional build + SHA-256). HlaX64
+  pack under `integrations/hlax64/`. Not yet: deterministic generate,
+  `generator-run`, suite, or patch acceptance. Identity ≠ verified repair.
 
 ### Changed
 

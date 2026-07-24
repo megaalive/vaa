@@ -36,10 +36,10 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 
 **External generator bridge (HlaX64 first):** plan
 [`hlax64-vaa-semasm-bridge-plan.md`](hlax64-vaa-semasm-bridge-plan.md).
-**P0.1–P0.3 (unit-tested):** stack lock + `ExternalGeneratorSpec` validate;
-repository guard (`vaa generator check-repo`). Pack stub
-`integrations/hlax64/`. Open: binary identity, deterministic generate,
-`generator-run`. Guard ≠ verified repair. Floating `main`/`latest` rejected.
+**P0.1–P0.4 (unit-tested):** stack lock + `ExternalGeneratorSpec` validate;
+repository guard (`check-repo`); binary identity (`identity`). Pack stub
+`integrations/hlax64/`. Open: deterministic generate, `generator-run`.
+Identity ≠ verified repair. Floating `main`/`latest` rejected.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

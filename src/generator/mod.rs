@@ -4,11 +4,16 @@
 //! HlaX64 is an instance pack under `integrations/`, not a VAA core dependency.
 
 mod error;
+mod identity;
 mod repo_guard;
 mod spec;
 mod stack_lock;
 
 pub use error::GeneratorError;
+pub use identity::{
+    build_and_identify, build_generator, establish_binary_identity, resolve_generator_binary,
+    GeneratorBinaryIdentity,
+};
 pub use repo_guard::{
     check_repository, glob_match, path_policy_violations, resolve_repository_path, RepoGuardConfig,
     RepoGuardReport,
