@@ -13,4 +13,8 @@ spec, cases, and scripts. Adding another generator means a new pack under
 | `stack.lock.toml` | Exact VAA / SemASM / HlaX64 revision pins |
 | `generator.spec.toml` | `ExternalGeneratorSpec` for build + generation |
 
-Runtime build/generate/suite chips are not wired yet; load + validate only.
+`repository.path` is relative to this pack directory. For sibling checkouts
+use `../../../hlax64` from `integrations/hlax64/` or pass
+`vaa generator check-repo --repo <path>`.
+
+Runtime build/generate chips land after P0.4+; load/validate + repo guard only.

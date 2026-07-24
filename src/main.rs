@@ -286,6 +286,20 @@ enum GeneratorCommands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Check generator repository revision + clean worktree (+ path policy).
+    CheckRepo {
+        /// Path to the generator spec file.
+        spec: PathBuf,
+        /// Override repository path (otherwise resolve from spec).
+        #[arg(long)]
+        repo: Option<PathBuf>,
+        /// Skip allow/deny path policy on dirty entries.
+        #[arg(long, default_value_t = false)]
+        no_path_policy: bool,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -599,6 +613,12 @@ fn main() -> ExitCode {
             GeneratorCommands::ValidateSpec { spec, format } => {
                 generator_validate_spec_command(&spec, format)
             }
+            GeneratorCommands::CheckRepo {
+                spec,
+                repo,
+                no_path_policy,
+                format,
+            } => generator_check_repo_command(&spec, repo.as_deref(), no_path_policy, format),
         },
     }
 }
@@ -618,7 +638,7 @@ fn print_status() {
         "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
     );
     println!(
-        "generator bridge: validate-lock / validate-spec only (no build/generate yet; HlaX64 = first pack)"
+        "generator bridge: validate-lock / validate-spec / check-repo (P0; not generate-run yet)"
     );
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
@@ -824,6 +844,71 @@ fn emit_generator_error(path: &Path, format: OutputFormat, error: &vaa::generato
                 "error": error.to_string(),
             });
             println!("{body}");
+        }
+    }
+}
+
+fn generator_check_repo_command(
+    spec_path: &Path,
+    repo_override: Option<&Path>,
+    no_path_policy: bool,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{check_repository, load_generator_spec, GeneratorError, RepoGuardConfig};
+
+    let spec = match load_generator_spec(spec_path) {
+        Ok(s) => s,
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let mut config = match RepoGuardConfig::from_spec(&spec, spec_path) {
+        Ok(c) => c,
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    if let Some(repo) = repo_override {
+        config.repository_path = match std::fs::canonicalize(repo) {
+            Ok(p) => p,
+            Err(source) => {
+                let error = GeneratorError::Io {
+                    path: repo.to_path_buf(),
+                    source,
+                };
+                emit_generator_error(repo, format, &error);
+                return VaaExitCode::InvalidInput.as_std();
+            }
+        };
+    }
+    config.check_path_policy = !no_path_policy;
+
+    match check_repository(&config) {
+        Ok(report) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: repository guard passed");
+                    println!("  path: {}", report.repository_path.display());
+                    println!("  head: git:{}", report.head_revision);
+                    println!("  expected: {}", report.expected_revision);
+                    println!("  worktree_clean: {}", report.worktree_clean);
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "report": report,
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(spec_path, format, &error);
+            VaaExitCode::InvalidInput.as_std()
         }
     }
 }
