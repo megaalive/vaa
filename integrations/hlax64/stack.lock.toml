@@ -1,0 +1,18 @@
+# HlaX64 instance pack — stack lock (exact pins only).
+# Floating refs (`main`, `latest`) are rejected by `vaa generator validate-lock`.
+schema_version = "0.1"
+
+[vaa]
+repository = "https://github.com/megaalive/vaa"
+revision = "git:1cdc56314c19a6f2b517aff843e644583d914b62"
+
+[semasm]
+repository = "https://github.com/megaalive/semasm"
+revision = "git:37fd46031ab1ef2be4300422bcba7565676ebc99"
+
+[toolchain]
+rust = "1.85"
+
+[generators.hlax64]
+repository = "https://github.com/megaalive/hlax64"
+revision = "git:4546be1da3bac70e68e9027e9b323903e1800e71"

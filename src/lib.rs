@@ -13,6 +13,7 @@ pub mod candidate;
 pub mod canonical_json;
 pub mod evidence;
 pub mod exit_code;
+pub mod generator;
 pub mod harness;
 pub mod inspect;
 pub mod model;
@@ -56,6 +57,13 @@ pub use evidence::{
     TRANSPARENCY_SCHEMA_VERSION,
 };
 pub use exit_code::ExitCode as VaaExitCode;
+pub use generator::{
+    load_generator_spec, load_stack_lock, parse_generator_spec, parse_stack_lock,
+    stack_lock_digest, validate_generator_spec, validate_stack_lock, BuildSpec, ComponentPin,
+    GenerationSpec, GeneratorError, GeneratorPin, GeneratorRepository, GeneratorSpec,
+    IdentityPolicy, PatchPolicy, StackLock, StackLockDigest, ToolchainPin,
+    GENERATOR_SPEC_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION,
+};
 pub use harness::{HarnessConfig, HarnessTemplate};
 pub use inspect::{ArtifactInfo, ArtifactInspector};
 #[cfg(feature = "live-model")]

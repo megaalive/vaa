@@ -13,6 +13,15 @@ architectural summary for the **next** release notes — not a claim that a tag
 has shipped. SoftHSM ≠ hardware HSM; `search --ingest` ≠ CryptOpt; Incomplete ≠
 Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log.
 
+### Added
+
+- **External generator bridge (P0.1–P0.2)** — typed `stack.lock.toml` +
+  `ExternalGeneratorSpec` load/validate (`vaa generator validate-lock` /
+  `validate-spec`). HlaX64 first instance pack under `integrations/hlax64/`.
+  Load/validate only — not build, generate, suite, or patch acceptance.
+  Floating revisions (`main` / `latest`) rejected. Generator-agnostic core;
+  HlaX64 is a pack, not a VAA dependency.
+
 ### Changed
 
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate

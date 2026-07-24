@@ -942,6 +942,10 @@ Covers:
 
 ## Milestone 0 — Integration freeze
 
+**Status:** Partial — stack lock + `ExternalGeneratorSpec` schemas land in VAA
+core with HlaX64 pack stubs (`integrations/hlax64/`). Baseline suite snapshot,
+authority ownership checklist, and binary identity remain open.
+
 **Deliverables**
 
 - exact VAA/SemASM pins + first generator pin (HlaX64);
@@ -951,8 +955,9 @@ Covers:
 
 **Acceptance**
 
-- stack lock verifies with `[generators.<id>]`;
-- baseline build is reproducible enough to identify generator binary;
+- stack lock verifies with `[generators.<id>]` — **done** (`vaa generator validate-lock`);
+- `ExternalGeneratorSpec` validates — **done** (`vaa generator validate-spec`);
+- baseline build is reproducible enough to identify generator binary — open;
 - no feature expansion during bridge work;
 - review checklist includes §0 coupling red flags.
 

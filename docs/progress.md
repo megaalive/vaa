@@ -34,6 +34,14 @@ proof). Tag **`v0.2.1`** remains the last release archive (`22d1543`).
 remain Horizon-locked. Authenticity ≠ semantic truth.
 `verified_under_preconditions` ≠ unconditional `verified`.
 
+**External generator bridge (HlaX64 first):** plan
+[`hlax64-vaa-semasm-bridge-plan.md`](hlax64-vaa-semasm-bridge-plan.md).
+**P0.1–P0.2 partial (unit-tested):** typed `stack.lock.toml` +
+`ExternalGeneratorSpec` load/validate (`vaa generator validate-lock` /
+`validate-spec`); pack stub `integrations/hlax64/`. Not yet: repo guard,
+build identity, `generator-run`, suite, patch acceptance. Load/validate ≠
+verified repair. Floating `main`/`latest` rejected. HlaX64 = pack, not VAA core.
+
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
 | Phase 0 — SemASM readiness | **Done** | docs | `docs/implementation-baseline.md` |

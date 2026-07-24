@@ -1,0 +1,50 @@
+# ExternalGeneratorSpec — HlaX64 first instance (load/validate only).
+schema_version = "0.1"
+generator_id = "hlax64"
+kind = "compiler"
+
+[repository]
+path = "../hlax64"
+expected_revision = "git:4546be1da3bac70e68e9027e9b323903e1800e71"
+require_clean_worktree = true
+allow_untracked_files = false
+
+[build]
+command = ["cargo", "build", "--release"]
+working_directory = "../hlax64"
+generator_binary = "target/release/hlax64.exe"
+timeout_seconds = 600
+
+[generation]
+command = [
+  "{generator}",
+  "compile",
+  "{input}",
+  "--target",
+  "{target}",
+  "--output",
+  "{output}"
+]
+working_directory = "../hlax64"
+clean_output_directory = true
+timeout_seconds = 120
+output_relative = "candidate.asm"
+
+[identity]
+require_generator_digest = true
+require_build_log_digest = true
+require_toolchain_identity = true
+
+[patch_policy]
+allowed_paths = [
+  "src/backend/**",
+  "src/codegen/**",
+  "src/ir/**",
+  "tests/backend/**"
+]
+forbidden_paths = [
+  "**/integrations/hlax64/cases/**/task.vaa.toml",
+  "**/integrations/hlax64/cases/**/contract.sem.toml",
+  "**/integrations/hlax64/cases/**/vectors.json",
+  "**/integrations/hlax64/stack.lock.toml"
+]

@@ -258,6 +258,34 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// External generator bridge (stack lock + generator spec).
+    Generator {
+        #[command(subcommand)]
+        command: GeneratorCommands,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum GeneratorCommands {
+    /// Parse and validate a `stack.lock.toml`.
+    ValidateLock {
+        /// Path to the stack lock file.
+        lock: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+        /// Include the lock content digest in the output.
+        #[arg(long, default_value_t = true)]
+        show_digest: bool,
+    },
+    /// Parse and validate an `ExternalGeneratorSpec` TOML.
+    ValidateSpec {
+        /// Path to the generator spec file.
+        spec: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -562,6 +590,16 @@ fn main() -> ExitCode {
             CacheCommands::Status => cache_status_command(),
         },
         Commands::Inspect { artifact, format } => inspect_command(&artifact, format),
+        Commands::Generator { command } => match command {
+            GeneratorCommands::ValidateLock {
+                lock,
+                format,
+                show_digest,
+            } => generator_validate_lock_command(&lock, format, show_digest),
+            GeneratorCommands::ValidateSpec { spec, format } => {
+                generator_validate_spec_command(&spec, format)
+            }
+        },
     }
 }
 
@@ -571,13 +609,16 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
     );
     println!(
         "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
+    );
+    println!(
+        "generator bridge: validate-lock / validate-spec only (no build/generate yet; HlaX64 = first pack)"
     );
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
@@ -646,6 +687,131 @@ fn validate_command(path: &std::path::Path, format: OutputFormat, show_digest: b
 }
 
 fn emit_validate_error(path: &Path, format: OutputFormat, error: &TaskError) {
+    match format {
+        OutputFormat::Terminal => {
+            eprintln!("error: failed to validate `{}`", path.display());
+            eprintln!("{error}");
+        }
+        OutputFormat::Json => {
+            let body = serde_json::json!({
+                "ok": false,
+                "path": path,
+                "error": error.to_string(),
+            });
+            println!("{body}");
+        }
+    }
+}
+
+fn generator_validate_lock_command(
+    path: &Path,
+    format: OutputFormat,
+    show_digest: bool,
+) -> ExitCode {
+    use vaa::generator::{load_stack_lock, stack_lock_digest, GeneratorError};
+
+    match load_stack_lock(path) {
+        Ok(lock) => {
+            let digest = stack_lock_digest(&lock);
+            let generator_ids: Vec<&String> = lock.generators.keys().collect();
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: stack lock `{}` is valid", path.display());
+                    println!("  schema_version: {}", lock.schema_version);
+                    println!("  vaa.revision: {}", lock.vaa.revision);
+                    println!("  semasm.revision: {}", lock.semasm.revision);
+                    println!("  generators: {}", generator_ids.len());
+                    for id in &generator_ids {
+                        if let Some(pin) = lock.generators.get(*id) {
+                            println!("    {id}: {}", pin.revision);
+                        }
+                    }
+                    if show_digest {
+                        println!("  digest: {}", digest.prefixed());
+                    }
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "path": path,
+                        "schema_version": lock.schema_version,
+                        "vaa_revision": lock.vaa.revision,
+                        "semasm_revision": lock.semasm.revision,
+                        "generators": generator_ids,
+                        "digest": if show_digest {
+                            Some(digest.prefixed())
+                        } else {
+                            None
+                        },
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(path, format, &error);
+            match error {
+                GeneratorError::Io { .. }
+                | GeneratorError::Parse { .. }
+                | GeneratorError::Validation(_)
+                | GeneratorError::ValidationMany { .. } => VaaExitCode::InvalidInput.as_std(),
+            }
+        }
+    }
+}
+
+fn generator_validate_spec_command(path: &Path, format: OutputFormat) -> ExitCode {
+    use vaa::generator::{load_generator_spec, GeneratorError};
+
+    match load_generator_spec(path) {
+        Ok(spec) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: generator spec `{}` is valid", path.display());
+                    println!("  schema_version: {}", spec.schema_version);
+                    println!("  generator_id: {}", spec.generator_id);
+                    if let Some(kind) = &spec.kind {
+                        println!("  kind: {kind}");
+                    }
+                    println!("  repository.path: {}", spec.repository.path);
+                    println!(
+                        "  repository.expected_revision: {}",
+                        spec.repository.expected_revision
+                    );
+                    println!("  build.command: {:?}", spec.build.command);
+                    println!("  generation.command: {:?}", spec.generation.command);
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "path": path,
+                        "schema_version": spec.schema_version,
+                        "generator_id": spec.generator_id,
+                        "kind": spec.kind,
+                        "repository_path": spec.repository.path,
+                        "expected_revision": spec.repository.expected_revision,
+                        "build_command": spec.build.command,
+                        "generation_command": spec.generation.command,
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(path, format, &error);
+            match error {
+                GeneratorError::Io { .. }
+                | GeneratorError::Parse { .. }
+                | GeneratorError::Validation(_)
+                | GeneratorError::ValidationMany { .. } => VaaExitCode::InvalidInput.as_std(),
+            }
+        }
+    }
+}
+
+fn emit_generator_error(path: &Path, format: OutputFormat, error: &vaa::generator::GeneratorError) {
     match format {
         OutputFormat::Terminal => {
             eprintln!("error: failed to validate `{}`", path.display());
