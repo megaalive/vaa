@@ -17,15 +17,16 @@ SemASM evaluates a documented expression subset against living region/relation
 evidence (`contract-expr-v1` / `VerificationReport.contract_expressions`).
 VAA still only consumes `VerificationReport` — no expression engine in VAA.
 G3 (A64/RV memory-effect parity) is **done** (SemASM ADR 0008 Me0–Me5 at
-`51e8a96`: collectors + verify wire + ± fixtures; A64/RV `decode`/`lower`
-stay `partial`). G4 (isolation ops proof) is **done** (Io0–Io5 at `c040828`:
+`51e8a96`: collectors + verify wire + ± fixtures). G4 (isolation ops proof)
+is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `d62fb51` (ADR 0009 / Da0–Da5): A64/RV
+**G1–G5 closed.** SemASM tip `a85deae` (ADR 0009 / Da0–Da5 + CI fix): A64/RV
 `decode`/`lower` → `verified_in_ci` (sample coverage; `control` still
-x86-only). **Production** trust root / hardware HSM / operated remote log as
-Gate default remain Horizon-locked. Authenticity ≠ semantic truth.
+x86-only; W+X fixtures use `.semasm_wx`). **Production** trust root /
+hardware HSM / operated remote log as Gate default remain Horizon-locked.
+Authenticity ≠ semantic truth.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
