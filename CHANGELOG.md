@@ -15,11 +15,11 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Added
 
-- **External generator bridge (P0.1–P0.5)** — stack lock, spec validate,
-  repository guard, binary identity, and deterministic generation
-  (`vaa generator generate`, optional twin-run). Not yet: `generator-run`
-  (generate+verify), suite, or patch acceptance. Generated candidate ≠
-  SemASM verified.
+- **External generator bridge (P0 complete)** — stack lock, spec validate,
+  repository guard, binary identity, deterministic generate, and
+  `vaa generator-run` / `compiler-run` (reuses ingest/verify). HlaX64 pack
+  stubs under `integrations/hlax64/`. Suite/patch/repair = P1+. Generated ≠
+  SemASM verified unless verify path runs; Incomplete ≠ Verified.
 
 ### Changed
 

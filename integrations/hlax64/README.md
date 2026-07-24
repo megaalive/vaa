@@ -14,7 +14,8 @@ spec, cases, and scripts. Adding another generator means a new pack under
 | `generator.spec.toml` | `ExternalGeneratorSpec` for build + generation |
 
 `repository.path` is relative to this pack directory. For sibling checkouts
-use `../../../hlax64` from `integrations/hlax64/` or pass
-`vaa generator check-repo --repo <path>`.
+use `../../../hlax64` from `integrations/hlax64/` or pass `--repo <path>`.
 
-Runtime build/generate chips land after P0.4+; load/validate + repo guard only.
+P0 commands: `validate-lock`, `validate-spec`, `check-repo`, `identity`,
+`generate`, and top-level `vaa generator-run` (alias `compiler-run`).
+Suite/patch chips are P1+.

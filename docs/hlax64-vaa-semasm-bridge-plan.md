@@ -942,9 +942,8 @@ Covers:
 
 ## Milestone 0 — Integration freeze
 
-**Status:** Partial — stack lock + `ExternalGeneratorSpec` schemas land in VAA
-core with HlaX64 pack stubs (`integrations/hlax64/`). Baseline suite snapshot,
-authority ownership checklist, and binary identity remain open.
+**Status:** Partial — schemas + HlaX64 pack stubs + P0 runner surface done.
+Baseline suite snapshot and authority ownership checklist remain open (P1).
 
 **Deliverables**
 
@@ -965,8 +964,10 @@ authority ownership checklist, and binary identity remain open.
 
 ## Milestone 1 — External generator runner
 
-**Status:** In progress — guard, identity, and deterministic generate landed;
-`generator-run` open.
+**Status:** **Done** (code surface) — `vaa generator-run` / `compiler-run`
+orchestrates guard → build/identity → generate → ingest. Live HlaX64+SemASM
+one-case CI acceptance remains optional follow-up (needs clean worktree +
+built binary); unit tests cover skip-verify path.
 
 **Deliverables**
 
@@ -974,14 +975,16 @@ authority ownership checklist, and binary identity remain open.
 - repository guard — **done** (`vaa generator check-repo`);
 - generator build identity — **done** (`vaa generator identity`);
 - deterministic candidate generation — **done** (`vaa generator generate`);
-- `vaa generator-run` (optional alias `compiler-run`).
+- `vaa generator-run` (alias `compiler-run`) — **done**.
 
 **Acceptance**
 
-- one HlaX64 case is generated and verified without manual assembly editing;
-- generator digest is present in evidence;
-- dirty repository and forbidden path changes are rejected;
-- no HlaX64-named modules are required in VAA core to run the path.
+- one HlaX64 case is generated and verified without manual assembly editing —
+  **partial** (pipeline ready; live pack case not yet Gate-CI);
+- generator digest is present in evidence — **done** when verify runs (ingest
+  attribution uses `generator_id`; binary digest recorded in run outcome);
+- dirty repository and forbidden path changes are rejected — **done** (guard);
+- no HlaX64-named modules are required in VAA core to run the path — **done**.
 
 ---
 
@@ -1220,7 +1223,7 @@ P0  (generic VAA core + first HlaX64 pack config)
 3. repository guard — **done**
 4. generator binary identity — **done**
 5. deterministic generation — **done**
-6. vaa generator-run
+6. vaa generator-run — **done**
 
 P1
 7. suite manifest and runner

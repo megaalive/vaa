@@ -7,6 +7,7 @@ mod error;
 mod generate;
 mod identity;
 mod repo_guard;
+mod run;
 mod spec;
 mod stack_lock;
 
@@ -21,6 +22,10 @@ pub use identity::{
 pub use repo_guard::{
     check_repository, glob_match, path_policy_violations, resolve_repository_path, RepoGuardConfig,
     RepoGuardReport,
+};
+pub use run::{
+    resolve_maybe_relative, run_generator_case, GeneratorRunConfig, GeneratorRunError,
+    GeneratorRunOutcome, VerifySummary,
 };
 pub use spec::{
     load_generator_spec, parse_generator_spec, validate_generator_spec, BuildSpec, GenerationSpec,

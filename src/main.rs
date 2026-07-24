@@ -263,6 +263,55 @@ enum Commands {
         #[command(subcommand)]
         command: GeneratorCommands,
     },
+    /// Build → generate → verify one case (no model). Alias: `compiler-run`.
+    #[command(name = "generator-run", alias = "compiler-run")]
+    GeneratorRun {
+        /// Path to `ExternalGeneratorSpec` TOML.
+        #[arg(long)]
+        spec: PathBuf,
+        /// Optional stack lock path.
+        #[arg(long)]
+        lock: Option<PathBuf>,
+        /// Locked task file.
+        #[arg(long)]
+        task: PathBuf,
+        /// SemASM contract.
+        #[arg(long)]
+        contract: PathBuf,
+        /// Generator primary input (`{input}`).
+        #[arg(long)]
+        input: PathBuf,
+        /// Generated assembly output (`{output}`).
+        #[arg(long)]
+        output: PathBuf,
+        /// Run base directory for evidence (required unless `--skip-verify`).
+        #[arg(long, default_value = ".")]
+        run_dir: PathBuf,
+        /// Override generator repository path.
+        #[arg(long)]
+        repo: Option<PathBuf>,
+        /// Skip revision/worktree guard.
+        #[arg(long, default_value_t = false)]
+        skip_repo_guard: bool,
+        /// Skip build; hash existing binary only.
+        #[arg(long, default_value_t = false)]
+        skip_build: bool,
+        /// Generate only (no SemASM ingest/verify).
+        #[arg(long, default_value_t = false)]
+        skip_verify: bool,
+        /// Twin-run generation digest check.
+        #[arg(long, default_value_t = false)]
+        check_deterministic: bool,
+        /// Forward `--allow-execution` to SemASM.
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
+        /// Override `{target}` (default: task target).
+        #[arg(long)]
+        target: Option<String>,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -333,6 +382,54 @@ enum GeneratorCommands {
         /// Twin-run and require identical digests.
         #[arg(long, default_value_t = false)]
         check_deterministic: bool,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Build → generate → verify one case (same as `vaa generator-run`).
+    Run {
+        /// Path to `ExternalGeneratorSpec` TOML.
+        #[arg(long)]
+        spec: PathBuf,
+        /// Optional stack lock path.
+        #[arg(long)]
+        lock: Option<PathBuf>,
+        /// Locked task file.
+        #[arg(long)]
+        task: PathBuf,
+        /// SemASM contract.
+        #[arg(long)]
+        contract: PathBuf,
+        /// Generator primary input (`{input}`).
+        #[arg(long)]
+        input: PathBuf,
+        /// Generated assembly output (`{output}`).
+        #[arg(long)]
+        output: PathBuf,
+        /// Run base directory for evidence.
+        #[arg(long, default_value = ".")]
+        run_dir: PathBuf,
+        /// Override generator repository path.
+        #[arg(long)]
+        repo: Option<PathBuf>,
+        /// Skip revision/worktree guard.
+        #[arg(long, default_value_t = false)]
+        skip_repo_guard: bool,
+        /// Skip build; hash existing binary only.
+        #[arg(long, default_value_t = false)]
+        skip_build: bool,
+        /// Generate only (no SemASM ingest/verify).
+        #[arg(long, default_value_t = false)]
+        skip_verify: bool,
+        /// Twin-run generation digest check.
+        #[arg(long, default_value_t = false)]
+        check_deterministic: bool,
+        /// Forward `--allow-execution` to SemASM.
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
+        /// Override `{target}` (default: task target).
+        #[arg(long)]
+        target: Option<String>,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -679,7 +776,83 @@ fn main() -> ExitCode {
                 check_deterministic,
                 format,
             ),
+            GeneratorCommands::Run {
+                spec,
+                lock,
+                task,
+                contract,
+                input,
+                output,
+                run_dir,
+                repo,
+                skip_repo_guard,
+                skip_build,
+                skip_verify,
+                check_deterministic,
+                allow_execution,
+                target,
+                format,
+            } => {
+                use vaa::generator::GeneratorRunConfig;
+                generator_run_command(
+                    &GeneratorRunConfig {
+                        spec_path: spec,
+                        lock_path: lock,
+                        task_path: task,
+                        contract_path: contract,
+                        input_path: input,
+                        output_path: output,
+                        run_base: run_dir,
+                        repo_override: repo,
+                        skip_repo_guard,
+                        skip_build,
+                        skip_verify,
+                        allow_execution,
+                        check_deterministic,
+                        target_override: target,
+                    },
+                    format,
+                )
+            }
         },
+        Commands::GeneratorRun {
+            spec,
+            lock,
+            task,
+            contract,
+            input,
+            output,
+            run_dir,
+            repo,
+            skip_repo_guard,
+            skip_build,
+            skip_verify,
+            check_deterministic,
+            allow_execution,
+            target,
+            format,
+        } => {
+            use vaa::generator::GeneratorRunConfig;
+            generator_run_command(
+                &GeneratorRunConfig {
+                    spec_path: spec,
+                    lock_path: lock,
+                    task_path: task,
+                    contract_path: contract,
+                    input_path: input,
+                    output_path: output,
+                    run_base: run_dir,
+                    repo_override: repo,
+                    skip_repo_guard,
+                    skip_build,
+                    skip_verify,
+                    allow_execution,
+                    check_deterministic,
+                    target_override: target,
+                },
+                format,
+            )
+        }
     }
 }
 
@@ -689,7 +862,7 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
@@ -698,7 +871,7 @@ fn print_status() {
         "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
     );
     println!(
-        "generator bridge: validate-lock / validate-spec / check-repo / identity / generate (P0)"
+        "generator bridge: P0 complete (lock/spec/guard/identity/generate/generator-run); suite/patch = P1+"
     );
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
@@ -1095,6 +1268,71 @@ fn generator_generate_command(
         Err(error) => {
             emit_generator_error(spec_path, format, &error);
             VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn generator_run_command(
+    config: &vaa::generator::GeneratorRunConfig,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{run_generator_case, GeneratorRunError};
+
+    match run_generator_case(config) {
+        Ok(outcome) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: generator-run completed");
+                    println!("  generator_id: {}", outcome.generator_id);
+                    println!("  binary_digest: {}", outcome.identity.digest);
+                    println!(
+                        "  candidate_digest: {}",
+                        outcome.generation.candidate_digest
+                    );
+                    println!("  output: {}", outcome.generation.output_path.display());
+                    if let Some(verify) = &outcome.verify {
+                        println!("  final_status: {}", verify.final_status);
+                        println!("  acceptance_digest: {}", verify.acceptance_digest);
+                        println!("  candidate_dir: {}", verify.candidate_dir.display());
+                    } else {
+                        println!("  verify: skipped");
+                    }
+                    if let Some(root) = &outcome.run_root {
+                        println!("  run_root: {}", root.display());
+                    }
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "outcome": outcome,
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            match format {
+                OutputFormat::Terminal => {
+                    eprintln!("error: generator-run failed");
+                    eprintln!("{error}");
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": false,
+                        "error": error.to_string(),
+                    });
+                    println!("{body}");
+                }
+            }
+            match error {
+                GeneratorRunError::Generator(_) | GeneratorRunError::Task(_) => {
+                    VaaExitCode::InvalidInput.as_std()
+                }
+                GeneratorRunError::Verify(_) | GeneratorRunError::RunDir(_) => {
+                    VaaExitCode::ToolFailure.as_std()
+                }
+            }
         }
     }
 }

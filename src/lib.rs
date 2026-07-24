@@ -61,11 +61,12 @@ pub use generator::{
     build_and_identify, build_generator, check_repository, establish_binary_identity,
     expand_generation_command, generate_candidate, load_generator_spec, load_stack_lock,
     parse_generator_spec, parse_stack_lock, path_policy_violations, resolve_generator_binary,
-    resolve_repository_path, stack_lock_digest, validate_generator_spec, validate_stack_lock,
-    BuildSpec, ComponentPin, GenerationOutcome, GenerationRequest, GenerationSpec,
-    GeneratorBinaryIdentity, GeneratorError, GeneratorPin, GeneratorRepository, GeneratorSpec,
+    resolve_maybe_relative, resolve_repository_path, run_generator_case, stack_lock_digest,
+    validate_generator_spec, validate_stack_lock, BuildSpec, ComponentPin, GenerationOutcome,
+    GenerationRequest, GenerationSpec, GeneratorBinaryIdentity, GeneratorError, GeneratorPin,
+    GeneratorRepository, GeneratorRunConfig, GeneratorRunError, GeneratorRunOutcome, GeneratorSpec,
     IdentityPolicy, PatchPolicy, RepoGuardConfig, RepoGuardReport, StackLock, StackLockDigest,
-    ToolchainPin, GENERATOR_SPEC_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION,
+    ToolchainPin, VerifySummary, GENERATOR_SPEC_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION,
 };
 pub use harness::{HarnessConfig, HarnessTemplate};
 pub use inspect::{ArtifactInfo, ArtifactInspector};

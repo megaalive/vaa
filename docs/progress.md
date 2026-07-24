@@ -36,10 +36,11 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 
 **External generator bridge (HlaX64 first):** plan
 [`hlax64-vaa-semasm-bridge-plan.md`](hlax64-vaa-semasm-bridge-plan.md).
-**P0.1–P0.5 (unit-tested):** stack lock, spec validate, repo guard, binary
-identity, deterministic generate (`vaa generator generate`). Open:
-`generator-run`. Generated ≠ SemASM verified. Floating `main`/`latest`
-rejected.
+**P0.1–P0.6 done (unit-tested):** stack lock, spec validate, repo guard,
+binary identity, deterministic generate, `vaa generator-run` (alias
+`compiler-run`). Pack stub `integrations/hlax64/`. Next: P1 suite/patch.
+Live HlaX64 Gate case optional. Generated ≠ SemASM verified unless verify
+runs. Floating `main`/`latest` rejected.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
