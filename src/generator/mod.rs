@@ -8,6 +8,7 @@ mod generate;
 mod identity;
 mod patch;
 mod path_policy;
+mod repair;
 mod repo_guard;
 mod run;
 mod spec;
@@ -29,6 +30,11 @@ pub use patch::{
     PatchEvidenceInput, PatchStatus, PATCH_EVIDENCE_SCHEMA_VERSION,
 };
 pub use path_policy::{check_path_policy, check_paths_against_spec, PathPolicyReport};
+pub use repair::{
+    build_repair_packet, default_constraints, load_repair_packet, render_repair_markdown,
+    write_repair_packet, RepairArtifact, RepairCommands, RepairFailure, RepairPacket,
+    RepairPacketInput, RepairRepository, RepairSourceMapping, REPAIR_PACKET_SCHEMA_VERSION,
+};
 pub use repo_guard::{
     check_repository, glob_match, path_policy_violations, resolve_repository_path, RepoGuardConfig,
     RepoGuardReport,

@@ -322,6 +322,75 @@ enum Commands {
         #[command(subcommand)]
         command: PatchCommands,
     },
+    /// Repair packet commands (agent-facing generator repair briefs).
+    Repair {
+        #[command(subcommand)]
+        command: RepairCommands,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+#[allow(clippy::large_enum_variant)] // transient CLI parse type; Export carries many fields
+enum RepairCommands {
+    /// Build a repair packet (JSON + optional Markdown) from a failing status.
+    Export {
+        /// Path to the generator spec TOML.
+        #[arg(long)]
+        spec: PathBuf,
+        /// Task/case id the packet is for.
+        #[arg(long)]
+        task_id: String,
+        /// Failure status string (e.g. `Violated`, `BehaviorFailed`).
+        #[arg(long)]
+        status: String,
+        /// Human-readable failure message.
+        #[arg(long)]
+        message: String,
+        /// Stable diagnostic code (e.g. `ABI_CALLEE_SAVED_001`).
+        #[arg(long)]
+        diagnostic_code: Option<String>,
+        /// Offending instruction offset (e.g. `0x17`).
+        #[arg(long)]
+        instruction_offset: Option<String>,
+        /// Path of the generated artifact (relative to run dir).
+        #[arg(long, default_value = "candidate.asm")]
+        artifact: String,
+        /// Digest of the generated artifact (`sha256:…`).
+        #[arg(long)]
+        artifact_digest: String,
+        /// Optional generator input reference (e.g. `input.hlx:4`).
+        #[arg(long)]
+        map_input: Option<String>,
+        /// Optional IR node reference (e.g. `CompareSigned#12`).
+        #[arg(long)]
+        map_ir: Option<String>,
+        /// Optional generator source reference (e.g. `src/backend/x64/emitter.rs:214`).
+        #[arg(long)]
+        map_source: Option<String>,
+        /// Regenerate command shown to the agent.
+        #[arg(long)]
+        regenerate_command: String,
+        /// Verify command shown to the agent.
+        #[arg(long)]
+        verify_command: String,
+        /// Output packet JSON path.
+        #[arg(long)]
+        output: PathBuf,
+        /// Also write a Markdown sibling next to the JSON.
+        #[arg(long, default_value_t = true)]
+        markdown: bool,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Load and structurally verify a repair packet JSON.
+    Verify {
+        /// Path to repair packet JSON.
+        file: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -1057,6 +1126,46 @@ fn run_cli() -> ExitCode {
                 format,
             ),
         },
+        Commands::Repair { command } => match command {
+            RepairCommands::Export {
+                spec,
+                task_id,
+                status,
+                message,
+                diagnostic_code,
+                instruction_offset,
+                artifact,
+                artifact_digest,
+                map_input,
+                map_ir,
+                map_source,
+                regenerate_command,
+                verify_command,
+                output,
+                markdown,
+                format,
+            } => {
+                let config = RepairExportConfig {
+                    spec,
+                    task_id,
+                    status,
+                    message,
+                    diagnostic_code,
+                    instruction_offset,
+                    artifact,
+                    artifact_digest,
+                    map_input,
+                    map_ir,
+                    map_source,
+                    regenerate_command,
+                    verify_command,
+                    output,
+                    markdown,
+                };
+                repair_export_command(&config, format)
+            }
+            RepairCommands::Verify { file, format } => repair_verify_command(&file, format),
+        },
     }
 }
 
@@ -1066,7 +1175,7 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch, repair");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
@@ -1849,6 +1958,131 @@ fn patch_evidence_build_command(
         PatchStatus::Accepted => VaaExitCode::Success.as_std(),
         PatchStatus::Rejected | PatchStatus::Incomplete | PatchStatus::Failed => {
             VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+struct RepairExportConfig {
+    spec: PathBuf,
+    task_id: String,
+    status: String,
+    message: String,
+    diagnostic_code: Option<String>,
+    instruction_offset: Option<String>,
+    artifact: String,
+    artifact_digest: String,
+    map_input: Option<String>,
+    map_ir: Option<String>,
+    map_source: Option<String>,
+    regenerate_command: String,
+    verify_command: String,
+    output: PathBuf,
+    markdown: bool,
+}
+
+fn repair_export_command(config: &RepairExportConfig, format: OutputFormat) -> ExitCode {
+    use vaa::generator::{
+        build_repair_packet, load_generator_spec, write_repair_packet, RepairCommands as Commands,
+        RepairPacketInput, RepairSourceMapping,
+    };
+
+    let spec = match load_generator_spec(&config.spec) {
+        Ok(s) => s,
+        Err(error) => {
+            emit_generator_error(&config.spec, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let source_mapping =
+        if config.map_input.is_some() || config.map_ir.is_some() || config.map_source.is_some() {
+            Some(RepairSourceMapping {
+                generator_input: config.map_input.clone(),
+                ir_node: config.map_ir.clone(),
+                generator_source: config.map_source.clone(),
+            })
+        } else {
+            None
+        };
+
+    let input = RepairPacketInput {
+        task_id: config.task_id.clone(),
+        status: config.status.clone(),
+        message: config.message.clone(),
+        diagnostic_code: config.diagnostic_code.clone(),
+        instruction_offset: config.instruction_offset.clone(),
+        artifact_path: config.artifact.clone(),
+        artifact_digest: config.artifact_digest.clone(),
+        source_mapping,
+        commands: Commands {
+            build: spec.build.command.join(" "),
+            regenerate: config.regenerate_command.clone(),
+            verify: config.verify_command.clone(),
+        },
+    };
+
+    let packet = match build_repair_packet(&spec, &input) {
+        Ok(p) => p,
+        Err(error) => {
+            emit_generator_error(&config.output, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    if let Err(error) = write_repair_packet(&config.output, &packet, config.markdown) {
+        emit_generator_error(&config.output, format, &error);
+        return VaaExitCode::ToolFailure.as_std();
+    }
+
+    match format {
+        OutputFormat::Terminal => {
+            println!("ok: wrote repair packet {}", config.output.display());
+            println!("  task_id: {}", packet.task_id);
+            println!("  classification: {}", packet.failure.classification);
+            if config.markdown {
+                println!(
+                    "  markdown: {}",
+                    config.output.with_extension("md").display()
+                );
+            }
+        }
+        OutputFormat::Json => {
+            let body = serde_json::json!({
+                "ok": true,
+                "path": config.output,
+                "packet": packet,
+            });
+            println!("{body}");
+        }
+    }
+    VaaExitCode::Success.as_std()
+}
+
+fn repair_verify_command(path: &Path, format: OutputFormat) -> ExitCode {
+    use vaa::generator::load_repair_packet;
+
+    match load_repair_packet(path) {
+        Ok(packet) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: repair packet verified");
+                    println!("  task_id: {}", packet.task_id);
+                    println!("  generator_id: {}", packet.generator_id);
+                    println!("  classification: {}", packet.failure.classification);
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "packet": packet,
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(path, format, &error);
+            VaaExitCode::InvalidInput.as_std()
         }
     }
 }

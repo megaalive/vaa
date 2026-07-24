@@ -37,7 +37,9 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 **External generator bridge (HlaX64 first):** plan
 [`hlax64-vaa-semasm-bridge-plan.md`](hlax64-vaa-semasm-bridge-plan.md).
 **P0 + P1 done (unit-tested):** suite, patch evidence, path-policy CLI,
-generator-vs-verifier triage. Next: P2 repair packet. Placeholder pack ≠
+generator-vs-verifier triage. **P2.11 done:** `vaa repair export` /
+`vaa repair verify` (JSON + Markdown brief; export refuses non-generator
+failures per triage). Next: P2.12 stable diagnostics. Placeholder pack ≠
 live HlaX64 Gate. Incomplete ≠ Verified; under_preconditions ≠ verified.
 
 | Gate | Status | Evidence level | Notes |

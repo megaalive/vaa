@@ -15,10 +15,13 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Added
 
-- **External generator bridge (P0 + P1 complete)** — suite runner, patch
-  evidence, `vaa generator check-paths`, and `vaa generator triage`
-  (Incomplete / verified_under_preconditions ≠ generator defect). P2 =
-  repair packet / diagnostics. Honesty locks unchanged.
+- **External generator bridge (P0 + P1 complete; P2 in progress)** — suite
+  runner, patch evidence, `vaa generator check-paths`, and `vaa generator
+  triage` (Incomplete / verified_under_preconditions ≠ generator defect).
+  P2.11: `vaa repair export` / `vaa repair verify` — repair packet JSON +
+  Markdown brief pointing agents at generator source (allowed/forbidden
+  paths, fixed commands, constraints); refuses export when triage says the
+  failure is not a generator defect. Honesty locks unchanged.
 
 ### Changed
 

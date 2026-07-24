@@ -1240,7 +1240,7 @@ P1
 10. generator-versus-verifier triage — **done**
 
 P2
-11. repair packet export
+11. repair packet export — **done**
 12. stable diagnostics
 13. optional source mapping join
 14. agent/editor rules and command templates
