@@ -12,11 +12,12 @@ reasoning. Claim is selected affine relations for supported leaves; **not**
 general alias analysis or formal memory safety. See SemASM
 `docs/STABILIZATION_PROGRESS.md` (Ra0–Ra6 done).
 
-**SemASM Contract Expression Semantics v1 (ADR 0007 / G2):** unlocked after
-Ra6. SemASM will evaluate a documented expression subset against living
-region/relation evidence (`docs/CONTRACT_EXPR_V1_PLAN.md`, Ce0 landed).
+**SemASM Contract Expression Semantics v1 (ADR 0007 / G2):** **done** (Ce0–Ce5).
+SemASM evaluates a documented expression subset against living region/relation
+evidence (`contract-expr-v1` / `VerificationReport.contract_expressions`).
 VAA still only consumes `VerificationReport` — no expression engine in VAA.
-G3–G5 remain deferred until G2 Ce5 (or stated unlock criteria).
+G3 (A64/RV memory-effect parity) is unlocked for a separate plan/ADR; G4–G5
+remain deferred.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
