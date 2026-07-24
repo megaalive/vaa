@@ -1,0 +1,2 @@
+; placeholder input — not a real HLA program
+ret

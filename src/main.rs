@@ -312,6 +312,58 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Regression suite commands (`validate` / `run`).
+    Suite {
+        #[command(subcommand)]
+        command: SuiteCommands,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum SuiteCommands {
+    /// Parse and validate a suite manifest.
+    Validate {
+        /// Path to `*.vaa-suite.toml`.
+        suite: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+        /// Include suite manifest digest.
+        #[arg(long, default_value_t = true)]
+        show_digest: bool,
+    },
+    /// Run all required cases and emit suite evidence JSON summary.
+    Run {
+        /// Path to `*.vaa-suite.toml`.
+        suite: PathBuf,
+        /// Override generator repository path.
+        #[arg(long)]
+        repo: Option<PathBuf>,
+        /// Run base directory.
+        #[arg(long, default_value = ".")]
+        run_dir: PathBuf,
+        /// Skip revision/worktree guard.
+        #[arg(long, default_value_t = false)]
+        skip_repo_guard: bool,
+        /// Skip build; hash existing binary only.
+        #[arg(long, default_value_t = false)]
+        skip_build: bool,
+        /// Generate only (no SemASM ingest/verify) — suite status will be incomplete.
+        #[arg(long, default_value_t = false)]
+        skip_verify: bool,
+        /// Twin-run generation digest check.
+        #[arg(long, default_value_t = false)]
+        check_deterministic: bool,
+        /// Forward `--allow-execution` to SemASM.
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
+        /// Optional path to write suite evidence JSON.
+        #[arg(long)]
+        output: Option<PathBuf>,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -557,6 +609,26 @@ enum OutputFormat {
 }
 
 fn main() -> ExitCode {
+    // Clap's derived parser for this CLI is large; Windows default stack (~1 MiB)
+    // overflows during `Cli::parse`. Run the CLI body on a larger stack.
+    const STACK: usize = 8 * 1024 * 1024;
+    match std::thread::Builder::new()
+        .name("vaa-main".into())
+        .stack_size(STACK)
+        .spawn(run_cli)
+    {
+        Ok(handle) => handle.join().unwrap_or_else(|_| {
+            eprintln!("error: vaa main thread panicked");
+            VaaExitCode::ToolFailure.as_std()
+        }),
+        Err(e) => {
+            eprintln!("error: failed to start vaa main thread: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn run_cli() -> ExitCode {
     let cli = Cli::parse();
     match cli.command.unwrap_or(Commands::Status) {
         Commands::Version => {
@@ -853,6 +925,41 @@ fn main() -> ExitCode {
                 format,
             )
         }
+        Commands::Suite { command } => match command {
+            SuiteCommands::Validate {
+                suite,
+                format,
+                show_digest,
+            } => suite_validate_command(&suite, format, show_digest),
+            SuiteCommands::Run {
+                suite,
+                repo,
+                run_dir,
+                skip_repo_guard,
+                skip_build,
+                skip_verify,
+                check_deterministic,
+                allow_execution,
+                output,
+                format,
+            } => {
+                use vaa::generator::SuiteRunConfig;
+                suite_run_command(
+                    &SuiteRunConfig {
+                        suite_path: suite,
+                        repo_override: repo,
+                        run_base: run_dir,
+                        skip_repo_guard,
+                        skip_build,
+                        skip_verify,
+                        allow_execution,
+                        check_deterministic,
+                    },
+                    output.as_deref(),
+                    format,
+                )
+            }
+        },
     }
 }
 
@@ -862,7 +969,7 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
@@ -870,9 +977,7 @@ fn print_status() {
     println!(
         "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
     );
-    println!(
-        "generator bridge: P0 complete (lock/spec/guard/identity/generate/generator-run); suite/patch = P1+"
-    );
+    println!("generator bridge: P0 done; P1 suite validate/run landed; patch/triage next");
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
     println!("evidence note: opt-in Ed25519 when VAA_SEAL_SIGNING_KEY is set (practice; not a trust root)");
@@ -1333,6 +1438,107 @@ fn generator_run_command(
                     VaaExitCode::ToolFailure.as_std()
                 }
             }
+        }
+    }
+}
+
+fn suite_validate_command(path: &Path, format: OutputFormat, show_digest: bool) -> ExitCode {
+    use vaa::generator::{load_suite_manifest, suite_manifest_digest};
+
+    match load_suite_manifest(path) {
+        Ok(suite) => {
+            let digest = suite_manifest_digest(&suite);
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: suite `{}` is valid", suite.suite_id);
+                    println!("  schema_version: {}", suite.schema_version);
+                    println!("  target: {}", suite.target);
+                    println!("  generator.spec: {}", suite.generator.spec);
+                    println!("  required_cases: {}", suite.required_cases.len());
+                    if show_digest {
+                        println!("  digest: {digest}");
+                    }
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "suite_id": suite.suite_id,
+                        "schema_version": suite.schema_version,
+                        "target": suite.target,
+                        "required_cases": suite.required_cases,
+                        "digest": if show_digest { Some(digest) } else { None },
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(path, format, &error);
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn suite_run_command(
+    config: &vaa::generator::SuiteRunConfig,
+    output: Option<&Path>,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{run_suite, SuiteStatus};
+
+    match run_suite(config) {
+        Ok(report) => {
+            if let Some(out) = output {
+                if let Err(e) = std::fs::write(
+                    out,
+                    serde_json::to_vec_pretty(&report.evidence).unwrap_or_default(),
+                ) {
+                    eprintln!("error: write suite evidence: {e}");
+                    return VaaExitCode::ToolFailure.as_std();
+                }
+            }
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: suite run finished");
+                    println!("  suite_id: {}", report.evidence.suite_id);
+                    println!("  status: {:?}", report.evidence.status);
+                    println!("  suite_digest: {}", report.evidence.suite_digest);
+                    println!("  cases: {}", report.evidence.cases.len());
+                    for case in &report.evidence.cases {
+                        println!("    {}: {}", case.case_id, case.status);
+                    }
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "report": report,
+                    });
+                    println!("{body}");
+                }
+            }
+            match report.evidence.status {
+                SuiteStatus::Accepted => VaaExitCode::Success.as_std(),
+                SuiteStatus::Rejected | SuiteStatus::Incomplete | SuiteStatus::Failed => {
+                    VaaExitCode::ToolFailure.as_std()
+                }
+            }
+        }
+        Err(error) => {
+            match format {
+                OutputFormat::Terminal => {
+                    eprintln!("error: suite run failed");
+                    eprintln!("{error}");
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": false,
+                        "error": error.to_string(),
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::InvalidInput.as_std()
         }
     }
 }

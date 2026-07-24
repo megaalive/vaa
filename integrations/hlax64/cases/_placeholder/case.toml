@@ -1,0 +1,6 @@
+# Placeholder case directory for suite manifest wiring.
+# Replace with a real HlaX64 input + task + contract before live suite runs.
+
+task = "task.vaa.toml"
+contract = "contract.sem.toml"
+input = "input.txt"

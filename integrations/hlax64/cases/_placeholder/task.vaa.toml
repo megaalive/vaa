@@ -1,0 +1,12 @@
+# Placeholder task — not Gate evidence.
+schema_version = "0.1"
+task_id = "hlax64.placeholder"
+target = "x86_64-pc-windows-msvc"
+artifact_kind = "object"
+
+[entry]
+symbol = "placeholder"
+abi = "win64"
+
+[budgets]
+max_candidates = 1

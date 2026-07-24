@@ -1,0 +1,6 @@
+# Placeholder SemASM contract — not Gate evidence.
+schema_version = "0.1"
+contract_id = "hlax64.placeholder"
+
+[function]
+name = "placeholder"

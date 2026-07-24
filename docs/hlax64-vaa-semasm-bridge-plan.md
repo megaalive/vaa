@@ -990,12 +990,16 @@ built binary); unit tests cover skip-verify path.
 
 ## Milestone 2 — Suite runner
 
+**Status:** **Done** (code surface) — `vaa suite validate` / `vaa suite run`
+with status aggregation + suite evidence JSON. Pack smoke suite is a
+placeholder case; live HlaX64 corpus acceptance remains follow-up.
+
 **Deliverables**
 
-- suite manifest;
-- `vaa suite run`;
-- suite evidence;
-- child case digest aggregation.
+- suite manifest — **done**;
+- `vaa suite run` — **done**;
+- suite evidence — **done** (digest bindings; write via `--output`);
+- child case digest aggregation — **done**.
 
 **Acceptance**
 
@@ -1226,7 +1230,7 @@ P0  (generic VAA core + first HlaX64 pack config)
 6. vaa generator-run — **done**
 
 P1
-7. suite manifest and runner
+7. suite manifest and runner — **done**
 8. patch-level evidence
 9. allowed/forbidden patch paths
 10. generator-versus-verifier triage

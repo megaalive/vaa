@@ -15,11 +15,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Added
 
-- **External generator bridge (P0 complete)** — stack lock, spec validate,
-  repository guard, binary identity, deterministic generate, and
-  `vaa generator-run` / `compiler-run` (reuses ingest/verify). HlaX64 pack
-  stubs under `integrations/hlax64/`. Suite/patch/repair = P1+. Generated ≠
-  SemASM verified unless verify path runs; Incomplete ≠ Verified.
+- **External generator bridge (P0 complete; P1.7)** — plus suite manifest /
+  runner (`vaa suite validate` / `vaa suite run`) with status aggregation and
+  suite evidence JSON. Pack smoke suite uses a placeholder case. Patch
+  evidence / triage = remaining P1. Suite accepted ≠ formal memory safety.
 
 ### Changed
 
