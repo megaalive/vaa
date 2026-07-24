@@ -17,8 +17,10 @@ Forbidden: claiming Horizon cliffs (HSM, live model, CryptOpt) as Done.
 | **Vd1** | Bump workflow SemASM `ref` → `c5d8458` (v0.2.0) | **done** |
 | **Vd2** | Docs pin honesty (tip + Incomplete ≠ Verified) | **done** |
 | **Vd3** | CI Gate jobs green on new pin | **done** (`2815aa3`) |
+| **Vd4** | `vaa run` wrong→repair Gate-1 for replace/memset/memcpy | **done** |
 
 ## Non-goals
 
-- New leaf families / SemASM Co pin (follow-up after Co CI green)
+- New leaf families / formal ensures
 - Production trust root / hardware HSM / operated remote log
+- Gate-2 run Verified for write-shape (search-ingest Gate-2 already covers allow-exec)
