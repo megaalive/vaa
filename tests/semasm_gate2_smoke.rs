@@ -51,6 +51,22 @@ fn assert_seal_signature_if_signing(run_dir: &Path) {
     );
 }
 
+/// Gate-2 accept for leaves with symbolic-length `[function.memory]`: SemASM may
+/// report `verified_under_preconditions` (region_access / alias obligations).
+/// Do not promote that to unconditional `Verified`.
+fn assert_gate2_verified_or_under_preconditions(value: &serde_json::Value, label: &str) {
+    let final_status = value["final_status"].as_str().unwrap_or("");
+    assert!(
+        final_status == "Verified" || final_status == "VerifiedUnderPreconditions",
+        "{label}: expected Verified or VerifiedUnderPreconditions, got {final_status}: {value}"
+    );
+    let raw = value["verify_report"]["raw_status"].as_str().unwrap_or("");
+    assert!(
+        raw == "verified" || raw == "verified_under_preconditions",
+        "{label}: unexpected raw_status {raw}: {value}"
+    );
+}
+
 #[test]
 #[ignore = "requires `semasm` on PATH, Win64 toolchain, and SemASM --allow-execution"]
 fn gate2_verify_count_byte_win64_verified() {
@@ -87,11 +103,10 @@ fn gate2_verify_count_byte_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 expects Verified with --allow-execution: {value}"
+    assert_gate2_verified_or_under_preconditions(
+        &value,
+        "Gate-2 count_byte Win64",
     );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
     assert_eq!(
         value["execution_isolation"].as_str(),
         Some("semasm_host"),
@@ -136,11 +151,10 @@ fn gate2_verify_count_byte_linux_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 Linux expects Verified with --allow-execution: {value}"
+    assert_gate2_verified_or_under_preconditions(
+        &value,
+        "Gate-2 count_byte Linux",
     );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
 }
 
 #[test]
@@ -953,11 +967,7 @@ fn gate2_verify_memcpy_linux_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 Linux memcpy expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 Linux memcpy");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1002,11 +1012,7 @@ fn gate2_verify_memcpy_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 memcpy expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 memcpy Win64");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1249,11 +1255,7 @@ fn gate2_verify_hlax64_count_byte_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 hlax64 count_byte expects Verified: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 hlax64 count_byte");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1398,11 +1400,7 @@ fn gate2_verify_hlax64_memcpy_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 hlax64 memcpy expects Verified: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 hlax64 memcpy");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1578,11 +1576,7 @@ fn gate2_ingest_count_byte_linux_verified_seal_chain() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 Linux ingest expects Verified: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 Linux ingest count_byte");
 
     let run_dir = std::fs::read_dir(&run_base)
         .expect("read run base")
@@ -1658,11 +1652,7 @@ fn gate2_ingest_count_byte_verified_seal_chain() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 ingest expects Verified: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 ingest count_byte Win64");
 
     let run_dir = std::fs::read_dir(&run_base)
         .expect("read run base")
@@ -1998,11 +1988,10 @@ fn gate2_verify_count_byte_win64_execution_sandbox() {
         Some("local"),
         "G4: sandbox path must name LocalBackend (≠ container): {value}"
     );
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 sandbox path expects Verified (LocalBackend scaffold, not container): {value}"
+    assert_gate2_verified_or_under_preconditions(
+        &value,
+        "Gate-2 sandbox count_byte",
     );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
 }
 
 #[test]
