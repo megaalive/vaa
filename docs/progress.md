@@ -924,4 +924,3 @@ Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 
 Do not claim formal proof, production readiness, hardened sandbox isolation, or
 CI-proven SemASM vertical slices until the corresponding evidence exists.
-                                                                                                                                   
