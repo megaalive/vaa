@@ -103,10 +103,7 @@ fn gate2_verify_count_byte_win64_verified() {
         return;
     }
 
-    assert_gate2_verified_or_under_preconditions(
-        &value,
-        "Gate-2 count_byte Win64",
-    );
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 count_byte Win64");
     assert_eq!(
         value["execution_isolation"].as_str(),
         Some("semasm_host"),
@@ -151,10 +148,7 @@ fn gate2_verify_count_byte_linux_verified() {
         return;
     }
 
-    assert_gate2_verified_or_under_preconditions(
-        &value,
-        "Gate-2 count_byte Linux",
-    );
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 count_byte Linux");
 }
 
 #[test]
@@ -1988,10 +1982,7 @@ fn gate2_verify_count_byte_win64_execution_sandbox() {
         Some("local"),
         "G4: sandbox path must name LocalBackend (≠ container): {value}"
     );
-    assert_gate2_verified_or_under_preconditions(
-        &value,
-        "Gate-2 sandbox count_byte",
-    );
+    assert_gate2_verified_or_under_preconditions(&value, "Gate-2 sandbox count_byte");
 }
 
 #[test]
