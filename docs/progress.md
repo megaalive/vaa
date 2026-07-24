@@ -5,6 +5,13 @@ Tracks evidence gates from `VAA_REVIEWED_AND_HARDENED_ARCHITECTURE_PLAN.md` §26
 Honesty rule: **Done** means the listed acceptance exists as code. Levels of evidence are
 called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
 
+**SemASM Region/Alias Evidence v1 (ADR 0006):** SemASM owns the analysis
+(`function.memory` + `VerificationReport.alias_analysis` / `region-affine-v1`).
+VAA consumes the report as evidence only — it does not re-implement alias
+reasoning. Claim is selected affine relations for supported leaves; **not**
+general alias analysis or formal memory safety. See SemASM
+`docs/STABILIZATION_PROGRESS.md` (Ra0–Ra6 done; G2–G5 locked deferred).
+
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
 | Phase 0 — SemASM readiness | **Done** | docs | `docs/implementation-baseline.md` |
