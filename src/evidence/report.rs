@@ -454,6 +454,7 @@ fn push_semantic_evidence_checks(
             }
             let status_ok = match ra.status.as_str() {
                 "passed" => true,
+                "passed_under_preconditions" => policy.region_access.allow_caller_obligations,
                 "incomplete" => policy.region_access.allow_incomplete,
                 _ => false,
             };

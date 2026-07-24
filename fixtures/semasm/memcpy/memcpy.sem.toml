@@ -24,6 +24,10 @@ name = "status"
 type = "usize"
 
 [[function.requires]]
+expression = "regions.disjoint(src, dst)"
+reason = "Region/Alias + contract-expr-v1: src and dst must be disjoint."
+
+[[function.requires]]
 expression = "length <= 4096"
 reason = "Arbitrary safety limit for this fixture."
 
@@ -41,6 +45,26 @@ region = "dst[0..length]"
 [[function.effects]]
 kind = "memory_write"
 region = "dst[0..length]"
+
+[function.memory]
+
+[[function.memory.regions]]
+name = "src"
+base = "src"
+length = "length"
+access = "read"
+
+[[function.memory.regions]]
+name = "dst"
+base = "dst"
+length = "length"
+access = "write"
+
+[[function.memory.relations]]
+left = "src"
+right = "dst"
+require = "disjoint"
+basis = "precondition"
 
 [function.constraints]
 no_heap = true

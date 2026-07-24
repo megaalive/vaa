@@ -15,6 +15,12 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Changed
 
+- **Vd11 / memory-leaf Gate** — SemASM pin `55f2542` (`region_access`
+  `passed_under_preconditions` for symbolic lengths). Gate `memcpy` (+ HlaX64
+  ingest/run) uses `memory-leaf-affine-v1` with `[function.memory]` + disjoint
+  precondition. Profile accepts caller obligations on alias / region_access /
+  contract-expr. Sample ≠ formal memory safety; Incomplete ≠ Verified;
+  `verified_under_preconditions` ≠ unconditional `verified`.
 - **Vd10** — SemASM pin `671c5e2` (x86 frame-spill affinity); HlaX64
   `count_byte` joins Gate `leaf-pure-v1`. Alias Incomplete from lost spill
   tracking no longer forces `semantic_failed`. Sample ≠ formal memory safety;

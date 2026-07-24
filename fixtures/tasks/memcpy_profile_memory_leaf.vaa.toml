@@ -59,7 +59,7 @@ require_behavioral_tests = true
 require_reproducible_build = true
 
 # Sei P1b: expand memory-leaf-affine-v1 (alias + region_access + contract-expr).
-# Opt-in fixture only — not wired into Gate CI.
+# Also wired on Gate memcpy fixtures (semasm/run/hlax64).
 [verification.profile]
 name = "memory-leaf-affine-v1"
 

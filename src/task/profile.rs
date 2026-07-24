@@ -80,6 +80,9 @@ fn leaf_pure_v1() -> SemanticEvidenceRequirements {
 }
 
 fn memory_leaf_affine_v1() -> SemanticEvidenceRequirements {
+    // Strict memory leaf: alias + region_access + contract-expr. Symbolic
+    // region lengths yield SemASM `passed_under_preconditions` (not Incomplete
+    // silence); Gate accepts that only when allow_caller_obligations is set.
     SemanticEvidenceRequirements {
         alias: SemanticEvidenceSliceReq {
             required: true,
@@ -93,7 +96,7 @@ fn memory_leaf_affine_v1() -> SemanticEvidenceRequirements {
             required: true,
             model: Some(REGION_ACCESS_MODEL_AFFINE_V1.to_owned()),
             allow_incomplete: false,
-            allow_caller_obligations: false,
+            allow_caller_obligations: true,
             allow_unknown_accesses: false,
             allow_not_evaluated: false,
         },
@@ -101,7 +104,7 @@ fn memory_leaf_affine_v1() -> SemanticEvidenceRequirements {
             required: true,
             model: Some(CONTRACT_EXPR_MODEL_V1.to_owned()),
             allow_incomplete: false,
-            allow_caller_obligations: false,
+            allow_caller_obligations: true,
             allow_unknown_accesses: false,
             allow_not_evaluated: false,
         },
@@ -219,6 +222,8 @@ mod tests {
             Some(REGION_ACCESS_MODEL_AFFINE_V1)
         );
         assert!(!se.alias.allow_incomplete);
+        assert!(se.region_access.allow_caller_obligations);
+        assert!(se.contract_expressions.allow_caller_obligations);
         assert!(!se.contract_expressions.allow_not_evaluated);
     }
 

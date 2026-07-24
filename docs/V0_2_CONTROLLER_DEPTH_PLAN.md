@@ -24,6 +24,7 @@ Forbidden: claiming Horizon cliffs (HSM, live model, CryptOpt) as Done.
 | **Vd8** | Re-pin Gate workflows to SemASM tip `cf0206e` (Sei P0/Ra, report 0.5) | **done** (`981c3fe` tip; Gate CI green) |
 | **Vd9** | Wire `leaf-pure-v1` on Gate `count_byte` + pin SemASM `b3c576e` | **done** |
 | **Vd10** | Frame-spill affinity pin `671c5e2` + HlaX64 `count_byte` `leaf-pure-v1` | **done** |
+| **Vd11** | Wire `memory-leaf-affine-v1` on Gate `memcpy` + pin SemASM `55f2542` | **done** |
 
 ## Non-goals
 
