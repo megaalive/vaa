@@ -15,8 +15,8 @@ Forbidden: claiming Horizon cliffs (HSM, live model, CryptOpt) as Done.
 |---|---|---|
 | **Vd0** | This plan + progress note | **done** |
 | **Vd1** | Bump workflow SemASM `ref` → `c5d8458` (v0.2.0) | **done** |
-| **Vd2** | Docs pin honesty (tip + Incomplete ≠ Verified) | queued |
-| **Vd3** | CI Gate jobs green on new pin | queued |
+| **Vd2** | Docs pin honesty (tip + Incomplete ≠ Verified) | **done** |
+| **Vd3** | CI Gate jobs green on new pin | **done** (`2815aa3`) |
 
 ## Non-goals
 

@@ -99,8 +99,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.0 tip (c5d8458); Co control bump may follow.
-          ref: c5d8458bed2067a2d8cf402741eea7e1f7285f7f
+          # Pin: SemASM Co control tip (200799e; post-v0.2.0).
+          ref: 200799e6112696660d56ca39dc5548e3252b2a6e
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -176,8 +176,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.0 tip (c5d8458); Co control bump may follow.
-          ref: c5d8458bed2067a2d8cf402741eea7e1f7285f7f
+          # Pin: SemASM Co control tip (200799e; post-v0.2.0).
+          ref: 200799e6112696660d56ca39dc5548e3252b2a6e
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -247,8 +247,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.0 tip (c5d8458); Co control bump may follow.
-          ref: c5d8458bed2067a2d8cf402741eea7e1f7285f7f
+          # Pin: SemASM Co control tip (200799e; post-v0.2.0).
+          ref: 200799e6112696660d56ca39dc5548e3252b2a6e
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -380,8 +380,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.0 tip (c5d8458); Co control bump may follow.
-          ref: c5d8458bed2067a2d8cf402741eea7e1f7285f7f
+          # Pin: SemASM Co control tip (200799e; post-v0.2.0).
+          ref: 200799e6112696660d56ca39dc5548e3252b2a6e
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -459,8 +459,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM v0.2.0 tip (c5d8458); Co control bump may follow.
-          ref: c5d8458bed2067a2d8cf402741eea7e1f7285f7f
+          # Pin: SemASM Co control tip (200799e; post-v0.2.0).
+          ref: 200799e6112696660d56ca39dc5548e3252b2a6e
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
