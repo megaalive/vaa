@@ -417,9 +417,13 @@ without maturity bump (H4), multi-ISA ADR 0005 (H1), remote-transparency honesty
 **Horizon-locked deferred:** formal ensures, full symbolic alias, CryptOpt
 embed, live-model Gate CI, hardware HSM.
 
-**Next (planned):** Gate CI green on SemASM tip `cf0206e` (Vd8); optional
-built-in semantic-evidence profiles / fixture opt-in. SoftHSM ≠ HSM; Incomplete ≠
-Verified; `verified_under_preconditions` ≠ `verified`.
+**Next (planned):** optional built-in semantic-evidence profiles / fixture
+opt-in ([Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)).
+SoftHSM ≠ HSM; Incomplete ≠ Verified; `verified_under_preconditions` ≠
+`verified`.
+
+**Vd8 done** — Gate CI green on SemASM tip `cf0206e`
+([run](https://github.com/megaalive/vaa/actions/runs/30089474652)).
 
 Honesty: SoftHSM ≠ HSM; search ≠ CryptOpt; Incomplete ≠ Verified; HlaX64 ≠
 SemASM Verified; local transparency artifact ≠ remote log.
