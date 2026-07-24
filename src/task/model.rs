@@ -191,6 +191,19 @@ pub struct VerificationRequirements {
         skip_serializing_if = "SemanticEvidenceRequirements::is_unset"
     )]
     pub semantic_evidence: SemanticEvidenceRequirements,
+    /// Optional named built-in profile (Sei P1b). Expanded into
+    /// [`Self::semantic_evidence`] before lock; the name is retained for
+    /// provenance while the expansion is what freezes the digest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<VerificationProfile>,
+}
+
+/// Named built-in verification profile reference.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VerificationProfile {
+    /// Built-in profile id (for example `leaf-pure-v1`).
+    pub name: String,
 }
 
 /// Which SemASM semantic evidence slices a task requires (Sei P1).

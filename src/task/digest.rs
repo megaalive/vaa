@@ -104,6 +104,7 @@ mod tests {
                 require_behavioral_tests: true,
                 require_reproducible_build: true,
                 semantic_evidence: SemanticEvidenceRequirements::default(),
+                profile: None,
             },
             budgets: Budgets {
                 max_candidates: 4,
