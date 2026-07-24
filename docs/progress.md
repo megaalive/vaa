@@ -18,11 +18,13 @@ evidence (`contract-expr-v1` / `VerificationReport.contract_expressions`).
 VAA still only consumes `VerificationReport` — no expression engine in VAA.
 G3 (A64/RV memory-effect parity) is **done** (SemASM ADR 0008 Me0–Me5 at
 `51e8a96`: collectors + verify wire + ± fixtures; A64/RV `decode`/`lower`
-stay `partial`). G4 (isolation ops proof) is **done** (Io0–Io5:
-[`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md) — claim
-matrix, doctor honesty, `execution_sandbox_backend=local`, network/credential
-argv checklist). **Not** public-untrusted ready / absolute isolation / trust
-root. G5 (trust root nyata) remains last / deferred.
+stay `partial`). G4 (isolation ops proof) is **done** (Io0–Io5 at `c040828`:
+[`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
+**ops** proof) is **done** (Tr0–Tr5:
+[`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md) —
+`signer_kind` labels + claim matrix). **Production** trust root / hardware HSM
+/ operated remote log as Gate default remain Horizon-locked. Authenticity ≠
+semantic truth.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
@@ -301,11 +303,12 @@ maturity and does not wire `ExecutionSandbox` into Gate.
 
 #### Gate-2 isolation honesty (D2 companion)
 
-See also `docs/post-alpha-harden.md` § Gate-2 isolation.
+See also `docs/post-alpha-harden.md` § Gate-2 isolation + G4 ops proof.
 
 - Gate-2 CI may claim SemASM Verified under `--allow-execution` only.
-- `ExecutionSandbox` remains library-only until an explicit Gate path wires it
-  and CI proves process isolation for that job.
+- Opt-in `--execution-sandbox` wires `ExecutionSandbox` (LocalBackend);
+  `execution_isolation=sandbox` + `execution_sandbox_backend=local` (G4).
+  LocalBackend ≠ container; C-012.
 - Do not equate “Verified” with container/seccomp isolation (C-012).
 - Pipeline maturity bumps remain SemASM-owned (`capabilities.toml` + owner job).
 
@@ -317,7 +320,7 @@ W3 VAA Gate → W4 optional HlaX64. Not started in this tranche.
 ### Maturity follow-up (M0–M1) — deepen then SemASM pipeline bump — closed
 
 After D0–D2: deepen criteria, then SemASM bumped x86 pipeline maturity.
-**Still deferred:** Gate-2 `ExecutionSandbox` wire (I2). Write-shape ADR Accepted;
+I1/I2 and G4 isolation ops proof landed. Write-shape ADR Accepted;
 SemASM/VAA `replace_byte` Gate in tranche W*.
 
 | Wave | Focus | Status |

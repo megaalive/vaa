@@ -35,7 +35,16 @@ pub struct SealSignature {
     pub public_key_b64: String,
     pub sig_b64: String,
     pub signed_over: String,
+    /// Authenticity backend label (`practice-ed25519` / `sigstore-dsse` /
+    /// `hsm-pkcs11`). Absent on legacy seals — **not** a production trust root.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signer_kind: Option<String>,
 }
+
+/// Stable kebab-case labels for [`SealSignature::signer_kind`] (G5).
+pub const SIGNER_KIND_PRACTICE_ED25519: &str = "practice-ed25519";
+pub const SIGNER_KIND_SIGSTORE_DSSE: &str = "sigstore-dsse";
+pub const SIGNER_KIND_HSM_PKCS11: &str = "hsm-pkcs11";
 
 fn require_signature_env() -> bool {
     match std::env::var(ENV_REQUIRE_SEAL_SIGNATURE) {
@@ -123,6 +132,7 @@ pub fn maybe_sign_envelope(envelope: &mut SealEnvelope) -> Result<(), SealError>
         public_key_b64: B64.encode(vk.to_bytes()),
         sig_b64: B64.encode(sig.to_bytes()),
         signed_over: SIGNED_OVER_ACCEPTANCE.to_owned(),
+        signer_kind: Some(SIGNER_KIND_PRACTICE_ED25519.to_owned()),
     });
     Ok(())
 }
@@ -292,5 +302,37 @@ mod tests {
         let err = verify_envelope_signature(&env).unwrap_err();
         assert!(matches!(err, SealError::Signature(_)));
         std::env::remove_var(ENV_REQUIRE_SEAL_SIGNATURE);
+    }
+
+    #[test]
+    fn maybe_sign_labels_practice_kind() {
+        let _guard = env_lock().lock().unwrap();
+        let path = tempfile_path("vaa_seal_key_kind");
+        keygen_seal(&path).unwrap();
+        std::env::set_var(ENV_SEAL_SIGNING_KEY, &path);
+        std::env::remove_var(ENV_REQUIRE_SEAL_SIGNATURE);
+
+        let mut env = sample_envelope();
+        maybe_sign_envelope(&mut env).unwrap();
+        let sig = env.signature.as_ref().expect("signed");
+        assert_eq!(
+            sig.signer_kind.as_deref(),
+            Some(SIGNER_KIND_PRACTICE_ED25519)
+        );
+
+        std::env::remove_var(ENV_SEAL_SIGNING_KEY);
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn legacy_seal_without_signer_kind_deserializes() {
+        let json = r#"{
+            "alg":"ed25519",
+            "public_key_b64":"AQID",
+            "sig_b64":"BAUG",
+            "signed_over":"acceptance_digest"
+        }"#;
+        let sig: SealSignature = serde_json::from_str(json).expect("legacy");
+        assert!(sig.signer_kind.is_none());
     }
 }

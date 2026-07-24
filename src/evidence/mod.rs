@@ -54,7 +54,8 @@ pub use seal_log::{
 pub use seal_sign::{
     keygen_seal, maybe_sign_envelope, verify_envelope_signature, SealSignature,
     ENV_REQUIRE_SEAL_SIGNATURE, ENV_SEAL_SIGNING_KEY, SIGNATURE_ALG,
-    SIGNATURE_ALG_RSA_PKCS1_SHA256, SIGNED_OVER_ACCEPTANCE,
+    SIGNATURE_ALG_RSA_PKCS1_SHA256, SIGNED_OVER_ACCEPTANCE, SIGNER_KIND_HSM_PKCS11,
+    SIGNER_KIND_PRACTICE_ED25519, SIGNER_KIND_SIGSTORE_DSSE,
 };
 pub use signer::{
     dsse_pae, signer_from_env, verify_dsse_envelope, write_dsse_file, DsseEnvelope, DsseSignature,

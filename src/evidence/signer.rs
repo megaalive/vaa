@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use super::seal::SealError;
 use super::seal_sign::{
     load_signing_key_from_env, SealSignature, SIGNATURE_ALG, SIGNED_OVER_ACCEPTANCE,
+    SIGNER_KIND_HSM_PKCS11, SIGNER_KIND_PRACTICE_ED25519, SIGNER_KIND_SIGSTORE_DSSE,
 };
 
 /// Backend identifier recorded in provenance / DSSE.
@@ -20,6 +21,18 @@ pub enum SignerKind {
     PracticeEd25519,
     SigstoreDsse,
     HsmPkcs11,
+}
+
+impl SignerKind {
+    /// Stable kebab-case label persisted on seal signatures (G5).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::PracticeEd25519 => SIGNER_KIND_PRACTICE_ED25519,
+            Self::SigstoreDsse => SIGNER_KIND_SIGSTORE_DSSE,
+            Self::HsmPkcs11 => SIGNER_KIND_HSM_PKCS11,
+        }
+    }
 }
 
 pub trait SealSigner: Send + Sync {
@@ -58,6 +71,7 @@ impl SealSigner for PracticeEd25519Signer {
             public_key_b64: B64.encode(vk.to_bytes()),
             sig_b64: B64.encode(sig.to_bytes()),
             signed_over: SIGNED_OVER_ACCEPTANCE.to_owned(),
+            signer_kind: Some(SIGNER_KIND_PRACTICE_ED25519.to_owned()),
         })
     }
 }
@@ -139,7 +153,9 @@ impl SealSigner for SigstoreDsseSigner {
     fn sign_acceptance_digest(&self, acceptance_digest: &str) -> Result<SealSignature, SealError> {
         // Still produce a seal signature block for acceptance_digest; DSSE is
         // the preferred carrier for transparency documents.
-        self.inner.sign_acceptance_digest(acceptance_digest)
+        let mut sig = self.inner.sign_acceptance_digest(acceptance_digest)?;
+        sig.signer_kind = Some(SIGNER_KIND_SIGSTORE_DSSE.to_owned());
+        Ok(sig)
     }
 }
 
@@ -213,19 +229,21 @@ impl SealSigner for HsmPkcs11Signer {
     fn sign_acceptance_digest(&self, acceptance_digest: &str) -> Result<SealSignature, SealError> {
         #[cfg(feature = "pkcs11")]
         {
-            super::pkcs11_softhsm::sign_acceptance_digest_rsa(
+            let mut sig = super::pkcs11_softhsm::sign_acceptance_digest_rsa(
                 &self.module_path,
                 &self.pin,
                 &self.key_label,
                 self.slot_index,
                 acceptance_digest,
-            )
+            )?;
+            sig.signer_kind = Some(SIGNER_KIND_HSM_PKCS11.to_owned());
+            Ok(sig)
         }
         #[cfg(not(feature = "pkcs11"))]
         {
             let _ = acceptance_digest;
             Err(SealError::Signature(format!(
-                "HSM PKCS#11 backend requires --features pkcs11 (module={}, label={})",
+                "HSM PKCS#11 backend requires --features pkcs11 (module={}, label={}); SoftHSM ≠ hardware HSM ≠ trust root",
                 self.module_path.display(),
                 self.key_label
             )))
@@ -271,6 +289,47 @@ mod tests {
         let sig = signer.sign_acceptance_digest("sha256:abc").expect("sign");
         assert_eq!(sig.alg, SIGNATURE_ALG);
         assert_eq!(sig.signed_over, SIGNED_OVER_ACCEPTANCE);
+        assert_eq!(
+            sig.signer_kind.as_deref(),
+            Some(SIGNER_KIND_PRACTICE_ED25519)
+        );
+        assert_eq!(signer.kind().as_str(), SIGNER_KIND_PRACTICE_ED25519);
+    }
+
+    #[test]
+    fn dsse_acceptance_block_labels_sigstore_kind() {
+        let signer = SigstoreDsseSigner::from_seed([9u8; 32]);
+        let sig = signer.sign_acceptance_digest("sha256:abc").expect("sign");
+        assert_eq!(sig.signer_kind.as_deref(), Some(SIGNER_KIND_SIGSTORE_DSSE));
+    }
+
+    #[test]
+    fn dsse_keyid_is_practice_not_trust_root() {
+        let signer = SigstoreDsseSigner::from_seed([9u8; 32]);
+        let env = signer
+            .sign_payload(DSSE_PAYLOAD_TYPE_TRANSPARENCY, br#"{"schema":"vaa-transparency-v1"}"#)
+            .expect("dsse");
+        assert_eq!(env.signatures[0].keyid, "vaa-practice");
+    }
+
+    #[cfg(not(feature = "pkcs11"))]
+    #[test]
+    fn hsm_without_pkcs11_feature_fail_closes() {
+        let signer = HsmPkcs11Signer::scaffold("softhsm2.so", "vaa");
+        let err = signer
+            .sign_acceptance_digest("sha256:abc")
+            .expect_err("scaffold without pkcs11");
+        let msg = err.to_string();
+        assert!(msg.contains("pkcs11"), "{msg}");
+        assert!(msg.contains("trust root") || msg.contains("hardware"), "{msg}");
+    }
+
+    #[test]
+    fn hsm_signer_kind_label_is_hsm_pkcs11() {
+        assert_eq!(
+            HsmPkcs11Signer::scaffold("softhsm2.so", "vaa").kind().as_str(),
+            SIGNER_KIND_HSM_PKCS11
+        );
     }
 
     #[test]

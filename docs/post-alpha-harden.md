@@ -124,3 +124,18 @@ Local and opt-in paths today:
 Until then, wording must keep: CI artifact / dry-run Rekor / Fulcio identity
 attest ≠ remote transparency service; SoftHSM ≠ hardware HSM; Fulcio ≠ SemASM
 Verified.
+
+### Trust claim matrix (G5)
+
+See [`TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md).
+
+| Surface | What exists | May claim | Must not claim |
+|---|---|---|---|
+| Integrity seal | `acceptance_digest` / `envelope_digest` | Content integrity | Publisher identity |
+| Practice Ed25519 | `VAA_SEAL_SIGNING_KEY` + `signer_kind=practice-ed25519` | Practice authenticity | Trust root |
+| SoftHSM PKCS#11 | `--features pkcs11`, `signer_kind=hsm-pkcs11` | Software-token smoke | Hardware HSM / trust root |
+| Local transparency | `seal-log.jsonl` / `vaa-transparency-v1` | Local/CI artifact | Remote append-only log |
+| Opt-in Rekor/Fulcio | feature-gated clients + manual workflows | Dry-run / opt-in path | Gate default remote transparency; Fulcio = Verified |
+
+**Production trust root** (hardware HSM, operated Rekor as Gate default, Fulcio
+as behavioral proof) stays Horizon-locked.

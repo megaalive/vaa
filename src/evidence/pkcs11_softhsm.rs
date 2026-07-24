@@ -133,6 +133,7 @@ pub fn sign_acceptance_digest_rsa(
         public_key_b64: B64.encode(spki.as_bytes()),
         sig_b64: B64.encode(signature),
         signed_over: SIGNED_OVER_ACCEPTANCE.to_owned(),
+        signer_kind: Some(super::seal_sign::SIGNER_KIND_HSM_PKCS11.to_owned()),
     })
 }
 

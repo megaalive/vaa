@@ -60,7 +60,10 @@ as Gate default, committed production signing seeds, **OS-level** generator FS i
 - `envelope_digest` — SHA-256 over canonical JSON of `{acceptance, provenance}`. Changes when `run_id`, generator attribution, candidate index, or seal-chain link changes.
 - `canonicalization` = `vaa-canonical-json-v1`
 - `digest_algorithm` = `sha256`
-- `signature` (optional) — `{ alg: "ed25519", public_key_b64, sig_b64, signed_over: "acceptance_digest" }`. Not included in either digest hash body.
+- `signature` (optional) — `{ alg, public_key_b64, sig_b64, signed_over:
+  "acceptance_digest", signer_kind? }`. `signer_kind` is G5 additive
+  (`practice-ed25519` / `sigstore-dsse` / `hsm-pkcs11`). Not included in either
+  digest hash body. Label ≠ production trust root.
 
 Generator metadata lives only under `provenance.generator` and is **not** part of
 `acceptance_digest`.

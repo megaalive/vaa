@@ -36,6 +36,11 @@ ABI/CFG, capabilities, behavioral oracles, and verification evidence. Generators
   library-only); optional `execution_sandbox_backend` (`local`);
   ContainerBackend network/socket/credential-env argv checklist. **Not**
   public-untrusted ready; LocalBackend ≠ container; C-012.
+- **Trust ops proof (G5 / Tr0–Tr5)** — claim matrix
+  (`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`); `signer_kind` on seal signatures
+  (`practice-ed25519` / `sigstore-dsse` / `hsm-pkcs11`); doctor/status
+  `trust_policy`. **Production** trust root / hardware HSM / operated remote
+  log as Gate default remain locked. Authenticity ≠ semantic truth.
 - **Horizon Closeout (consumer side)** — progress/map honesty; remote-
   transparency non-claim (local export / opt-in Rekor/Fulcio ≠ operated remote
   log); SoftHSM/CryptOpt honesty on leaf READMEs.
@@ -133,7 +138,10 @@ Alpha release (`git tag v0.1.0`). Gate CI artifacts and practice seals are
 
 ### Explicit non-goals (still deferred)
 
-- CryptOpt search / remote Rekor / HSM / Sigstore
+- CryptOpt embed / live-model Gate CI
+- Operated remote Rekor as Gate default / **hardware** HSM / Sigstore as Gate default
+  (opt-in Rekor/Fulcio/SoftHSM clients already land under P7-T / P8-I / P8-K; G5
+  labels them — production trust root stays locked)
 - Hardened seccomp / verified rootless / OS-level generator FS isolation
 - Full cargo-fuzz PR-022 security certification
 - Auto `cargo publish`

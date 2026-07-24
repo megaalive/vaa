@@ -581,7 +581,8 @@ fn print_status() {
     );
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
-    println!("evidence note: opt-in Ed25519 when VAA_SEAL_SIGNING_KEY is set (not a trust root)");
+    println!("evidence note: opt-in Ed25519 when VAA_SEAL_SIGNING_KEY is set (practice; not a trust root)");
+    println!("trust ops (G5): signer_kind labels practice-ed25519|sigstore-dsse|hsm-pkcs11; production trust root locked");
     println!("SemASM execution: default static-only; pass --allow-execution for Gate-2 Verified");
     println!("build pipeline: nasm + ld (needs toolchain on PATH); --sandbox container = Scaffold");
     println!(
@@ -717,6 +718,9 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
             println!(
                 "  execution: default Gate = SemASM --allow-execution (semasm_host); opt-in --execution-sandbox = LocalBackend process wrapper (sandbox + backend=local; ≠ container; C-012)"
             );
+            println!(
+                "  trust: integrity seals + opt-in practice Ed25519 / SoftHSM smoke / Rekor+Fulcio clients — not a production trust root (G5 ops proof)"
+            );
             for detail in &report.details {
                 println!("  {detail}");
             }
@@ -735,6 +739,13 @@ fn doctor_command(format: OutputFormat) -> ExitCode {
                     "default": "semasm_host",
                     "opt_in_execution_sandbox": "local",
                     "note": "LocalBackend ≠ container; C-012; Verified ≠ isolation",
+                },
+                "trust_policy": {
+                    "integrity": true,
+                    "authenticity": "opt-in practice",
+                    "signer_kinds": ["practice-ed25519", "sigstore-dsse", "hsm-pkcs11"],
+                    "production_trust_root": false,
+                    "note": "SoftHSM ≠ hardware HSM; Fulcio ≠ Verified; authenticity ≠ semantic truth",
                 },
             });
             println!("{body}");
