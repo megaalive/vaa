@@ -22,9 +22,9 @@ stay `partial`). G4 (isolation ops proof) is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `8b9900c` (Da0). Next landable: SemASM ADR 0009 /
-`docs/A64_RV_DECODE_LOWER_BUMP_PLAN.md` (Da0 landed; caps flip needs
-sign-off). **Production** trust root / hardware HSM / operated remote log as
+**G1–G5 closed.** SemASM tip `d62fb51` (ADR 0009 / Da0–Da5): A64/RV
+`decode`/`lower` → `verified_in_ci` (sample coverage; `control` still
+x86-only). **Production** trust root / hardware HSM / operated remote log as
 Gate default remain Horizon-locked. Authenticity ≠ semantic truth.
 
 | Gate | Status | Evidence level | Notes |
