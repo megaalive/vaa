@@ -421,7 +421,10 @@ when SemASM region-access is Gate-ready
 ([Semantic Evidence Integrity](SEMANTIC_EVIDENCE_INTEGRITY_PLAN.md)). SoftHSM ≠
 HSM; Incomplete ≠ Verified; `verified_under_preconditions` ≠ `verified`.
 
-**Sei P1b / Vd9** — `leaf-pure-v1` on Gate `count_byte`; SemASM pin `b3c576e`
+**Sei P1b / Vd9** — `leaf-pure-v1` on Gate `count_byte` (ingest/semasm/run;
+`[function.memory]` for alias evidence). HlaX64 `count_byte` stays profile-free
+until Win64 effects collection is complete (Incomplete alias → SemASM
+`semantic_failed`). SemASM pin `b3c576e`
 ([SemASM CI](https://github.com/megaalive/semasm/actions/runs/30090784326)).
 
 **Vd8 done** — Gate CI green on SemASM tip `cf0206e`
