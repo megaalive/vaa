@@ -36,9 +36,8 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 
 **External generator bridge (HlaX64 first):** plan
 [`hlax64-vaa-semasm-bridge-plan.md`](hlax64-vaa-semasm-bridge-plan.md).
-**P0 done; P1.7 done (unit-tested):** suite manifest + `vaa suite run` /
-status aggregation. Open P1: patch evidence, path-policy chip, triage.
-Placeholder pack suite ≠ live HlaX64 Gate. Incomplete ≠ Verified.
+**P0 done; P1.7–P1.8 done:** suite runner + patch evidence. Open P1: path
+policy CLI chip, triage. Placeholder pack ≠ live HlaX64 Gate.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

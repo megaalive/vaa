@@ -6,6 +6,7 @@
 mod error;
 mod generate;
 mod identity;
+mod patch;
 mod repo_guard;
 mod run;
 mod spec;
@@ -19,6 +20,11 @@ pub use generate::{
 pub use identity::{
     build_and_identify, build_generator, establish_binary_identity, resolve_generator_binary,
     GeneratorBinaryIdentity,
+};
+pub use patch::{
+    build_patch_evidence, git_changed_files, load_patch_evidence, patch_evidence_digest,
+    validate_patch_evidence, verify_patch_evidence_file, write_patch_evidence, PatchEvidence,
+    PatchEvidenceInput, PatchStatus, PATCH_EVIDENCE_SCHEMA_VERSION,
 };
 pub use repo_guard::{
     check_repository, glob_match, path_policy_violations, resolve_repository_path, RepoGuardConfig,

@@ -15,10 +15,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Added
 
-- **External generator bridge (P0 complete; P1.7)** — plus suite manifest /
-  runner (`vaa suite validate` / `vaa suite run`) with status aggregation and
-  suite evidence JSON. Pack smoke suite uses a placeholder case. Patch
-  evidence / triage = remaining P1. Suite accepted ≠ formal memory safety.
+- **External generator bridge (P0; P1.7–P1.8)** — suite runner plus
+  patch-level evidence (`vaa patch evidence-build` / `evidence-verify`).
+  Remaining P1: path-policy CLI chip, generator-vs-verifier triage.
+  Patch accepted ≠ formal memory safety; Incomplete ≠ Verified.
 
 ### Changed
 

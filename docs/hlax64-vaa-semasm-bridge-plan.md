@@ -1011,14 +1011,18 @@ placeholder case; live HlaX64 corpus acceptance remains follow-up.
 
 ## Milestone 3 — Patch evidence
 
+**Status:** **Done** (code surface) — `vaa patch evidence-build` /
+`evidence-verify` with forbidden-path fail-closed. Live base/patched git
+workflow remains optional.
+
 **Deliverables**
 
-- patch digest;
-- changed-path policy;
-- base and patched revision identity;
-- compiler binary digest;
-- `vaa patch verify`;
-- patch evidence verification.
+- patch digest — **done**;
+- changed-path policy — **done** (via patch policy globs);
+- base and patched revision identity — **done** (recorded fields);
+- generator binary digest — **done**;
+- `vaa patch evidence-verify` — **done**;
+- patch evidence verification — **done**.
 
 **Acceptance**
 
@@ -1231,7 +1235,7 @@ P0  (generic VAA core + first HlaX64 pack config)
 
 P1
 7. suite manifest and runner — **done**
-8. patch-level evidence
+8. patch-level evidence — **done**
 9. allowed/forbidden patch paths
 10. generator-versus-verifier triage
 

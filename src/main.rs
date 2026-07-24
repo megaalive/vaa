@@ -317,6 +317,52 @@ enum Commands {
         #[command(subcommand)]
         command: SuiteCommands,
     },
+    /// Patch evidence commands.
+    Patch {
+        #[command(subcommand)]
+        command: PatchCommands,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum PatchCommands {
+    /// Verify a patch evidence JSON file (structure + honesty invariants).
+    #[command(name = "evidence-verify")]
+    EvidenceVerify {
+        /// Path to patch evidence JSON.
+        file: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Build patch evidence JSON from suite evidence + changed paths.
+    #[command(name = "evidence-build")]
+    EvidenceBuild {
+        /// Path to suite evidence JSON (from `vaa suite run --output`).
+        #[arg(long)]
+        suite_evidence: PathBuf,
+        /// Base revision (`git:<commit>`).
+        #[arg(long)]
+        base: String,
+        /// Patched revision (`git:<commit>`).
+        #[arg(long)]
+        patched: String,
+        /// Generator binary digest (`sha256:…`).
+        #[arg(long)]
+        generator_binary_digest: String,
+        /// Changed file path (repeatable).
+        #[arg(long = "changed")]
+        changed: Vec<String>,
+        /// Optional path to generator spec (for forbidden/allowed paths).
+        #[arg(long)]
+        spec: Option<PathBuf>,
+        /// Output patch evidence JSON path.
+        #[arg(long)]
+        output: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -960,6 +1006,30 @@ fn run_cli() -> ExitCode {
                 )
             }
         },
+        Commands::Patch { command } => match command {
+            PatchCommands::EvidenceVerify { file, format } => {
+                patch_evidence_verify_command(&file, format)
+            }
+            PatchCommands::EvidenceBuild {
+                suite_evidence,
+                base,
+                patched,
+                generator_binary_digest,
+                changed,
+                spec,
+                output,
+                format,
+            } => patch_evidence_build_command(
+                &suite_evidence,
+                &base,
+                &patched,
+                &generator_binary_digest,
+                &changed,
+                spec.as_deref(),
+                &output,
+                format,
+            ),
+        },
     }
 }
 
@@ -969,7 +1039,7 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
@@ -977,7 +1047,7 @@ fn print_status() {
     println!(
         "cache: local `.vaa/cache` opt-in via --cache / VAA_CACHE_DIR (PR-020; not remote log)"
     );
-    println!("generator bridge: P0 done; P1 suite validate/run landed; patch/triage next");
+    println!("generator bridge: P0 + suite + patch evidence; path-policy CLI + triage next");
     println!("SemASM integration: doctor + verify via ProcessRunner (stdout-only report 0.4)");
     println!("evidence: integrity seals (check-seal=JSON drift; verify-bundle=artifact rehash)");
     println!("evidence note: opt-in Ed25519 when VAA_SEAL_SIGNING_KEY is set (practice; not a trust root)");
@@ -1539,6 +1609,148 @@ fn suite_run_command(
                 }
             }
             VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn patch_evidence_verify_command(path: &Path, format: OutputFormat) -> ExitCode {
+    use vaa::generator::verify_patch_evidence_file;
+
+    match verify_patch_evidence_file(path) {
+        Ok(evidence) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: patch evidence verified");
+                    println!("  status: {:?}", evidence.status);
+                    println!("  suite_id: {}", evidence.suite_id);
+                    println!("  patch_digest: {}", evidence.patch_digest);
+                    println!(
+                        "  generator_binary_digest: {}",
+                        evidence.generator_binary_digest
+                    );
+                    println!(
+                        "  forbidden_paths_changed: {}",
+                        evidence.forbidden_paths_changed.len()
+                    );
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "evidence": evidence,
+                    });
+                    println!("{body}");
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(path, format, &error);
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn patch_evidence_build_command(
+    suite_evidence_path: &Path,
+    base: &str,
+    patched: &str,
+    generator_binary_digest: &str,
+    changed: &[String],
+    spec_path: Option<&Path>,
+    output: &Path,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::generator::{
+        build_patch_evidence, load_generator_spec, write_patch_evidence, PatchEvidenceInput,
+        PatchPolicy, PatchStatus, SuiteEvidence,
+    };
+
+    let suite_bytes = match std::fs::read(suite_evidence_path) {
+        Ok(b) => b,
+        Err(source) => {
+            emit_generator_error(
+                suite_evidence_path,
+                format,
+                &vaa::generator::GeneratorError::Io {
+                    path: suite_evidence_path.to_path_buf(),
+                    source,
+                },
+            );
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    let suite: SuiteEvidence = match serde_json::from_slice(&suite_bytes) {
+        Ok(s) => s,
+        Err(error) => {
+            emit_generator_error(
+                suite_evidence_path,
+                format,
+                &vaa::generator::GeneratorError::Parse {
+                    path: suite_evidence_path.to_path_buf(),
+                    message: error.to_string(),
+                },
+            );
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    let patch_policy = if let Some(spec) = spec_path {
+        match load_generator_spec(spec) {
+            Ok(s) => s.patch_policy,
+            Err(error) => {
+                emit_generator_error(spec, format, &error);
+                return VaaExitCode::InvalidInput.as_std();
+            }
+        }
+    } else {
+        PatchPolicy::default()
+    };
+
+    let evidence = match build_patch_evidence(&PatchEvidenceInput {
+        base_revision: base.to_owned(),
+        patched_revision: patched.to_owned(),
+        changed_files: changed.to_vec(),
+        patch_policy,
+        generator_binary_digest: generator_binary_digest.to_owned(),
+        generator_spec_digest: None,
+        stack_lock_digest: suite.stack_lock_digest.clone(),
+        suite_id: suite.suite_id.clone(),
+        suite_digest: suite.suite_digest.clone(),
+        suite_status: suite.status,
+        patch_bytes: None,
+    }) {
+        Ok(e) => e,
+        Err(error) => {
+            emit_generator_error(output, format, &error);
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+
+    if let Err(error) = write_patch_evidence(output, &evidence) {
+        emit_generator_error(output, format, &error);
+        return VaaExitCode::ToolFailure.as_std();
+    }
+
+    match format {
+        OutputFormat::Terminal => {
+            println!("ok: wrote patch evidence {}", output.display());
+            println!("  status: {:?}", evidence.status);
+            println!("  patch_digest: {}", evidence.patch_digest);
+        }
+        OutputFormat::Json => {
+            let body = serde_json::json!({
+                "ok": true,
+                "path": output,
+                "evidence": evidence,
+            });
+            println!("{body}");
+        }
+    }
+
+    match evidence.status {
+        PatchStatus::Accepted => VaaExitCode::Success.as_std(),
+        PatchStatus::Rejected | PatchStatus::Incomplete | PatchStatus::Failed => {
+            VaaExitCode::ToolFailure.as_std()
         }
     }
 }
