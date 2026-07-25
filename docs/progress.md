@@ -143,10 +143,13 @@ locks + CI refs pin `67cba2a`.
 `gate-memory-read-win64` (3) + `gate-memory-write-win64` (3) Accepted
 with **VerifiedUnderPreconditions** only (CI asserts ≠ Verified). Locked
 SemASM Win64 fixtures + `memory-leaf-affine-v1`.
-**Next:** Fb9c stays locked. Compare-repair surfaces closed. Remaining
-landable without a new SemASM chip: **non-compare live repair** (e.g.
-`ABI_CALLEE_SAVED_001` / stack-balance controlled defect + evidence
-fixture) — needs a narrow honest mutation path in HlaX64, not rushed.
+**Non-compare ABI repair done:** Win64 stack-balance live repair
+(`ABI_STACK_BALANCE_001`) — evidence
+`evidence/vaa-live-repair-win64-stack-balance` (`535136d` → `0f4e8bf`);
+main regression `78ea932`; fixture
+`fixtures/repair/hlax64-stack-balance-win64-live-worktree/` + CI Gate **7k**.
+**Next:** SysV stack-balance twin and/or `ABI_CALLEE_SAVED_001` live
+repair if a narrow honest mutation exists; Fb9c stays locked.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

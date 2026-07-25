@@ -114,6 +114,9 @@ vaa patch evidence-verify fixtures/repair/hlax64-max-i64-sysv-live-worktree/patc
 echo "== Gate 7j: SysV max unsigned worktree live repair fixtures =="
 vaa repair verify fixtures/repair/hlax64-max-usize-sysv-live-worktree/repair-packet.json
 vaa patch evidence-verify fixtures/repair/hlax64-max-usize-sysv-live-worktree/patch-evidence.json
+echo "== Gate 7k: Win64 stack-balance worktree live repair fixtures =="
+vaa repair verify fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json
+vaa patch evidence-verify fixtures/repair/hlax64-stack-balance-win64-live-worktree/patch-evidence.json
 json=$(vaa patch evidence-verify fixtures/repair/echoasm-passthrough/patch-evidence.forbidden-failed.json --format json)
 echo "$json" | grep -qi '"status"[[:space:]]*:[[:space:]]*"failed"' \
   || { echo "forbidden fixture must be Failed: $json" >&2; exit 1; }

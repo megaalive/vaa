@@ -127,6 +127,11 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   `replace_byte`/`memset`/`memcpy`) Accepted with
   `VerifiedUnderPreconditions` only (≠ unconditional Verified). CI
   asserts the under_preconditions status explicitly.
+- **Non-compare ABI live repair (Win64 stack-balance)** — controlled
+  omit-`pop rbp` defect → SemASM `STACK_BALANCE_RET` / VAA
+  `ABI_STACK_BALANCE_001`; repaired + framed-proc regression; fixture
+  `hlax64-stack-balance-win64-live-worktree` + CI Gate 7k. Practice seal
+  ≠ trust root.
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate
   `find_first_byte` / `find_last_byte` (+ HlaX64) use
   `memory-leaf-affine-v1` with single-buffer `regions.equal`. Sample ≠
