@@ -155,3 +155,8 @@ Win64 signed greater-than twin:
 `fixtures/repair/hlax64-max-i64-win64-live-worktree/`
 (`evidence/vaa-live-repair-max-signed-win64`, broken `a9bf2ea` → repaired
 `bd85039`; main regression `1500d22`).
+
+SysV signed greater-than twin:
+`fixtures/repair/hlax64-max-i64-sysv-live-worktree/`
+(`evidence/vaa-live-repair-max-signed-sysv`, broken `94a01b2` → repaired
+`938f6bb`; main regression `dcdd33b`).
