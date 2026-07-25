@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.1",
+  "mode": "direct_nasm",
+  "target": "x86_64-pc-windows-msvc",
+  "abi": "win64",
+  "task_id": "count-byte-win64-v1",
+  "writable_paths": ["candidate.asm"],
+  "forbidden_paths": [
+    "**/*.vaa.toml",
+    "**/*.sem.toml",
+    "**/stack.lock.toml",
+    "**/vectors.json"
+  ],
+  "commands": {
+    "doctor": "vaa doctor --format json",
+    "verify": "semasm agent verify candidate.asm contract.sem.toml --target x86_64-pc-windows-msvc --format json",
+    "verify_gate2": "semasm agent verify candidate.asm contract.sem.toml --target x86_64-pc-windows-msvc --format json --allow-execution"
+  },
+  "budget": {
+    "max_candidates": 4,
+    "max_repairs_per_candidate": 2,
+    "max_wall_time_seconds": 300
+  },
+  "digests": {
+    "task": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "contract": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  }
+}

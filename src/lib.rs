@@ -77,7 +77,13 @@ pub use generator::{
     TriageClass, TriageDecision, VerifySummary, GENERATOR_SPEC_SCHEMA_VERSION,
     PATCH_EVIDENCE_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION, SUITE_SCHEMA_VERSION,
 };
-pub use harness::{HarnessConfig, HarnessTemplate};
+pub use harness::{
+    classify_outcome, prepare_direct_nasm, prepare_generator_repair, resume_status,
+    submit_direct_nasm, AgentBudget, AgentCommands, AgentDigests, AgentEnvelope, AgentMode,
+    HarnessConfig, HarnessError, HarnessNextAction, HarnessOutcomeClass, HarnessSubmitResult,
+    HarnessTemplate, PrepareDirectRequest, PrepareGeneratorRequest, SubmitDirectRequest,
+    AGENT_ENVELOPE_SCHEMA_VERSION, HARNESS_SUBMIT_SCHEMA_VERSION,
+};
 pub use inspect::{ArtifactInfo, ArtifactInspector};
 #[cfg(feature = "live-model")]
 pub use model::{build_generation_prompt, LiveModelConfig, OpenAiCompatibleAdapter};
@@ -88,8 +94,9 @@ pub use model::{
 pub use orchestrate::{MachineState, Orchestrator, StateTransition};
 pub use process::{ProcessConfig, ProcessError, ProcessOutput, ProcessRunner};
 pub use run::{
-    assemble_and_inspect, ingest_candidate, run_fixture_loop, EventKind, EventLog, ResumeCursor,
-    RunConfig, RunDir, RunDirPaths, RunError, RunId, RunOutcome, VerifySealOutcome,
+    assemble_and_inspect, ingest_candidate, run_fixture_loop, scan_resume_cursor, EventKind,
+    EventLog, ResumeCursor, RunConfig, RunDir, RunDirPaths, RunError, RunId, RunOutcome,
+    VerifySealOutcome,
 };
 pub use sandbox::{
     probe_rootless_runtime, write_default_seccomp_profile, ContainerBackend, ExecutionSandbox,

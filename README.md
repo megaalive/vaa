@@ -25,6 +25,8 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa build <source.asm> [--target elf64] [--sandbox container]` | Available — NASM + linker; container = Scaffold |
 | `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |
 | `vaa sandbox status` | Available via `vaa status` |
+| `vaa repair …` | Available — repair packet export/verify/rules |
+| `vaa harness prepare\|submit\|resume\|status` | Available — agent façade for direct NASM + generator repair (see `docs/agent-harness.md`) |
 | Model generation / repair | **Fixture adapter** + opt-in **`--live`** (`live-model` feature) |
 | Assemble / link / sandbox execute | **Via toolchain on PATH** |
 | SemASM discovery | `SEMASM_BIN` (file or dir; fail-closed if invalid), else PATH scan |

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentEnvelope",
+  "description": "VAA agent harness envelope 0.1 — discriminates direct_nasm (SemASM TaskPacket) vs generator_repair (VAA RepairPacket).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "mode",
+    "target",
+    "task_id",
+    "writable_paths",
+    "forbidden_paths",
+    "commands",
+    "budget"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "mode": {
+      "type": "string",
+      "enum": ["direct_nasm", "generator_repair"]
+    },
+    "target": { "type": "string", "minLength": 1 },
+    "abi": { "type": ["string", "null"] },
+    "task_id": { "type": "string" },
+    "run_id": { "type": ["string", "null"] },
+    "writable_paths": { "type": "array", "items": { "type": "string" } },
+    "forbidden_paths": { "type": "array", "items": { "type": "string" } },
+    "commands": {
+      "type": "object",
+      "required": ["verify"],
+      "properties": {
+        "doctor": { "type": ["string", "null"] },
+        "verify": { "type": "string" },
+        "verify_gate2": { "type": ["string", "null"] },
+        "regenerate": { "type": ["string", "null"] },
+        "suite": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "budget": {
+      "type": "object",
+      "required": ["max_candidates", "max_wall_time_seconds"],
+      "properties": {
+        "max_candidates": { "type": "integer", "minimum": 1 },
+        "max_repairs_per_candidate": { "type": "integer", "minimum": 0 },
+        "max_wall_time_seconds": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "digests": {
+      "type": "object",
+      "properties": {
+        "task": { "type": ["string", "null"] },
+        "contract": { "type": ["string", "null"] },
+        "candidate": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "semasm_packet_path": { "type": ["string", "null"] },
+    "repair_packet_path": { "type": ["string", "null"] },
+    "workspace_dir": { "type": ["string", "null"] },
+    "prompt_markdown_path": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

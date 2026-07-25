@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RepairPacket",
+  "description": "VAA repair packet schema 0.1 — constrained instructions for fixing a generator under test (never generated assembly or authority files).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "generator_id",
+    "repository",
+    "failure",
+    "generated_artifact",
+    "commands",
+    "constraints"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "task_id": { "type": "string", "minLength": 1 },
+    "generator_id": { "type": "string", "minLength": 1 },
+    "repository": {
+      "type": "object",
+      "required": ["base_revision", "allowed_paths", "forbidden_paths"],
+      "properties": {
+        "base_revision": { "type": "string" },
+        "allowed_paths": { "type": "array", "items": { "type": "string" } },
+        "forbidden_paths": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "failure": {
+      "type": "object",
+      "required": ["classification", "message"],
+      "properties": {
+        "classification": { "type": "string" },
+        "diagnostic_code": { "type": ["string", "null"] },
+        "message": { "type": "string" },
+        "instruction_offset": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "generated_artifact": {
+      "type": "object",
+      "required": ["path", "digest"],
+      "properties": {
+        "path": { "type": "string" },
+        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "source_mapping": {
+      "type": ["object", "null"],
+      "properties": {
+        "generator_input": { "type": ["string", "null"] },
+        "ir_node": { "type": ["string", "null"] },
+        "generator_source": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "commands": {
+      "type": "object",
+      "required": ["build", "regenerate", "verify"],
+      "properties": {
+        "build": { "type": "string" },
+        "regenerate": { "type": "string" },
+        "verify": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}

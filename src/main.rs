@@ -327,6 +327,103 @@ enum Commands {
         #[command(subcommand)]
         command: RepairCommands,
     },
+    /// Agent harness façade (prepare / submit / resume / status) for direct NASM and generator repair.
+    Harness {
+        #[command(subcommand)]
+        command: HarnessCommands,
+    },
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum HarnessModeArg {
+    /// Agent edits candidate `.asm` (SemASM TaskPacket path).
+    #[value(name = "direct-nasm")]
+    DirectNasm,
+    /// Agent edits generator source; must regenerate (VAA RepairPacket path).
+    #[value(name = "generator-repair")]
+    GeneratorRepair,
+}
+
+#[derive(Debug, Subcommand)]
+enum HarnessCommands {
+    /// Materialize workspace + agent envelope for a harness loop.
+    Prepare {
+        /// Workflow mode.
+        #[arg(long, value_enum)]
+        mode: HarnessModeArg,
+        /// Locked task (`task.vaa.toml`) — required for `direct-nasm`.
+        #[arg(long)]
+        task: Option<PathBuf>,
+        /// SemASM contract — required for `direct-nasm`.
+        #[arg(long)]
+        contract: Option<PathBuf>,
+        /// Workspace directory for envelope + candidate files.
+        #[arg(long)]
+        workspace: PathBuf,
+        /// Optional seed `.asm` copied to `candidate.asm` (direct mode).
+        #[arg(long)]
+        seed: Option<PathBuf>,
+        /// Existing repair packet JSON — required for `generator-repair`.
+        #[arg(long)]
+        repair_packet: Option<PathBuf>,
+        /// Target triple override for generator-repair prepare.
+        #[arg(long)]
+        target: Option<String>,
+        /// Prefer Gate-2 verify recipes in the prompt.
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
+        /// Output format (default json for agent consumers).
+        #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
+        format: OutputFormat,
+    },
+    /// Submit a direct-NASM candidate through SemASM and classify the outcome.
+    Submit {
+        /// Locked task file.
+        #[arg(long)]
+        task: PathBuf,
+        /// SemASM contract.
+        #[arg(long)]
+        contract: PathBuf,
+        /// Candidate assembly source.
+        #[arg(long)]
+        source: PathBuf,
+        /// Forward `--allow-execution` to SemASM.
+        #[arg(long, default_value_t = false)]
+        allow_execution: bool,
+        /// Treat `verified_under_preconditions` as accepted.
+        #[arg(long, default_value_t = false)]
+        allow_under_preconditions: bool,
+        /// Optional run directory for resume/status correlation.
+        #[arg(long)]
+        run_dir: Option<PathBuf>,
+        /// SemASM subprocess timeout seconds.
+        #[arg(long, default_value_t = 120)]
+        timeout: u64,
+        /// Optional idempotency / run key (recorded in JSON only).
+        #[arg(long)]
+        idempotency_key: Option<String>,
+        /// Output format (default json).
+        #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
+        format: OutputFormat,
+    },
+    /// Resume cursor for an existing sealed run directory.
+    Resume {
+        /// Run directory with sealed candidates / events.
+        #[arg(long)]
+        run_dir: PathBuf,
+        /// Output format (default json).
+        #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
+        format: OutputFormat,
+    },
+    /// Alias of `resume` (status snapshot).
+    Status {
+        /// Run directory with sealed candidates / events.
+        #[arg(long)]
+        run_dir: PathBuf,
+        /// Output format (default json).
+        #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -1278,6 +1375,53 @@ fn run_cli() -> ExitCode {
                 format,
             ),
         },
+        Commands::Harness { command } => match command {
+            HarnessCommands::Prepare {
+                mode,
+                task,
+                contract,
+                workspace,
+                seed,
+                repair_packet,
+                target,
+                allow_execution,
+                format,
+            } => harness_prepare_command(
+                mode,
+                task.as_deref(),
+                contract.as_deref(),
+                &workspace,
+                seed.as_deref(),
+                repair_packet.as_deref(),
+                target.as_deref(),
+                allow_execution,
+                format,
+            ),
+            HarnessCommands::Submit {
+                task,
+                contract,
+                source,
+                allow_execution,
+                allow_under_preconditions,
+                run_dir,
+                timeout,
+                idempotency_key,
+                format,
+            } => harness_submit_command(
+                &task,
+                &contract,
+                &source,
+                allow_execution,
+                allow_under_preconditions,
+                run_dir.as_deref(),
+                timeout,
+                idempotency_key.as_deref(),
+                format,
+            ),
+            HarnessCommands::Resume { run_dir, format } | HarnessCommands::Status { run_dir, format } => {
+                harness_resume_command(&run_dir, format)
+            }
+        },
     }
 }
 
@@ -1287,7 +1431,7 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch, repair");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch, repair, harness");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
@@ -2538,6 +2682,179 @@ fn repair_rules_command(
         }
     }
     VaaExitCode::Success.as_std()
+}
+
+fn harness_prepare_command(
+    mode: HarnessModeArg,
+    task: Option<&Path>,
+    contract: Option<&Path>,
+    workspace: &Path,
+    seed: Option<&Path>,
+    repair_packet: Option<&Path>,
+    target: Option<&str>,
+    allow_execution: bool,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::{prepare_direct_nasm, prepare_generator_repair, PrepareDirectRequest, PrepareGeneratorRequest};
+
+    let result = match mode {
+        HarnessModeArg::DirectNasm => {
+            let (Some(task), Some(contract)) = (task, contract) else {
+                eprintln!("error: --task and --contract are required for --mode direct-nasm");
+                return VaaExitCode::InvalidInput.as_std();
+            };
+            prepare_direct_nasm(&PrepareDirectRequest {
+                task: task.to_path_buf(),
+                contract: contract.to_path_buf(),
+                workspace: workspace.to_path_buf(),
+                seed_source: seed.map(Path::to_path_buf),
+                allow_execution_in_recipes: allow_execution,
+            })
+        }
+        HarnessModeArg::GeneratorRepair => {
+            let Some(repair_packet) = repair_packet else {
+                eprintln!("error: --repair-packet is required for --mode generator-repair");
+                return VaaExitCode::InvalidInput.as_std();
+            };
+            prepare_generator_repair(&PrepareGeneratorRequest {
+                repair_packet: repair_packet.to_path_buf(),
+                workspace: workspace.to_path_buf(),
+                target: target.unwrap_or("x86_64-pc-windows-msvc").to_owned(),
+            })
+        }
+    };
+
+    match result {
+        Ok(envelope) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: harness prepare ({})", envelope.mode.as_str());
+                    println!("  task_id: {}", envelope.task_id);
+                    println!("  target: {}", envelope.target);
+                    if let Some(path) = &envelope.workspace_dir {
+                        println!("  workspace: {path}");
+                    }
+                    if let Some(path) = &envelope.prompt_markdown_path {
+                        println!("  prompt: {path}");
+                    }
+                }
+                OutputFormat::Json => {
+                    println!("{}", serde_json::to_string_pretty(&envelope).unwrap_or_else(|e| {
+                        format!(r#"{{"ok":false,"error":"{e}"}}"#)
+                    }));
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            eprintln!("error: harness prepare failed: {error}");
+            if matches!(format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "ok": false,
+                        "error": error.to_string(),
+                    })
+                );
+            }
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn harness_submit_command(
+    task: &Path,
+    contract: &Path,
+    source: &Path,
+    allow_execution: bool,
+    allow_under_preconditions: bool,
+    run_dir: Option<&Path>,
+    timeout: u64,
+    idempotency_key: Option<&str>,
+    format: OutputFormat,
+) -> ExitCode {
+    use vaa::{submit_direct_nasm, SubmitDirectRequest};
+
+    match submit_direct_nasm(&SubmitDirectRequest {
+        task: task.to_path_buf(),
+        contract: contract.to_path_buf(),
+        source: source.to_path_buf(),
+        allow_execution,
+        allow_under_preconditions,
+        run_dir: run_dir.map(Path::to_path_buf),
+        timeout_secs: timeout,
+    }) {
+        Ok(mut result) => {
+            if let Some(key) = idempotency_key {
+                // Keep machine JSON pure: fold the key into the message for controllers.
+                result.message = format!("[{key}] {}", result.message);
+            }
+            match format {
+                OutputFormat::Terminal => {
+                    println!(
+                        "harness submit: class={} next={:?} exit={}",
+                        result.class.as_str(),
+                        result.next_action,
+                        result.exit_code
+                    );
+                    println!("  {}", result.message);
+                }
+                OutputFormat::Json => {
+                    println!("{}", serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
+                        format!(r#"{{"ok":false,"error":"{e}"}}"#)
+                    }));
+                }
+            }
+            std::process::ExitCode::from(result.exit_code)
+        }
+        Err(error) => {
+            eprintln!("error: harness submit failed: {error}");
+            if matches!(format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "ok": false,
+                        "error": error.to_string(),
+                    })
+                );
+            }
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn harness_resume_command(run_dir: &Path, format: OutputFormat) -> ExitCode {
+    use vaa::resume_status;
+
+    match resume_status(run_dir) {
+        Ok(status) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: harness resume/status");
+                    println!("{status}");
+                }
+                OutputFormat::Json => {
+                    println!("{}", serde_json::to_string_pretty(&status).unwrap_or_else(|e| {
+                        format!(r#"{{"ok":false,"error":"{e}"}}"#)
+                    }));
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            eprintln!("error: harness resume failed: {error}");
+            if matches!(format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "ok": false,
+                        "error": error.to_string(),
+                    })
+                );
+            }
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
 }
 
 fn repair_verify_command(path: &Path, format: OutputFormat) -> ExitCode {

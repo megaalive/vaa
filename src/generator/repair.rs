@@ -354,4 +354,14 @@ forbidden_paths = ["**/stack.lock.toml"]
         assert!(json_path.with_extension("md").is_file());
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn golden_repair_packet_fixture_loads() {
+        let raw = include_str!("../../schemas/fixtures/repair-packet.golden.json");
+        let packet: RepairPacket = serde_json::from_str(raw).expect("golden");
+        assert_eq!(packet.schema_version, REPAIR_PACKET_SCHEMA_VERSION);
+        assert!(!packet.repository.allowed_paths.is_empty());
+        assert!(!packet.constraints.is_empty());
+        assert!(!packet.commands.build.is_empty());
+    }
 }

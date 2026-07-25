@@ -1,4 +1,4 @@
-//! SemASM `agent verify` adapter: stdout-only VerificationReport parse (0.4+).
+//! SemASM `agent verify` adapter: stdout-only VerificationReport / agent_failure parse (0.4+).
 
 use std::path::Path;
 use std::time::Duration;
@@ -63,6 +63,27 @@ pub enum VerifyError {
     ParseFailed(String),
     #[error("verification timed out")]
     Timeout,
+    /// Structured early failure from SemASM (stdout JSON, not a VerificationReport).
+    #[error("semasm agent_failure {code}: {message}")]
+    AgentFailure {
+        code: String,
+        message: String,
+        stage: Option<String>,
+        retryability: Option<String>,
+        raw_json: String,
+    },
+}
+
+impl VerifyError {
+    /// Stable failure code when available.
+    #[must_use]
+    pub fn failure_code(&self) -> Option<&str> {
+        match self {
+            Self::AgentFailure { code, .. } => Some(code.as_str()),
+            Self::Timeout => Some("TIMEOUT"),
+            _ => None,
+        }
+    }
 }
 
 /// Subprocess adapter for `semasm agent verify --format json`.
@@ -76,6 +97,18 @@ impl SemasmVerify {
         binary: &Path,
         target: &str,
         allow_execution: bool,
+    ) -> Result<VerifyReport, VerifyError> {
+        Self::run_with_timeout(source, contract, binary, target, allow_execution, 120)
+    }
+
+    /// Like [`Self::run`] with an explicit subprocess timeout (seconds).
+    pub fn run_with_timeout(
+        source: &Path,
+        contract: &Path,
+        binary: &Path,
+        target: &str,
+        allow_execution: bool,
+        timeout_secs: u64,
     ) -> Result<VerifyReport, VerifyError> {
         let mut args = vec![
             "agent".to_owned(),
@@ -93,7 +126,7 @@ impl SemasmVerify {
         let config = ProcessConfig {
             program: binary.to_path_buf(),
             args,
-            timeout: Duration::from_secs(120),
+            timeout: Duration::from_secs(timeout_secs.max(1)),
             max_output_bytes: 4 * 1_048_576,
             // TEMP/TMP + Windows roots required; PATH/HOME/USER alone fails scratch dir.
             allowed_env: crate::semasm::doctor::semasm_subprocess_allowed_env(),
@@ -192,10 +225,41 @@ impl SemasmVerify {
         })
     }
 
-    /// Parse a SemASM VerificationReport JSON document (stdout body only).
+    /// Parse a SemASM VerificationReport **or** agent_failure envelope (stdout body only).
     pub fn parse_report(json: &str) -> Result<VerifyReport, VerifyError> {
-        let raw: VerifyReportRaw =
+        let value: serde_json::Value =
             serde_json::from_str(json).map_err(|e| VerifyError::ParseFailed(e.to_string()))?;
+
+        if value.get("kind").and_then(|k| k.as_str()) == Some("agent_failure") {
+            let code = value
+                .get("code")
+                .and_then(|c| c.as_str())
+                .unwrap_or("UNKNOWN")
+                .to_owned();
+            let message = value
+                .get("message")
+                .and_then(|m| m.as_str())
+                .unwrap_or("agent_failure")
+                .to_owned();
+            let stage = value
+                .get("stage")
+                .and_then(|s| s.as_str())
+                .map(str::to_owned);
+            let retryability = value
+                .get("retryability")
+                .and_then(|s| s.as_str())
+                .map(str::to_owned);
+            return Err(VerifyError::AgentFailure {
+                code,
+                message,
+                stage,
+                retryability,
+                raw_json: json.to_owned(),
+            });
+        }
+
+        let raw: VerifyReportRaw =
+            serde_json::from_value(value).map_err(|e| VerifyError::ParseFailed(e.to_string()))?;
 
         Self::check_schema_version(raw.schema_version.as_deref())?;
 
@@ -409,5 +473,26 @@ mod tests {
     fn missing_status_returns_error() {
         let result = SemasmVerify::parse_report(r#"{"schema_version":"0.4"}"#);
         assert!(matches!(result.unwrap_err(), VerifyError::ParseFailed(_)));
+    }
+
+    #[test]
+    fn parse_agent_failure_envelope() {
+        let json = r#"{
+            "schema_version": "0.1",
+            "kind": "agent_failure",
+            "code": "UNSUPPORTED_SHAPE",
+            "stage": "unsupported_shape",
+            "message": "no vectors",
+            "retryability": "never"
+        }"#;
+        let err = SemasmVerify::parse_report(json).expect_err("must be agent_failure");
+        match &err {
+            VerifyError::AgentFailure { code, message, .. } => {
+                assert_eq!(code, "UNSUPPORTED_SHAPE");
+                assert_eq!(message, "no vectors");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        assert_eq!(err.failure_code(), Some("UNSUPPORTED_SHAPE"));
     }
 }
