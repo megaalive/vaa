@@ -150,3 +150,8 @@ Win64 unsigned greater-than twin:
 `fixtures/repair/hlax64-max-usize-win64-live-worktree/`
 (`evidence/vaa-live-repair-max-unsigned-win64`, broken `e68aac7` → repaired
 `ee3b1b2`; main regression `3f63c1b`).
+
+Win64 signed greater-than twin:
+`fixtures/repair/hlax64-max-i64-win64-live-worktree/`
+(`evidence/vaa-live-repair-max-signed-win64`, broken `a9bf2ea` → repaired
+`bd85039`; main regression `1500d22`).

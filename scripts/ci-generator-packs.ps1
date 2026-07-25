@@ -122,6 +122,9 @@ Invoke-Vaa patch evidence-verify fixtures/repair/hlax64-min-i64-sysv-live-worktr
 Write-Host "== Gate 7g: Win64 max unsigned worktree live repair fixtures =="
 Invoke-Vaa repair verify fixtures/repair/hlax64-max-usize-win64-live-worktree/repair-packet.json
 Invoke-Vaa patch evidence-verify fixtures/repair/hlax64-max-usize-win64-live-worktree/patch-evidence.json
+Write-Host "== Gate 7h: Win64 max signed worktree live repair fixtures =="
+Invoke-Vaa repair verify fixtures/repair/hlax64-max-i64-win64-live-worktree/repair-packet.json
+Invoke-Vaa patch evidence-verify fixtures/repair/hlax64-max-i64-win64-live-worktree/patch-evidence.json
 $jsonText = & cargo run -q -- patch evidence-verify $forbidden --format json
 if ($LASTEXITCODE -ne 0) { throw "forbidden fixture failed structural verify" }
 $parsed = $jsonText | ConvertFrom-Json
