@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1",
+  "compiler_revision": "hlax64:0.2.1-alpha",
+  "entries": [
+    {
+      "assembly_line": 12,
+      "hla_source": "input.hla64:14:5",
+      "ir_node": "Move#1",
+      "compiler_source": "src/HlaX64.Compiler/Abi/MemoryRefEncoding.cs:EmitLoad"
+    },
+    {
+      "assembly_line": 14,
+      "hla_source": "input.hla64:15:5",
+      "ir_node": "Move#2",
+      "compiler_source": "src/HlaX64.Compiler/Abi/MemoryRefEncoding.cs:EmitLoad"
+    },
+    {
+      "assembly_line": 16,
+      "hla_source": "input.hla64:16:5",
+      "ir_node": "Move#3",
+      "compiler_source": "src/HlaX64.Compiler/Abi/MemoryRefEncoding.cs:EmitLoad"
+    }
+  ]
+}

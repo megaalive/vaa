@@ -152,9 +152,12 @@ main regression `78ea932`; fixture
 evidence `evidence/vaa-live-repair-win64-callee-saved` (`9bf1e7b` →
 `8e9d582`); main regression `89c4e20`; fixture
 `hlax64-callee-saved-win64-live-worktree` + CI Gate **7l**.
-**Next:** SysV ABI twins blocked on this Windows host (need Linux
-cross-toolchain / `hlax64-pack-sysv-gate`). Fb9c stays locked. Honest
-next empty here until Linux SysV ABI repair or a new SemASM chip.
+**SysV stack-balance twin done (WSL):** `ABI_STACK_BALANCE_001` —
+evidence `evidence/vaa-live-repair-sysv-stack-balance` (`9cec09d` →
+`0b9dee2`); main regression `40d778d`; fixture
+`hlax64-stack-balance-sysv-live-worktree` + CI Gate **7m**. Broken/repaired
+`loop-stack-sysv` Gate via WSL (Linux `dotnet` + `semasm`).
+**Next:** SysV callee-saved twin if narrow; Fb9c stays locked.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "task_id": "stack-local-i64-sysv-stack-balance-live-v1",
+  "generator_id": "hlax64",
+  "repository": {
+    "base_revision": "git:0df45a5228c90fec0f052848fc12674a3201cd25",
+    "allowed_paths": [
+      "src/HlaX64.Compiler/Abi/**",
+      "src/HlaX64.Compiler/Ir/**",
+      "src/HlaX64.Backend.Nasm/**",
+      "tests/HlaX64.Compiler.Tests/**"
+    ],
+    "forbidden_paths": [
+      "**/integrations/hlax64/cases/**/task.vaa.toml",
+      "**/integrations/hlax64/cases/**/contract.sem.toml",
+      "**/integrations/hlax64/cases/**/vectors.json",
+      "**/integrations/hlax64/stack.lock.toml"
+    ]
+  },
+  "failure": {
+    "classification": "generator_candidate_violated",
+    "diagnostic_code": "ABI_STACK_BALANCE_001",
+    "message": "SemASM semantic_failed: System V AMD64 ABI STACK_BALANCE_RET (framed SysV leaf omitted pop rbp before ret)"
+  },
+  "generated_artifact": {
+    "path": "candidate.asm",
+    "digest": "sha256:823162de79f3ba9c81dc5d52ec125359c2f2013d8ee3f5a6a8ca839b52271b12"
+  },
+  "source_mapping": {
+    "generator_input": "integrations/hlax64/cases/stack_local_i64_sysv/input.hla64",
+    "ir_node": "SysV framed epilogue",
+    "generator_source": "src/HlaX64.Compiler/Abi/SysVAbiLowerer.cs:181"
+  },
+  "commands": {
+    "build": "dotnet build src/HlaX64.Cli/HlaX64.Cli.csproj -c Release --nologo",
+    "regenerate": "./scripts/run-hlax64-suite.sh --gate --suite integrations/hlax64/suites/loop-stack-sysv.vaa-suite.toml --repo ../hlax64-live-repair-sysv-stack-balance",
+    "verify": "dotnet test tests/HlaX64.Compiler.Tests/HlaX64.Compiler.Tests.csproj --filter FullyQualifiedName~Emit_SysVFramedProc_BalancesRbpPushPop"
+  },
+  "constraints": [
+    "Do not edit generated assembly manually",
+    "Do not edit contracts, vectors, task files, or stack.lock.toml",
+    "Regenerate all candidates after generator changes",
+    "Run the required regression suite before completion"
+  ]
+}

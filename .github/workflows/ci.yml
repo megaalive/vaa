@@ -256,7 +256,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
-          ref: 89c4e20ceb6f042a3d161dd7107b1c08fdc4df12
+          ref: 40d778da5094a90e2bdf25f99fd00c8d33484356
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -949,7 +949,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
-          ref: 89c4e20ceb6f042a3d161dd7107b1c08fdc4df12
+          ref: 40d778da5094a90e2bdf25f99fd00c8d33484356
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
