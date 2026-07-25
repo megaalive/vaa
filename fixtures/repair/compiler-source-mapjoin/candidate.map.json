@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "compiler_revision": "git:485fca874727763376a67204b243d63aec73dbee",
+  "entries": [
+    {
+      "assembly_line": 12,
+      "instruction_offset": "0x10",
+      "hla_source": "fixtures/repair/compiler-source-mapjoin/synthetic.hla64:8",
+      "ir_node": "StoreByte#1",
+      "compiler_source": "src/HlaX64.Compiler/Abi/Win64AbiLowerer.cs:214"
+    }
+  ]
+}

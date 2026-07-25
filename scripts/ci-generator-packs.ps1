@@ -61,6 +61,7 @@ Invoke-Vaa suite check-parity integrations/hlax64/suites/negative-reject-win64.v
 Invoke-Vaa suite check-parity integrations/hlax64/suites/backend-win64.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/echoasm/suites/smoke.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/echoasm/suites/gate-load-byte0-win64.vaa-suite.toml
+Invoke-Vaa suite check-parity integrations/echoasm/suites/gate-concrete-win64.vaa-suite.toml
 
 Write-Host "== Gate 3: EchoAsm deterministic generation =="
 $gen = (Resolve-Path "integrations/echoasm/tools/echoasm.cmd").Path
@@ -94,6 +95,9 @@ if (-not (Test-Path $accepted)) {
 Invoke-Vaa patch evidence-verify $accepted
 Invoke-Vaa repair verify fixtures/repair/hlax64-min-usize-sysv-live/repair-packet.json
 Invoke-Vaa patch evidence-verify fixtures/repair/hlax64-min-usize-sysv-live/patch-evidence.json
+Write-Host "== Gate 7b: repair export compiler_source map-join =="
+& "$PSScriptRoot/ci-repair-compiler-source-mapjoin.ps1"
+if ($LASTEXITCODE -ne 0) { throw "compiler_source map-join e2e failed" }
 $jsonText = & cargo run -q -- patch evidence-verify $forbidden --format json
 if ($LASTEXITCODE -ne 0) { throw "forbidden fixture failed structural verify" }
 $parsed = $jsonText | ConvertFrom-Json

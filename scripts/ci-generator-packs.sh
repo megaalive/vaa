@@ -48,6 +48,7 @@ vaa suite check-parity integrations/hlax64/suites/negative-reject-win64.vaa-suit
 vaa suite check-parity integrations/hlax64/suites/backend-win64.vaa-suite.toml
 vaa suite check-parity integrations/echoasm/suites/smoke.vaa-suite.toml
 vaa suite check-parity integrations/echoasm/suites/gate-load-byte0-win64.vaa-suite.toml
+vaa suite check-parity integrations/echoasm/suites/gate-concrete-win64.vaa-suite.toml
 
 echo "== Gate 3: EchoAsm deterministic generation =="
 mkdir -p target/ci-echoasm
@@ -75,6 +76,8 @@ echo "== Gate 7: patch evidence fixtures =="
 vaa patch evidence-verify fixtures/repair/echoasm-passthrough/patch-evidence.json
 vaa repair verify fixtures/repair/hlax64-min-usize-sysv-live/repair-packet.json
 vaa patch evidence-verify fixtures/repair/hlax64-min-usize-sysv-live/patch-evidence.json
+echo "== Gate 7b: repair export compiler_source map-join =="
+bash "$ROOT/scripts/ci-repair-compiler-source-mapjoin.sh"
 json=$(vaa patch evidence-verify fixtures/repair/echoasm-passthrough/patch-evidence.forbidden-failed.json --format json)
 echo "$json" | grep -qi '"status"[[:space:]]*:[[:space:]]*"failed"' \
   || { echo "forbidden fixture must be Failed: $json" >&2; exit 1; }
