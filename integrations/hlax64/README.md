@@ -50,6 +50,8 @@ $env:HLAX64_ROOT = "<path-to-hlax64>"
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml
 # Phase A named i64 (Win64): return/add/sub/min/max/abs_i64
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-i64-win64.vaa-suite.toml
+# Phase B named loops/stack (Win64)
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/loop-stack-win64.vaa-suite.toml
 # Phase E calls / data (Win64)
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
 # SysV live (System V AMD64 — emits rdi/rsi arg registers)
@@ -75,10 +77,16 @@ $env:HLAX64_ROOT = "<path-to-hlax64>"
 # (builtin.pure_int.binary_i64 / unary_i64 oracles).
 ./scripts/run-hlax64-suite.ps1 -Gate `
   -Suite integrations/hlax64/suites/scalar-i64-win64.vaa-suite.toml
+# Phase B loops/stack Gate (4 Verified) — requires SemASM 3cae1e1+
+./scripts/run-hlax64-suite.ps1 -Gate `
+  -Suite integrations/hlax64/suites/loop-stack-win64.vaa-suite.toml
+# Negative suite must Reject (locked wrong min_i64)
+./scripts/ci-negative-suite-reject.ps1
 ```
 
 Expect suite status **Accepted** with cases **Verified**. Practice seal ≠
-trust root.
+trust root. Generator emit also writes `candidate.map.json` (join with
+`vaa generator map-join <map> --line N`).
 
 ## Gate pack suite SysV (Linux)
 

@@ -1,0 +1,22 @@
+# Negative suite — locked broken generator input that must Reject.
+# Case `min_i64_wrong` emits MAX instead of MIN; SemASM Gate must Violated
+# and suite status must be rejected. Not part of the positive corpus.
+# Honesty: this proves fail-closed suite aggregation, not a production leaf.
+schema_version = "0.1"
+suite_id = "hlax64.backend.negative-reject.win64.v0"
+target = "x86_64-pc-windows-msvc"
+abi = "win64"
+stack_lock = "../stack.lock.toml"
+required_cases = [
+  "../cases/min_i64_wrong",
+]
+
+[generator]
+spec = "../generator.spec.toml"
+
+[policy]
+require_all_cases = true
+allow_verified_under_preconditions = false
+allow_incomplete = false
+stop_on_first_failure = false
+max_parallel_cases = 1

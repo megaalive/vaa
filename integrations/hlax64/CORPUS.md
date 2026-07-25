@@ -14,7 +14,7 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 | Phase | Plan cases | Pack status |
 |---|---|---|
 | A — scalar leaf | `return_i64`, `add_i64`, `sub_i64`, `min_i64`, `max_i64`, `abs_i64` | **done** (named i64 pack wired; Win64 Gate Accepted, 6 Verified via SemASM `builtin.pure_int.binary_i64` / `unary_i64`, SemASM 566ca8e+). `min_usize` / `max_usize` retained as the usize-oracle pair. |
-| B — loops / stack | `sum_range`, `countdown_loop`, `stack_local_i64`, `forced_register_spill` | **proxy:** `sum_i64` (pointer+length loop). Stack spill cases open. |
+| B — loops / stack | `sum_range`, `countdown_loop`, `stack_local_i64`, `forced_register_spill` | **done** (named pack wired; Win64 Gate Accepted, 4 Verified via SemASM unary i64 v2 — `sum_range` / `countdown` / identity aliases). `sum_i64` retained as buffer-sum oracle proxy. |
 | C — memory reads | `count_byte`, `find_first_byte`, `find_last_byte`, `memcmp` | **done** (pack wired) |
 | D — memory writes | `replace_byte`, `memset`, `memcpy` | **done** (pack wired) |
 | E — calls / data | `internal_function_call`, `nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return` | **done** (pack wired; live Win64 generate). `small_struct_return` exercises aggregate layout/field offsets and returns a scalar (HlaX64 returns via register). |
@@ -27,7 +27,9 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 | `suites/scalar-win64.vaa-suite.toml` | Phase A usize pair (Win64) |
 | `suites/scalar-i64-win64.vaa-suite.toml` | Phase A named i64 (Win64) — Gate needs SemASM 566ca8e+ |
 | `suites/scalar-sysv.vaa-suite.toml` | Phase A SysV — **live** via `generator.sysv.spec.toml` |
-| `suites/loop-win64.vaa-suite.toml` | Phase B proxy |
+| `suites/loop-win64.vaa-suite.toml` | Phase B proxy (`sum_i64`) |
+| `suites/loop-stack-win64.vaa-suite.toml` | Phase B named loops/stack (Win64) — Gate needs SemASM 3cae1e1+ |
+| `suites/negative-reject-win64.vaa-suite.toml` | Locked wrong `min_i64` (must Reject / Violated) |
 | `suites/memory-read-win64.vaa-suite.toml` | Phase C |
 | `suites/memory-write-win64.vaa-suite.toml` | Phase D |
 | `suites/calls-data-win64.vaa-suite.toml` | Phase E (calls / data) |

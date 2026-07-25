@@ -79,13 +79,21 @@ naturally occurring production incident; practice seal ≠ trust root.
 **Phase A named i64 done:** 6 cases (`return_i64`, `add_i64`, `sub_i64`,
 `min_i64`, `max_i64`, `abs_i64`) + `suites/scalar-i64-win64.vaa-suite.toml`;
 SemASM grew pure-int i64 oracles (`builtin.pure_int.binary_i64` v1 wrapping
-add/sub + min/max, `builtin.pure_int.unary_i64` v1 identity/wrapping-abs,
-new single-register `PureIntUnary` harness on 4 ABIs; SemASM `566ca8e`).
+add/sub + min/max, `builtin.pure_int.unary_i64` v2 identity/wrapping-abs/
+`sum_range`/`countdown` + Phase-B identity aliases, new single-register
+`PureIntUnary` harness on 4 ABIs; SemASM `3cae1e1`).
 Win64 pack Gate: suite **Accepted**, 6/6 **Verified** (real execution,
 signed/wrapping vectors). CI gates the i64 suite on `hlax64-bridge`.
-**Next:** Phase B named stack/spill cases (`stack_local_i64`,
-`forced_register_spill`, `sum_range`, `countdown_loop`) or HlaX64
-source-map emission (`candidate.map.json`, Milestone 5 pack-side).
+**Phase B named loops/stack done:** 4 cases (`sum_range`, `countdown_loop`,
+`stack_local_i64`, `forced_register_spill`) +
+`suites/loop-stack-win64.vaa-suite.toml`; Gate **Accepted** 4/4 Verified.
+**Source-map emission done:** HlaX64 `22ef241` emits VAA `candidate.map.json`
+via `--source-map`; pack specs enable it; CI map-joins after Phase B Gate.
+**Negative suite done:** `min_i64_wrong` + `negative-reject-win64` must
+**Rejected** / **Violated** (`scripts/ci-negative-suite-reject.ps1`).
+**Next:** deepen pack Gate coverage (Phase C/D/E Gate, not generate-only),
+or SysV named i64/loop-stack Gate parity, or tighten HlaX64 IR→NASM line
+mapping quality (many entries currently share the function label line).
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

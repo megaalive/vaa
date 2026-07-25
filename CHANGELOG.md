@@ -63,8 +63,20 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   marshalling. Win64 pack Gate: suite **Accepted**, 6/6 **Verified** (real
   execution). CI: `hlax64-bridge` gates the i64 suite; pack-matrix
   validates/parity-checks it; SemASM pins for pack-gate jobs bumped to
-  `566ca8e` (stack lock updated). `abs_i64` expresses negation as `0 - x`
+  `566ca8e` (stack lock updated).   `abs_i64` expresses negation as `0 - x`
   (HlaX64 has no `neg`).
+  **Phase B named loops/stack:** 4 cases (`sum_range`, `countdown_loop`,
+  `stack_local_i64`, `forced_register_spill`) +
+  `suites/loop-stack-win64.vaa-suite.toml`. SemASM `3cae1e1` unary i64 v2
+  adds `sum_range` + `countdown` (small vectors) + identity aliases.
+  Win64 pack Gate: **Accepted**, 4/4 **Verified**.
+  **HlaX64 source-map emission:** `emit-nasm --source-map` writes VAA
+  `candidate.map.json` (schema 0.1) beside the asm (`22ef241`); pack specs
+  enable `--source-map`; CI map-joins after Phase B Gate.
+  **Negative suite reject:** locked `min_i64_wrong` (implements max) +
+  `suites/negative-reject-win64.vaa-suite.toml` +
+  `scripts/ci-negative-suite-reject.ps1` assert suite **Rejected** with
+  **Violated** — fail-closed without live agent edits.
 
 ### Changed
 

@@ -879,6 +879,13 @@ Covers:
 
 ### 17.2 Phase B — loops and stack
 
+**Status: Done (named).** Four cases packed under `integrations/hlax64/cases/`
+with suite `suites/loop-stack-win64.vaa-suite.toml`; Win64 pack Gate ran
+**Accepted** with 4 **Verified** via SemASM unary i64 v2 (`sum_range`,
+`countdown`, identity aliases for `stack_local` / `spill`; SemASM
+`3cae1e1`+). `sum_i64` remains as the buffer-sum oracle proxy in
+`loop-win64`.
+
 ```text
 sum_range
 countdown_loop
@@ -1082,9 +1089,12 @@ Committed packet/evidence:
 
 ## Milestone 5 — Source mapping
 
-**Status:** **Done** (code surface) — `candidate.map.json` schema 0.1 +
-`vaa generator map-join` + `repair export --map` offset join with explicit
-§13.3 fallback. Live HlaX64 map emission remains open (pack side).
+**Status:** **Done** (code surface + live HlaX64 emission).
+`candidate.map.json` schema 0.1 + `vaa generator map-join` +
+`repair export --map` offset join with explicit §13.3 fallback.
+HlaX64 `emit-nasm --source-map` writes both `.hlamap.json` (native) and
+VAA `candidate.map.json` beside the asm (`22ef241`+). Pack generator
+specs pass `--source-map`; CI joins a live map after Phase B Gate.
 
 **Deliverables**
 

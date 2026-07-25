@@ -247,16 +247,16 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: match integrations/hlax64/stack.lock.toml (pure-int i64 oracles).
-          ref: 566ca8e5bae60fc5dd14f9dbc966d8d2423acf48
+          # Pin: match integrations/hlax64/stack.lock.toml (unary i64 v2 + Phase B).
+          ref: 3cae1e1f9582ef6bffbb455f6c326cc51237f9bc
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: match integrations/hlax64/stack.lock.toml generators.hlax64.
-          ref: 53797298833a367d7fa1737fdf24bb1229a026e2
+          # Pin: match integrations/hlax64/stack.lock.toml (VAA candidate.map.json).
+          ref: 22ef2417192c16238ab1ca92ef1ae88d9139063f
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -397,6 +397,51 @@ jobs:
           }
           Write-Host "Gate pack scalar i64 suite Accepted (6 Verified)"
           Get-Content target/hlax64-suite-runs/scalar-i64-gate-evidence.json | Select-Object -First 30
+
+      - name: Gate HlaX64 pack Phase B loop/stack suite (generate + SemASM Verified)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          # Plan §17.2 Phase B named loops/stack. Requires SemASM 3cae1e1+
+          # (unary i64 v2: sum_range / countdown / identity aliases).
+          ./scripts/run-hlax64-suite.ps1 `
+            -Gate `
+            -Suite integrations/hlax64/suites/loop-stack-win64.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -RunDir target/hlax64-suite-runs/loop-stack-gate `
+            -Output target/hlax64-suite-runs/loop-stack-gate-evidence.json
+          $ev = Get-Content -Raw target/hlax64-suite-runs/loop-stack-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) {
+            throw "Gate Phase B suite status=$($ev.status) (expected Accepted)"
+          }
+          if (@($ev.cases).Count -ne 4) {
+            throw "Gate Phase B suite expected 4 cases, got $(@($ev.cases).Count)"
+          }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'Verified') {
+              throw "Gate case $($c.case_id) status=$($c.status) (expected Verified)"
+            }
+          }
+          # Milestone 5 pack-side: generator emits candidate.map.json (schema 0.1).
+          $maps = Get-ChildItem target/hlax64-suite-runs/loop-stack-gate -Recurse -Filter candidate.map.json
+          if ($maps.Count -lt 4) {
+            throw "expected >=4 candidate.map.json sidecars, got $($maps.Count)"
+          }
+          $join = & cargo run -q -- generator map-join $maps[0].FullName --line 7 --format json
+          if ($LASTEXITCODE -ne 0) { throw "map-join failed on $($maps[0].FullName)" }
+          Write-Host "Gate pack Phase B Accepted (4 Verified) + source maps joinable"
+          Get-Content target/hlax64-suite-runs/loop-stack-gate-evidence.json | Select-Object -First 30
+
+      - name: Negative HlaX64 suite must Reject (locked wrong min_i64)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          ./scripts/ci-negative-suite-reject.ps1 `
+            -Repo $env:HLAX64_ROOT `
+            -RunDir target/hlax64-suite-runs/negative-reject `
+            -Output target/hlax64-suite-runs/negative-reject-evidence.json
 
       - name: Live HlaX64 Phase E calls/data suite (generate-only)
         shell: pwsh
@@ -645,7 +690,7 @@ jobs:
           if-no-files-found: error
 
   # Pack Gate SysV: live HlaX64 generate (linux-x64-sysv) + SemASM Verified on Linux.
-  # Requires SemASM 566ca8e+ (SysV framed epilogue + pure-int i64 oracles).
+  # Requires SemASM 3cae1e1+ (SysV framed epilogue + unary i64 v2).
   # Practice seal != trust root.
   hlax64-pack-sysv-gate:
     name: Gate HlaX64 pack scalar SysV (Linux)
@@ -659,15 +704,16 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: match integrations/hlax64/stack.lock.toml (pure-int i64 oracles).
-          ref: 566ca8e5bae60fc5dd14f9dbc966d8d2423acf48
+          # Pin: match integrations/hlax64/stack.lock.toml (unary i64 v2 + Phase B).
+          ref: 3cae1e1f9582ef6bffbb455f6c326cc51237f9bc
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
         with:
           repository: megaalive/hlax64
           path: hlax64
-          ref: 53797298833a367d7fa1737fdf24bb1229a026e2
+          # Pin: match integrations/hlax64/stack.lock.toml (VAA candidate.map.json).
+          ref: 22ef2417192c16238ab1ca92ef1ae88d9139063f
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
