@@ -944,11 +944,12 @@ multiple_exports,small_struct_return}` with `suites/calls-data-win64.vaa-suite.t
 scalar via register (HlaX64 has no by-value struct return). Incomplete ≠
 Verified; SemASM Gate for Phase E remains open.
 
-**SysV live:** `integrations/hlax64/generator.sysv.spec.toml` emits
-`--target linux-x64-sysv`. `suites/scalar-sysv.vaa-suite.toml` now generates
-real System V AMD64 assembly (`rdi`/`rsi` argument registers, CI-asserted).
-Emitting SysV text works from any host; full SemASM **Gate** on Linux (a
-non-`--skip-verify` `vaa suite run`) is still owed.
+**SysV live + Gate:** `integrations/hlax64/generator.sysv.spec.toml` emits
+`--target linux-x64-sysv`. `suites/scalar-sysv.vaa-suite.toml` generates
+real System V AMD64 assembly (`rdi`/`rsi` argument registers, CI-asserted)
+and on Linux runs SemASM Gate (`scripts/run-hlax64-suite.sh --gate`) to
+**Accepted** / **Verified** (`min_usize_sysv`, `max_usize_sysv`). Requires
+SemASM `afaa19d+` (SysV framed epilogue). Practice seal ≠ trust root.
 
 ---
 
@@ -1096,12 +1097,16 @@ deliberately broken backend case remains open.
   generate → SemASM `--allow-execution` → suite **Accepted** (`min_usize` /
   `max_usize` **Verified**). SemASM subprocess env allowlist includes
   `TEMP`/`TMP` (Windows scratch dir). Practice seal ≠ trust root.
+- **Pack Gate (SysV scalar, Linux):** `scripts/run-hlax64-suite.sh --gate`
+  on `scalar-sysv` → **Accepted** (`min_usize_sysv` / `max_usize_sysv`
+  **Verified**). SemASM `afaa19d` accepts SysV framed `mov rsp,rbp`
+  epilogues (parity with Win64). CI job `hlax64-pack-sysv-gate`.
 - SysV live generation via `generator.sysv.spec.toml`
   (emit-nasm `--target linux-x64-sysv`; `rdi`/`rsi` argument registers,
-  CI-asserted). SysV **Gate** on Linux still owed.
+  CI-asserted).
 - Locked EchoAsm repair patch-evidence fixtures (Accepted + forbidden Failed)
 - CI: `generator-packs` matrix (ubuntu/windows) + HlaX64 bridge live pack
-  suites (scalar / Phase E / SysV) + Gate pack scalar
+  suites (scalar / Phase E / SysV) + Gate pack scalar (Win64 + SysV)
 
 **Honesty:** EchoAsm repair smoke ≠ a live HlaX64 backend defect fixed by an
 agent. SemASM Gate Verified remains the existing `hlax64-bridge` ingest

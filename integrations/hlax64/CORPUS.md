@@ -44,20 +44,26 @@ vaa suite check-parity integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
 Known first-cut profiles: `x86_64-pc-windows-msvc`/`win64`,
 `x86_64-unknown-linux-gnu`/`sysv`.
 
-## SysV live generation
+## SysV live generation + Gate
 
-SysV suites now generate real System V AMD64 assembly via a dedicated
+SysV suites generate real System V AMD64 assembly via a dedicated
 spec that targets `linux-x64-sysv`:
 
 ```text
+# Generate only (Incomplete)
 vaa suite run integrations/hlax64/suites/scalar-sysv.vaa-suite.toml \
-  --repo ../hlax64 --skip-verify   # emit-only; Incomplete ≠ Verified
+  --repo ../hlax64 --skip-verify
+
+# Gate on Linux (Accepted / Verified) — needs SemASM afaa19d+ (framed epilogue)
+./scripts/run-hlax64-suite.sh --gate \
+  --suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
 ```
 
 The emitted `candidate.asm` uses System V argument registers (`rdi`,
-`rsi`, ...) — CI asserts this. Emitting SysV text works from any host;
-full SemASM **Gate** evidence on Linux still requires a non-`--skip-verify`
-`vaa suite run` with the SysV toolchain, which this pack does not yet claim.
+`rsi`, ...) — CI asserts this. Pack Gate on Linux is claimed by the
+`hlax64-pack-sysv-gate` job (`min_usize_sysv` / `max_usize_sysv` Verified).
+Practice seal is not a trust root. SemASM SysV ABI now accepts HlaX64
+`mov rsp, rbp` framed epilogues (parity with Win64).
 
 ## Case layout
 

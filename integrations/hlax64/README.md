@@ -72,4 +72,16 @@ $env:HLAX64_ROOT = "<path-to-hlax64>"
 ```
 
 Expect suite status **Accepted** with cases **Verified**. Practice seal ≠
-trust root. SysV Gate on Linux remains the next step.
+trust root.
+
+## Gate pack suite SysV (Linux)
+
+```bash
+export HLAX64_ROOT="<path-to-hlax64>"
+# Requires Linux host + semasm on PATH (afaa19d+: SysV framed epilogue).
+./scripts/run-hlax64-suite.sh --gate \
+  --suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
+```
+
+CI job `hlax64-pack-sysv-gate` runs this path. SysV emit uses `rdi`/`rsi`;
+Gate Accepted with `min_usize_sysv` / `max_usize_sysv` Verified.

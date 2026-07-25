@@ -62,7 +62,13 @@ SemASM Gate — full Linux `vaa suite run` without `--skip-verify` still owed.
 `min_usize`/`max_usize` **Verified** (live generate → SemASM). Fix:
 `semasm_subprocess_allowed_env` now forwards `TEMP`/`TMP` (+ Windows roots)
 so `agent verify` can create its scratch dir. Practice seal ≠ trust root.
-**Next:** SysV Gate on Linux (`scalar-sysv` without `--skip-verify`).
+**Pack Gate (SysV scalar, Linux):** `scalar-sysv` generate + SemASM
+`--allow-execution` → **Accepted** (`min_usize_sysv`/`max_usize_sysv`
+**Verified**). SemASM `afaa19d` accepts SysV `mov rsp,rbp` framed
+epilogues (parity with Win64). `scripts/run-hlax64-suite.sh --gate` + CI
+`hlax64-pack-sysv-gate`. Stack lock pins SemASM `afaa19d`.
+**Next:** live agent repair on a deliberately broken HlaX64 backend case
+(Milestone 4/6 acceptance).
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

@@ -40,7 +40,11 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   + `--allow-execution` accepts `scalar-win64` (`min_usize`/`max_usize`
   Verified). SemASM subprocess allowlist now includes `TEMP`/`TMP` (scratch
   dir). `scripts/run-hlax64-suite.ps1 -Gate`. Practice seal ≠ trust root.
-  Honesty locks unchanged.
+  **Pack Gate (SysV scalar, Linux):** `scalar-sysv` Accepted with
+  `min_usize_sysv`/`max_usize_sysv` Verified. Depends on SemASM `afaa19d`
+  (SysV framed `mov rsp,rbp` epilogue). `scripts/run-hlax64-suite.sh --gate`
+  + CI `hlax64-pack-sysv-gate`. Stack lock SemASM pin bumped. Honesty locks
+  unchanged.
 
 ### Changed
 

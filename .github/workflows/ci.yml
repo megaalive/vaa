@@ -615,6 +615,97 @@ jobs:
           path: target/vaa-transparency/gate2-linux/
           if-no-files-found: error
 
+  # Pack Gate SysV: live HlaX64 generate (linux-x64-sysv) + SemASM Verified on Linux.
+  # Requires SemASM afaa19d+ (SysV mov rsp,rbp framed epilogue). Practice seal != trust root.
+  hlax64-pack-sysv-gate:
+    name: Gate HlaX64 pack scalar SysV (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v6
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          # Pin: match integrations/hlax64/stack.lock.toml (SysV frame-epilogue fix).
+          ref: afaa19df394b58ad5e4d5aaa47b715aace54f5e7
+
+      - name: Checkout HlaX64
+        uses: actions/checkout@v6
+        with:
+          repository: megaalive/hlax64
+          path: hlax64
+          ref: 4546be1da3bac70e68e9027e9b323903e1800e71
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install NASM, LLVM (ld.lld), and qemu-user
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm lld qemu-user
+          command -v qemu-x86_64
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        run: |
+          SEMASM_BIN="${GITHUB_WORKSPACE}/semasm/target/release"
+          test -x "${SEMASM_BIN}/semasm"
+          echo "${SEMASM_BIN}" >> "$GITHUB_PATH"
+          export PATH="${SEMASM_BIN}:$PATH"
+          command -v semasm
+          semasm --version
+
+      - name: Gate pack scalar-sysv (generate + SemASM Verified)
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          set -euo pipefail
+          chmod +x scripts/run-hlax64-suite.sh scripts/ci-gate-sign-setup.sh
+          ./scripts/run-hlax64-suite.sh \
+            --gate \
+            --suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml \
+            --repo "${HLAX64_ROOT}" \
+            --run-dir target/hlax64-suite-runs/scalar-sysv-gate \
+            --output target/hlax64-suite-runs/scalar-sysv-gate/suite-evidence.json
+          python3 - <<'PY'
+          import json
+          ev = json.load(open("target/hlax64-suite-runs/scalar-sysv-gate/suite-evidence.json", encoding="utf-8"))
+          assert ev.get("status", "").lower() == "accepted", ev
+          for c in ev.get("cases", []):
+              assert c.get("status") == "Verified", c
+          print("Gate pack SysV Accepted:", [c["case_id"] for c in ev["cases"]])
+          PY
+          for f in target/hlax64-suite-runs/scalar-sysv-gate/suite-out/*/candidate.asm; do
+            grep -Eq '\brdi\b' "$f"
+            grep -Eq '\brsi\b' "$f"
+            echo "SysV registers ok: $f"
+          done
+
+      - name: Upload SysV pack Gate evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: hlax64-pack-sysv-gate-evidence
+          path: target/hlax64-suite-runs/scalar-sysv-gate/
+          if-no-files-found: error
+
   # Milestone 6: generator pack matrix (schema / parity / echoasm / patch evidence).
   # Does not claim HlaX64 Gate Verified or a live agent backend repair.
   generator-packs:
