@@ -92,9 +92,13 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   **Source-map `compiler_source`:** HlaX64 `485fca8` emits backend loci in
   `candidate.map.json`; CI asserts after Phase B Gate.
   **Fb4 Indexed (SemASM `ca11fc7`):** modeled `base+index*scale+disp`;
-  under_preconditions ≠ proven_inside (Fb5 locked).
-  **EchoAsm Gate:** `gate-load-byte0-win64` second-generator **Verified**.
-
+  under_preconditions ≠ proven_inside without const index.
+  **Fb5 constant-index (SemASM `ebd5114`):** `index_const` →
+  `proven_inside` on literal regions; Fb6 loop-index locked.
+  **EchoAsm Gate depth:** `gate-concrete-win64` (`load_byte0` +
+  `store_byte0`) second-generator **Verified**.
+  **Repair `compiler_source` map-join E2E:** fixture + CI asserts
+  `repair export --map` fills `generator_source`.
 ### Changed
 
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate

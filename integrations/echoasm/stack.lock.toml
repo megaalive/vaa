@@ -3,15 +3,15 @@ schema_version = "0.1"
 
 [vaa]
 repository = "https://github.com/megaalive/vaa"
-revision = "git:153d7a3f82d0babd830c2431e51cb9660ba9bfd7"
+revision = "git:9d40be87ba26bc86b34c5ec1c9b1db705f427224"
 
 [semasm]
 repository = "https://github.com/megaalive/semasm"
-revision = "git:ca11fc71884ea97e504af219f5d5bae16c22569c"
+revision = "git:ebd51147803fcf78487f95b99887e263967225fe"
 
 [toolchain]
 rust = "1.85"
 
 [generators.echoasm]
 repository = "local:integrations/echoasm"
-revision = "git:153d7a3f82d0babd830c2431e51cb9660ba9bfd7"
+revision = "git:9d40be87ba26bc86b34c5ec1c9b1db705f427224"

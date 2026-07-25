@@ -110,11 +110,16 @@ Phase C/D remain `VerifiedUnderPreconditions` (honest; not promoted).
 **Source-map `compiler_source` done:** HlaX64 `485fca8` stamps Abi/NASM
 loci into `candidate.map.json`; CI asserts presence after Phase B Gate.
 **Fb4 Indexed done (SemASM `ca11fc7`):** `AccessAddr::Indexed` modeled;
-region_access under_preconditions (≠ proven_inside). Fb5 locked.
-**EchoAsm Gate done:** `gate-load-byte0-win64` — second generator reaches
-**Verified** via copy of `load_byte0` (universality ≠ CryptOpt).
-**Next:** Fb5 static index-range proof; deeper EchoAsm corpus; or repair
-packet end-to-end using `compiler_source` join.
+region_access under_preconditions (≠ proven_inside) without const index.
+**Fb5 constant-index done:** `index_const` fold → `proven_inside` on
+literal regions (SemASM tip after Fb5 commit). Loop index (Fb6) locked.
+**EchoAsm Gate done:** `gate-concrete-win64` — `load_byte0` + `store_byte0`
+second generator **Verified** (universality ≠ CryptOpt).
+**Repair map-join E2E done:** `fixtures/repair/compiler-source-mapjoin` +
+CI asserts `repair export --map` fills `generator_source` from
+`compiler_source`.
+**Next:** Fb6 loop-carried index; richer live repair exercise; or more
+EchoAsm/HlaX64 leaves.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

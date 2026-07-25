@@ -248,7 +248,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: ca11fc71884ea97e504af219f5d5bae16c22569c
+          ref: ebd51147803fcf78487f95b99887e263967225fe
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -808,7 +808,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: ca11fc71884ea97e504af219f5d5bae16c22569c
+          ref: ebd51147803fcf78487f95b99887e263967225fe
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
