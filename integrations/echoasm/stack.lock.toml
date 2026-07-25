@@ -1,4 +1,4 @@
-# EchoAsm pack ??? stack lock (exact pins only).
+# EchoAsm pack — stack lock (exact pins only).
 schema_version = "0.1"
 
 [vaa]
