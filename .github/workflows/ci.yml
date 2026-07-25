@@ -248,7 +248,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: 5d81be5c747989e97fa1894891d240afc2e7889f
+          ref: 53f89998b4a885e9b3ac932398f0e71dcd91f459
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -517,7 +517,7 @@ jobs:
           }
           Write-Host "Gate EchoAsm concrete cells Accepted (2 Verified)"
 
-      - name: Gate EchoAsm return_i64 (second-generator scalar Verified)
+      - name: Gate EchoAsm scalar-i64 (second-generator Verified)
         shell: pwsh
         run: |
           # Beyond concrete cells: pure-int identity via copy-generator.
@@ -533,11 +533,11 @@ jobs:
             --allow-execution
           $ev = Get-Content -Raw target/echoasm-suite-runs/scalar-i64-gate-evidence.json | ConvertFrom-Json
           if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm scalar Gate status=$($ev.status)" }
-          if (@($ev.cases).Count -ne 1) { throw "EchoAsm scalar Gate expected 1 case" }
+          if (@($ev.cases).Count -ne 2) { throw "EchoAsm scalar Gate expected 2 cases" }
           foreach ($c in $ev.cases) {
             if ([string]$c.status -ne 'Verified') { throw "EchoAsm $($c.case_id)=$($c.status)" }
           }
-          Write-Host "Gate EchoAsm return_i64 Accepted (Verified)"
+          Write-Host "Gate EchoAsm scalar-i64 Accepted (2 Verified)"
 
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh
@@ -830,7 +830,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: 5d81be5c747989e97fa1894891d240afc2e7889f
+          ref: 53f89998b4a885e9b3ac932398f0e71dcd91f459
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6

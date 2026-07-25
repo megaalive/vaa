@@ -8,6 +8,7 @@ abi = "win64"
 stack_lock = "../stack.lock.toml"
 required_cases = [
   "../cases/return_i64_echo",
+  "../cases/add_i64_echo",
 ]
 
 [generator]
