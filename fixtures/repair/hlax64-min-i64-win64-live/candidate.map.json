@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "compiler_revision": "git:485fca874727763376a67204b243d63aec73dbee",
+  "entries": [
+    {
+      "assembly_line": 19,
+      "instruction_offset": "0x2c",
+      "hla_source": "integrations/hlax64/cases/min_i64_wrong/input.hla64:14",
+      "ir_node": "CompareKind.GreaterThanSigned",
+      "compiler_source": "src/HlaX64.Compiler/Abi/WindowsMsAbiLowerer.cs:442"
+    },
+    {
+      "assembly_line": 13,
+      "hla_source": "integrations/hlax64/cases/min_i64_wrong/input.hla64:11",
+      "ir_node": "Move#1",
+      "compiler_source": "src/HlaX64.Compiler/Abi/MemoryRefEncoding.cs:EmitLoad"
+    }
+  ]
+}

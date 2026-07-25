@@ -352,6 +352,10 @@ enum RepairCommands {
         /// Offending instruction offset (e.g. `0x17`).
         #[arg(long)]
         instruction_offset: Option<String>,
+        /// Optional 1-based assembly line; joins `--map` by `assembly_line`
+        /// when `--instruction-offset` is absent (plan §13).
+        #[arg(long)]
+        map_line: Option<u64>,
         /// Path of the generated artifact (relative to run dir).
         #[arg(long, default_value = "candidate.asm")]
         artifact: String,
@@ -368,7 +372,8 @@ enum RepairCommands {
         #[arg(long)]
         map_source: Option<String>,
         /// Optional `candidate.map.json`; joined by `--instruction-offset`
-        /// to auto-fill source mapping (fallback: assembly context only).
+        /// or `--map-line` to auto-fill source mapping (fallback: assembly
+        /// context only).
         #[arg(long)]
         map: Option<PathBuf>,
         /// Regenerate command shown to the agent.
@@ -1220,6 +1225,7 @@ fn run_cli() -> ExitCode {
                 message,
                 diagnostic_code,
                 instruction_offset,
+                map_line,
                 artifact,
                 artifact_digest,
                 map_input,
@@ -1239,6 +1245,7 @@ fn run_cli() -> ExitCode {
                     message,
                     diagnostic_code,
                     instruction_offset,
+                    map_line,
                     artifact,
                     artifact_digest,
                     map_input,
@@ -2333,6 +2340,7 @@ struct RepairExportConfig {
     message: String,
     diagnostic_code: Option<String>,
     instruction_offset: Option<String>,
+    map_line: Option<u64>,
     artifact: String,
     artifact_digest: String,
     map_input: Option<String>,
@@ -2347,9 +2355,9 @@ struct RepairExportConfig {
 
 fn repair_export_command(config: &RepairExportConfig, format: OutputFormat) -> ExitCode {
     use vaa::generator::{
-        build_repair_packet, entry_to_repair_mapping, join_by_offset, load_generator_spec,
-        load_source_map, write_repair_packet, RepairCommands as Commands, RepairPacketInput,
-        RepairSourceMapping,
+        build_repair_packet, entry_to_repair_mapping, join_by_assembly_line, join_by_offset,
+        load_generator_spec, load_source_map, write_repair_packet, RepairCommands as Commands,
+        RepairPacketInput, RepairSourceMapping,
     };
 
     let spec = match load_generator_spec(&config.spec) {
@@ -2376,18 +2384,32 @@ fn repair_export_command(config: &RepairExportConfig, format: OutputFormat) -> E
     if let Some(map_path) = &config.map {
         match load_source_map(map_path) {
             Ok(map) => {
-                if let Some(offset) = &config.instruction_offset {
-                    if let Some(entry) = join_by_offset(&map, offset) {
+                let joined = if let Some(offset) = &config.instruction_offset {
+                    join_by_offset(&map, offset)
+                } else if let Some(line) = config.map_line {
+                    join_by_assembly_line(&map, line)
+                } else {
+                    None
+                };
+                match (&config.instruction_offset, config.map_line, joined) {
+                    (_, _, Some(entry)) => {
                         source_mapping = Some(entry_to_repair_mapping(entry));
-                    } else {
+                    }
+                    (Some(offset), _, None) => {
                         eprintln!(
                             "note: no source map entry for offset {offset}; packet keeps assembly context only"
                         );
                     }
-                } else {
-                    eprintln!(
-                        "note: --map given without --instruction-offset; packet keeps assembly context only"
-                    );
+                    (None, Some(line), None) => {
+                        eprintln!(
+                            "note: no source map entry for assembly line {line}; packet keeps assembly context only"
+                        );
+                    }
+                    (None, None, None) => {
+                        eprintln!(
+                            "note: --map given without --instruction-offset or --map-line; packet keeps assembly context only"
+                        );
+                    }
                 }
             }
             Err(error) => {
