@@ -157,7 +157,12 @@ evidence `evidence/vaa-live-repair-sysv-stack-balance` (`9cec09d` →
 `0b9dee2`); main regression `40d778d`; fixture
 `hlax64-stack-balance-sysv-live-worktree` + CI Gate **7m**. Broken/repaired
 `loop-stack-sysv` Gate via WSL (Linux `dotnet` + `semasm`).
-**Next:** SysV callee-saved twin if narrow; Fb9c stays locked.
+**SysV callee-saved twin done (WSL):** `ABI_CALLEE_SAVED_001` —
+evidence `evidence/vaa-live-repair-sysv-callee-saved` (`4461cbd` →
+`e23b1d9`); main regression `0778aad`; fixture
+`hlax64-callee-saved-sysv-live-worktree` + CI Gate **7n**.
+**Next:** Fb9c stays locked. Honest next empty until a new SemASM chip
+or non-ABI repair surface.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
