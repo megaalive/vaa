@@ -136,9 +136,12 @@ main regression `0df45a5`).
 `vaa build`, `SEMASM_BIN` fail-closed discovery override, SemASM `*-abi`
 zero-decode guard. Harness shapes / `void` / hosted-program harness stay
 locked (product claims, not bugfixes).
+**Inspect `--target` done (SemASM `67cba2a`):** `decode`/`cfg`/`analyze`
+accept a known triple; `analyze` remains x86-only (fail-closed). Stack
+locks + CI refs pin `67cba2a`.
 **Next:** Fb9c stays locked without a new narrow claim; compare-repair
-surfaces closed. Further waves need a new SemASM chip, EchoAsm C/D
-honesty-bound leaves, or non-compare repair diagnostics.
+surfaces closed. Further waves: EchoAsm C/D honesty-bound leaves, or
+non-compare repair diagnostics.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

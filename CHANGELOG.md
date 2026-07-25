@@ -119,6 +119,9 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   behavioral harness stay locked pending a narrow honest claim.
 ### Changed
 
+- **SemASM pin `67cba2a`** — stack locks + CI refs after inspect
+  `decode`/`cfg`/`analyze --target` (ISA-constrained raw-blob inspect;
+  `analyze` remains x86-only). Gate behaviour unchanged.
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate
   `find_first_byte` / `find_last_byte` (+ HlaX64) use
   `memory-leaf-affine-v1` with single-buffer `regions.equal`. Sample ≠
