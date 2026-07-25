@@ -8,7 +8,7 @@ revision = "git:1cdc56314c19a6f2b517aff843e644583d914b62"
 
 [semasm]
 repository = "https://github.com/megaalive/semasm"
-revision = "git:e6b85fce9df605864d70485a8ade3a2906d0a73b"
+revision = "git:2bb9c9c29f561be2d277c0931ff81a35857a65e0"
 
 [toolchain]
 rust = "1.85"
