@@ -136,3 +136,7 @@ vaa patch evidence-verify fixtures/repair/hlax64-min-usize-sysv-live/patch-evide
 The broken evidence branch returned max instead of min for 4/6 vectors.
 Only actual HlaX64 ABI/test paths were editable; authority files were
 untouched. Post-repair `scalar-sysv` was Accepted (2/2 Verified).
+
+Win64 unsigned worktree twin: `fixtures/repair/hlax64-min-usize-win64-live-worktree/`
+(`evidence/vaa-live-repair-unsigned-win64`, broken `64d5344` → repaired
+`9a41cb2`; main regression `f75d710`).
