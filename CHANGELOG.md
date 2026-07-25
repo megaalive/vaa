@@ -89,6 +89,11 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   `memory-leaf-concrete-v1` (no caller obligations) + suite
   `memory-concrete-win64`. SemASM `28fb22f`. Gate expects unconditional
   **Verified**; does not promote symbolic-length Phase C/D.
+  **Source-map `compiler_source`:** HlaX64 `485fca8` emits backend loci in
+  `candidate.map.json`; CI asserts after Phase B Gate.
+  **Fb4 Indexed (SemASM `ca11fc7`):** modeled `base+index*scale+disp`;
+  under_preconditions ≠ proven_inside (Fb5 locked).
+  **EchoAsm Gate:** `gate-load-byte0-win64` second-generator **Verified**.
 
 ### Changed
 

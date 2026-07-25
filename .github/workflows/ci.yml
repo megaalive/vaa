@@ -248,7 +248,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: 28fb22f07d654dcdd0c9dc1ddfea47ff460ccd4f
+          ref: ca11fc71884ea97e504af219f5d5bae16c22569c
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -256,7 +256,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
-          ref: 62c9f2227c33f03003e6a1a28a1fc61ae902e621
+          ref: 485fca874727763376a67204b243d63aec73dbee
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -436,7 +436,11 @@ jobs:
           if ($distinct.Count -lt 2) {
             throw "source map quality: expected >=2 distinct assembly_line values"
           }
-          Write-Host "Gate pack Phase B Accepted (4 Verified) + source maps joinable ($($distinct.Count) distinct lines)"
+          $withCs = @($json.entries | Where-Object { $_.compiler_source -or $_.generator_source })
+          if ($withCs.Count -lt 1) {
+            throw "source map quality: expected compiler_source on at least one entry"
+          }
+          Write-Host "Gate pack Phase B Accepted (4 Verified) + source maps joinable ($($distinct.Count) distinct lines, compiler_source present)"
           Get-Content target/hlax64-suite-runs/loop-stack-gate-evidence.json | Select-Object -First 30
 
       - name: Gate HlaX64 pack Phase C memory-read (VerifiedUnderPreconditions)
@@ -489,6 +493,29 @@ jobs:
             }
           }
           Write-Host "Gate pack memory-concrete Accepted (2 Verified)"
+
+      - name: Gate EchoAsm load_byte0 (second-generator Verified)
+        shell: pwsh
+        run: |
+          # Universality: EchoAsm copy-generator + SemASM concrete cell Gate.
+          # Requires SemASM ca11fc7+ (load_byte0 oracle). Practice seal ≠ trust root.
+          if (-not $env:VAA_SEAL_SIGNING_KEY) {
+            ./scripts/ci-gate-sign-setup.ps1
+          }
+          New-Item -ItemType Directory -Force -Path target/echoasm-suite-runs/load-byte0-gate | Out-Null
+          cargo run -q -- suite run integrations/echoasm/suites/gate-load-byte0-win64.vaa-suite.toml `
+            --repo . `
+            --run-dir target/echoasm-suite-runs/load-byte0-gate `
+            --output target/echoasm-suite-runs/load-byte0-gate-evidence.json `
+            --skip-repo-guard `
+            --allow-execution
+          $ev = Get-Content -Raw target/echoasm-suite-runs/load-byte0-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm Gate status=$($ev.status)" }
+          if (@($ev.cases).Count -ne 1) { throw "EchoAsm Gate expected 1 case" }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'Verified') { throw "EchoAsm $($c.case_id)=$($c.status)" }
+          }
+          Write-Host "Gate EchoAsm load_byte0 Accepted (Verified)"
 
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh
@@ -781,7 +808,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: 28fb22f07d654dcdd0c9dc1ddfea47ff460ccd4f
+          ref: ca11fc71884ea97e504af219f5d5bae16c22569c
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -789,7 +816,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
-          ref: 62c9f2227c33f03003e6a1a28a1fc61ae902e621
+          ref: 485fca874727763376a67204b243d63aec73dbee
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5

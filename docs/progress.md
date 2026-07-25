@@ -107,8 +107,14 @@ NASM opcode lines via `; ir:N` annotations (CI asserts ≥2 distinct
 (reject caller obligations). SemASM `28fb22f` literal-length cells →
 unconditional **Verified** (region_access `passed`). Symbolic-length
 Phase C/D remain `VerifiedUnderPreconditions` (honest; not promoted).
-**Next:** map `compiler_source` join quality in repair packets; or Fb4
-index-bounded `AccessAddr`; or widen corpus / other generators.
+**Source-map `compiler_source` done:** HlaX64 `485fca8` stamps Abi/NASM
+loci into `candidate.map.json`; CI asserts presence after Phase B Gate.
+**Fb4 Indexed done (SemASM `ca11fc7`):** `AccessAddr::Indexed` modeled;
+region_access under_preconditions (≠ proven_inside). Fb5 locked.
+**EchoAsm Gate done:** `gate-load-byte0-win64` — second generator reaches
+**Verified** via copy of `load_byte0` (universality ≠ CryptOpt).
+**Next:** Fb5 static index-range proof; deeper EchoAsm corpus; or repair
+packet end-to-end using `compiler_source` join.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
