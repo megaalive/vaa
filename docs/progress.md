@@ -148,8 +148,13 @@ SemASM Win64 fixtures + `memory-leaf-affine-v1`.
 `evidence/vaa-live-repair-win64-stack-balance` (`535136d` → `0f4e8bf`);
 main regression `78ea932`; fixture
 `fixtures/repair/hlax64-stack-balance-win64-live-worktree/` + CI Gate **7k**.
-**Next:** SysV stack-balance twin and/or `ABI_CALLEE_SAVED_001` live
-repair if a narrow honest mutation exists; Fb9c stays locked.
+**Win64 callee-saved live repair done:** `ABI_CALLEE_SAVED_001` —
+evidence `evidence/vaa-live-repair-win64-callee-saved` (`9bf1e7b` →
+`8e9d582`); main regression `89c4e20`; fixture
+`hlax64-callee-saved-win64-live-worktree` + CI Gate **7l**.
+**Next:** SysV ABI twins blocked on this Windows host (need Linux
+cross-toolchain / `hlax64-pack-sysv-gate`). Fb9c stays locked. Honest
+next empty here until Linux SysV ABI repair or a new SemASM chip.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

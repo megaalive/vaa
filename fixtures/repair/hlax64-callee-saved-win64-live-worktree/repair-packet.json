@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "task_id": "stack-local-i64-win64-callee-saved-live-v1",
+  "generator_id": "hlax64",
+  "repository": {
+    "base_revision": "git:0df45a5228c90fec0f052848fc12674a3201cd25",
+    "allowed_paths": [
+      "src/HlaX64.Compiler/Abi/**",
+      "src/HlaX64.Compiler/Ir/**",
+      "src/HlaX64.Backend.Nasm/**",
+      "tests/HlaX64.Compiler.Tests/**"
+    ],
+    "forbidden_paths": [
+      "**/integrations/hlax64/cases/**/task.vaa.toml",
+      "**/integrations/hlax64/cases/**/contract.sem.toml",
+      "**/integrations/hlax64/cases/**/vectors.json",
+      "**/integrations/hlax64/stack.lock.toml"
+    ]
+  },
+  "failure": {
+    "classification": "generator_candidate_violated",
+    "diagnostic_code": "ABI_CALLEE_SAVED_001",
+    "message": "SemASM semantic_failed: Microsoft x64 ABI CALLEE_SAVED (framed Win64 leaf xors rbx without save/restore)"
+  },
+  "generated_artifact": {
+    "path": "candidate.asm",
+    "digest": "sha256:a4361bd6fcfb8648dd0832c085d836d34197d9ec35a180844a1fc8ba9169c2e4"
+  },
+  "source_mapping": {
+    "generator_input": "integrations/hlax64/cases/stack_local_i64/input.hla64",
+    "ir_node": "Win64 procedure prologue",
+    "generator_source": "src/HlaX64.Compiler/Abi/WindowsMsAbiLowerer.cs:75"
+  },
+  "commands": {
+    "build": "dotnet build src/HlaX64.Cli/HlaX64.Cli.csproj -c Release --nologo",
+    "regenerate": "./scripts/run-hlax64-suite.ps1 -Gate -Suite integrations/hlax64/suites/loop-stack-win64.vaa-suite.toml -Repo ../hlax64-live-repair-win64-callee-saved",
+    "verify": "dotnet test tests/HlaX64.Compiler.Tests/HlaX64.Compiler.Tests.csproj --filter FullyQualifiedName~Emit_Win64FramedProc_DoesNotClobberRbxUnsaved"
+  },
+  "constraints": [
+    "Do not edit generated assembly manually",
+    "Do not edit contracts, vectors, task files, or stack.lock.toml",
+    "Regenerate all candidates after generator changes",
+    "Run the required regression suite before completion"
+  ]
+}

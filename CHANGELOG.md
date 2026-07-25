@@ -132,6 +132,11 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   `ABI_STACK_BALANCE_001`; repaired + framed-proc regression; fixture
   `hlax64-stack-balance-win64-live-worktree` + CI Gate 7k. Practice seal
   ≠ trust root.
+- **Non-compare ABI live repair (Win64 callee-saved)** — controlled
+  unsaved `xor rbx` prologue clobber → SemASM callee-saved ABI fail /
+  VAA `ABI_CALLEE_SAVED_001`; repaired + regression; fixture
+  `hlax64-callee-saved-win64-live-worktree` + CI Gate 7l. Practice seal
+  ≠ trust root.
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate
   `find_first_byte` / `find_last_byte` (+ HlaX64) use
   `memory-leaf-affine-v1` with single-buffer `regions.equal`. Sample ≠
