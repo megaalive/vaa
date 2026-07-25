@@ -128,11 +128,10 @@ remain Fb9c locked (no narrow honest path this wave).
 **EchoAsm Gate done:** concrete + scalar + Phase B + full Phase E
 (5/5 leaves) — second generator **Verified**.
 **Repair depth done:** less/greater-than Win64 and SysV surfaces including
-Win64 signed greater-than (`evidence/vaa-live-repair-max-signed-win64`,
-`a9bf2ea` → `bd85039`; main regression `1500d22`).
-**Next:** SysV signed greater-than live; or a new SemASM chip beyond Fb
-(only if a narrow claim appears); EchoAsm corpus otherwise complete for
-HlaX64 Phase A/B/E copies.
+SysV signed greater-than (`evidence/vaa-live-repair-max-signed-sysv`,
+`94a01b2` → `938f6bb`; main regression `dcdd33b`).
+**Next:** SysV unsigned greater-than (`max_usize`) if desired; Fb9c stays
+locked without a new narrow claim; EchoAsm A/B/E copies otherwise complete.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
