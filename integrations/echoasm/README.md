@@ -40,8 +40,10 @@ vaa generator generate integrations/echoasm/generator.spec.toml \
   --output <abs>/target/echoasm-out/candidate.asm \
   --check-deterministic
 
-# Gate (SemASM Verified) — concrete cells via copy-generator.
+# Gate (SemASM Verified) — concrete cells + scalar via copy-generator.
 vaa suite run integrations/echoasm/suites/gate-concrete-win64.vaa-suite.toml \
+  --repo . --allow-execution --skip-repo-guard
+vaa suite run integrations/echoasm/suites/gate-scalar-i64-win64.vaa-suite.toml \
   --repo . --allow-execution --skip-repo-guard
 ```
 
