@@ -1,4 +1,4 @@
-# ExternalGeneratorSpec — EchoAsm universality smoke (not a production generator).
+# ExternalGeneratorSpec ??? EchoAsm universality smoke (not a production generator).
 schema_version = "0.1"
 generator_id = "echoasm"
 kind = "template"
@@ -6,12 +6,12 @@ kind = "template"
 [repository]
 # Pack is hosted inside the VAA tree; resolve `.git` via the VAA root.
 path = "../.."
-expected_revision = "git:e7439f903b1b79866c2d99dc49e9c556ee51fb2b"
+expected_revision = "git:86cc869247e92d0d0a046087a05667c65a3d284e"
 require_clean_worktree = false
 allow_untracked_files = true
 
 [build]
-# No compile step — identity hashes the echo script itself.
+# No compile step ??? identity hashes the echo script itself.
 command = ["cmd", "/C", "if not exist integrations\\echoasm\\tools\\echoasm.cmd exit /b 1"]
 working_directory = "."
 generator_binary = "integrations/echoasm/tools/echoasm.cmd"

@@ -114,14 +114,17 @@ region_access under_preconditions (≠ proven_inside) without const index.
 **Fb5 constant-index done:** `index_const` fold → `proven_inside` on
 literal regions (SemASM `ebd5114`).
 **Fb6 range-guard done (SemASM `5d81be5`):** `cmp`+`jae`/`jge` fall-through
-→ `index_max_exclusive` → `proven_inside` on literal regions. Full loop
-induction (Fb7) locked.
-**EchoAsm Gate done:** `gate-concrete-win64` + `gate-scalar-i64-win64`
-(`return_i64`) — second generator **Verified**.
-**Repair map-join E2E done:** offset join + Win64 `--map-line` live path
-(`hlax64-min-i64-win64-live`).
-**Next:** Fb7 loop induction; third ABI/live repair depth; or more
-EchoAsm/HlaX64 leaves (add_i64 / Phase B).
+→ `index_max_exclusive` → `proven_inside` on literal regions.
+**Fb7 post-test induction done (SemASM `53f8999`):**
+`xor; access; inc; cmp; jb` → `index_max_exclusive`. CFG-sound loops
+(Fb8) locked.
+**EchoAsm Gate done:** concrete cells + `gate-scalar-i64-win64`
+(`return_i64` + `add_i64`) — second generator **Verified**.
+**Repair depth done:** SysV unsigned live + Win64 map-line + Win64
+signed worktree (`evidence/vaa-live-repair-signed-win64`, broken
+`6bd1489` → repaired `83af744`; main regression `9850b92`).
+**Next:** Fb8 CFG-sound induction; more Phase B EchoAsm leaves; or
+another live repair ABI surface.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

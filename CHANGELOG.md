@@ -96,11 +96,13 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   **Fb5 constant-index (SemASM `ebd5114`):** `index_const` →
   `proven_inside` on literal regions.
   **Fb6 range-guard (SemASM `5d81be5`):** `cmp`+`jae`/`jge` →
-  `index_max_exclusive`; Fb7 loop-induction locked.
-  **EchoAsm Gate depth:** concrete cells + `gate-scalar-i64-win64`
-  (`return_i64`) second-generator **Verified**.
-  **Repair join depth:** offset `compiler_source` map-join + Win64
-  `--map-line` live path (`hlax64-min-i64-win64-live`).
+  `index_max_exclusive`.
+  **Fb7 post-test induction (SemASM `53f8999`):**
+  `xor; access; inc; cmp; jb`; Fb8 CFG-sound locked.
+  **EchoAsm Gate depth:** concrete cells + scalar `return_i64` /
+  `add_i64` second-generator **Verified**.
+  **Repair join depth:** offset map-join + Win64 `--map-line` + Win64
+  signed worktree live repair (`6bd1489`→`83af744`).
 ### Changed
 
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate
