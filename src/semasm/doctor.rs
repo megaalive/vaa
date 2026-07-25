@@ -424,7 +424,11 @@ mod tests {
                 .as_nanos()
         ));
         std::fs::create_dir_all(&dir).unwrap();
-        let exe_name = if cfg!(windows) { "semasm.exe" } else { "semasm" };
+        let exe_name = if cfg!(windows) {
+            "semasm.exe"
+        } else {
+            "semasm"
+        };
         let fake = dir.join(exe_name);
         std::fs::write(&fake, b"fake").unwrap();
 

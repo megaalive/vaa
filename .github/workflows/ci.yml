@@ -1037,4 +1037,6 @@ jobs:
         run: |
           set -euo pipefail
           cargo build -q
-          ./scripts/ci-generator-packs.sh
+          # Invoke via bash so Windows-authored commits that lose the +x bit
+          # still run (file mode historically landed as 100644).
+          bash scripts/ci-generator-packs.sh

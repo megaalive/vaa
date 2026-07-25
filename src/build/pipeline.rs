@@ -376,7 +376,10 @@ mod tests {
         assert_eq!(nasm_format_for_target("aarch64-apple-darwin"), "macho64");
         assert_eq!(nasm_format_for_target("win64"), "win64");
         assert_eq!(nasm_format_for_target("elf64"), "elf64");
-        assert_eq!(nasm_format_for_target("not-a-real-format"), "not-a-real-format");
+        assert_eq!(
+            nasm_format_for_target("not-a-real-format"),
+            "not-a-real-format"
+        );
     }
 
     #[test]
