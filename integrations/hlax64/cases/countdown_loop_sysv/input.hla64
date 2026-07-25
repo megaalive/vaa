@@ -1,0 +1,20 @@
+// countdown_loop.hla64 — count n down to 0, return the original n.
+//
+// Phase B (plan §17.2): loop control. Contract shape: (i64) -> i64
+// (builtin.pure_int.unary_i64, claim "identity" via countdown name alias).
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Win64: n arrives in rcx; only volatile regs used.
+
+program countdown_loop;
+
+export procedure countdown_loop(n: int64); @returns("rax");
+begin countdown_loop;
+    mov(n, rax);
+    mov(n, r8);
+    while(r8 > 0) do
+        sub(1, r8);
+    endwhile;
+end countdown_loop;
+
+begin countdown_loop;
+end countdown_loop;

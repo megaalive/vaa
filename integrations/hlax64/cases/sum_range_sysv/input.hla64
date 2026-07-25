@@ -1,0 +1,21 @@
+// sum_range.hla64 — wrapping triangular sum 0+1+…+n (SemASM/VAA bridge).
+//
+// Phase B (plan §17.2): loop control. Contract shape: (i64) -> i64
+// (builtin.pure_int.unary_i64, claim "sum_range").
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Win64: n arrives in rcx; only volatile regs used.
+
+program sum_range;
+
+export procedure sum_range(n: int64); @returns("rax");
+begin sum_range;
+    mov(0, rax);
+    mov(0, r8);
+    while(r8 <= n) do
+        add(r8, rax);
+        add(1, r8);
+    endwhile;
+end sum_range;
+
+begin sum_range;
+end sum_range;

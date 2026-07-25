@@ -1,0 +1,25 @@
+# Phase A named i64 — SysV parity (plan §17 target/ABI).
+# Live generate via generator.sysv.spec.toml; Gate on Linux (SemASM ecde423+).
+schema_version = "0.1"
+suite_id = "hlax64.backend.scalar-i64.sysv.v0"
+target = "x86_64-unknown-linux-gnu"
+abi = "sysv"
+stack_lock = "../stack.lock.toml"
+required_cases = [
+  "../cases/return_i64_sysv",
+  "../cases/add_i64_sysv",
+  "../cases/sub_i64_sysv",
+  "../cases/min_i64_sysv",
+  "../cases/max_i64_sysv",
+  "../cases/abs_i64_sysv",
+]
+
+[generator]
+spec = "../generator.sysv.spec.toml"
+
+[policy]
+require_all_cases = true
+allow_verified_under_preconditions = false
+allow_incomplete = false
+stop_on_first_failure = false
+max_parallel_cases = 1

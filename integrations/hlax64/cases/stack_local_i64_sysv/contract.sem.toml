@@ -1,0 +1,19 @@
+contract_version = "0.1"
+
+[function]
+name = "stack_local_i64"
+summary = "Store x to a stack local, reload it, and return"
+
+[[function.parameters]]
+name = "x"
+type = "i64"
+role = "input"
+
+[[function.returns]]
+name = "result"
+type = "i64"
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 128
