@@ -160,3 +160,8 @@ SysV signed greater-than twin:
 `fixtures/repair/hlax64-max-i64-sysv-live-worktree/`
 (`evidence/vaa-live-repair-max-signed-sysv`, broken `94a01b2` → repaired
 `938f6bb`; main regression `dcdd33b`).
+
+SysV unsigned greater-than twin:
+`fixtures/repair/hlax64-max-usize-sysv-live-worktree/`
+(`evidence/vaa-live-repair-max-unsigned-sysv`, broken `6b4d96a` → repaired
+`8045551`; main regression `0df45a5`).

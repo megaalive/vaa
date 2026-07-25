@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "task_id": "max-usize-sysv-live-worktree-v1",
+  "generator_id": "hlax64",
+  "repository": {
+    "base_revision": "git:dcdd33b06972717f8c7faf462e07e4767bad41c1",
+    "allowed_paths": [
+      "src/HlaX64.Compiler/Abi/**",
+      "src/HlaX64.Compiler/Ir/**",
+      "src/HlaX64.Backend.Nasm/**",
+      "tests/HlaX64.Compiler.Tests/**"
+    ],
+    "forbidden_paths": [
+      "**/integrations/hlax64/cases/**/task.vaa.toml",
+      "**/integrations/hlax64/cases/**/contract.sem.toml",
+      "**/integrations/hlax64/cases/**/vectors.json",
+      "**/integrations/hlax64/stack.lock.toml"
+    ]
+  },
+  "failure": {
+    "classification": "generator_candidate_violated",
+    "diagnostic_code": "BEHAVIOR_VECTOR_MISMATCH_001",
+    "message": "SemASM behavior_failed: unsigned max_usize returned min (GreaterThanUnsigned lowered to jb)"
+  },
+  "generated_artifact": {
+    "path": "candidate.asm",
+    "digest": "sha256:bd320d50b8f66a17386ff1f01082b3562c8c5db8bfe46b652d444ec2e7647b1e"
+  },
+  "source_mapping": {
+    "generator_input": "integrations/hlax64/cases/max_usize_sysv/input.hla64:19",
+    "ir_node": "CompareKind.GreaterThanUnsigned",
+    "generator_source": "src/HlaX64.Compiler/Abi/SysVAbiLowerer.cs:480"
+  },
+  "commands": {
+    "build": "dotnet build src/HlaX64.Cli/HlaX64.Cli.csproj -c Release --nologo",
+    "regenerate": "bash scripts/run-hlax64-suite.sh --gate --suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml --repo ../hlax64-live-repair-sysv-max-unsigned",
+    "verify": "dotnet test tests/HlaX64.Compiler.Tests/HlaX64.Compiler.Tests.csproj --filter FullyQualifiedName~Emit_SysVUnsignedGreaterThan_UsesAboveBranch"
+  },
+  "constraints": [
+    "Do not edit generated assembly manually",
+    "Do not edit contracts, vectors, task files, or stack.lock.toml",
+    "Regenerate all candidates after generator changes",
+    "Run the required regression suite before completion"
+  ]
+}
