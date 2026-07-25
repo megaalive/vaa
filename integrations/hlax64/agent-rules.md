@@ -5,15 +5,15 @@ generator. Acceptance authority is VAA/SemASM evidence, never agent output.
 
 ## Scope
 
-- repository: `../hlax64` at `git:4546be1da3bac70e68e9027e9b323903e1800e71`
+- repository: `../../hlax64` at `git:53797298833a367d7fa1737fdf24bb1229a026e2`
 - fix the **generator source**, never the generated assembly.
 
 ## Allowed paths (editable)
 
-- `src/backend/**`
-- `src/codegen/**`
-- `src/ir/**`
-- `tests/backend/**`
+- `src/HlaX64.Compiler/Abi/**`
+- `src/HlaX64.Compiler/Ir/**`
+- `src/HlaX64.Backend.Nasm/**`
+- `tests/HlaX64.Compiler.Tests/**`
 
 ## Forbidden paths (never edit)
 
@@ -30,10 +30,10 @@ and evidence files.
 
 | Step | Command |
 |---|---|
-| build | `cargo build --release` |
-| regenerate one case | `vaa generator-run --spec integrations/hlax64/generator.spec.toml --lock integrations/hlax64/stack.lock.toml --task <case>/task.vaa.toml --contract <case>/contract.sem.toml --input <case>/input.txt --skip-verify` |
-| verify one case | `vaa generator-run --spec integrations/hlax64/generator.spec.toml --lock integrations/hlax64/stack.lock.toml --task <case>/task.vaa.toml --contract <case>/contract.sem.toml --input <case>/input.txt` |
-| full regression suite | `vaa suite run integrations/hlax64/suites/smoke.vaa-suite.toml` |
+| build | `dotnet build src/HlaX64.Cli/HlaX64.Cli.csproj -c Release --nologo` |
+| regenerate one case | `vaa generator-run --spec integrations/hlax64/generator.spec.toml --lock integrations/hlax64/stack.lock.toml --task <case>/task.vaa.toml --contract <case>/contract.sem.toml --input <case>/input.hla64 --output <run>/candidate.asm --skip-verify` |
+| verify one case | `vaa generator-run --spec integrations/hlax64/generator.spec.toml --lock integrations/hlax64/stack.lock.toml --task <case>/task.vaa.toml --contract <case>/contract.sem.toml --input <case>/input.hla64 --output <run>/candidate.asm --allow-execution` |
+| full regression suite | `./scripts/run-hlax64-suite.ps1 -Gate -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml` |
 
 ## Loop (after each change)
 

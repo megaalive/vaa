@@ -59,6 +59,8 @@ echo "EchoAsm digest match OK"
 
 echo "== Gate 7: patch evidence fixtures =="
 vaa patch evidence-verify fixtures/repair/echoasm-passthrough/patch-evidence.json
+vaa repair verify fixtures/repair/hlax64-min-usize-sysv-live/repair-packet.json
+vaa patch evidence-verify fixtures/repair/hlax64-min-usize-sysv-live/patch-evidence.json
 json=$(vaa patch evidence-verify fixtures/repair/echoasm-passthrough/patch-evidence.forbidden-failed.json --format json)
 echo "$json" | grep -qi '"status"[[:space:]]*:[[:space:]]*"failed"' \
   || { echo "forbidden fixture must be Failed: $json" >&2; exit 1; }

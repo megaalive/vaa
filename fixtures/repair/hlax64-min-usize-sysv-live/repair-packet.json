@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "task_id": "min-usize-sysv-v1",
+  "generator_id": "hlax64",
+  "repository": {
+    "base_revision": "git:4546be1da3bac70e68e9027e9b323903e1800e71",
+    "allowed_paths": [
+      "src/HlaX64.Compiler/Abi/**",
+      "src/HlaX64.Compiler/Ir/**",
+      "src/HlaX64.Backend.Nasm/**",
+      "tests/HlaX64.Compiler.Tests/**"
+    ],
+    "forbidden_paths": [
+      "**/integrations/hlax64/cases/**/task.vaa.toml",
+      "**/integrations/hlax64/cases/**/contract.sem.toml",
+      "**/integrations/hlax64/cases/**/vectors.json",
+      "**/integrations/hlax64/stack.lock.toml"
+    ]
+  },
+  "failure": {
+    "classification": "generator_candidate_violated",
+    "diagnostic_code": "BEHAVIOR_VECTOR_MISMATCH_001",
+    "message": "SemASM behavior_failed: unsigned min returned max for 4/6 vectors (a smaller observed 2, b smaller observed 5, zero and large observed 1000000, wide spread observed 100)"
+  },
+  "generated_artifact": {
+    "path": "target/live-repair/broken-sysv2/suite-out/min_usize_sysv/candidate.asm",
+    "digest": "sha256:d420b3e72ce66cedc570b2886aed82e5557c0638855f260f5a93d89f0496762b"
+  },
+  "source_mapping": {
+    "generator_input": "integrations/hlax64/cases/min_usize_sysv/input.hla64:18",
+    "ir_node": "CompareKind.LessThanUnsigned",
+    "generator_source": "src/HlaX64.Compiler/Abi/SysVAbiLowerer.cs:476"
+  },
+  "commands": {
+    "build": "dotnet build src/HlaX64.Cli/HlaX64.Cli.csproj -c Release --nologo",
+    "regenerate": "./scripts/run-hlax64-suite.sh --gate --suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml --repo ../hlax64-live-repair",
+    "verify": "cargo test --project tests/HlaX64.Compiler.Tests && ./scripts/run-hlax64-suite.sh --gate --suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml"
+  },
+  "constraints": [
+    "Do not edit generated assembly manually",
+    "Do not edit contracts, vectors, task files, or stack.lock.toml",
+    "Regenerate all candidates after generator changes",
+    "Run the required regression suite before completion"
+  ]
+}

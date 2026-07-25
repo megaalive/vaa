@@ -78,6 +78,8 @@ if (-not (Test-Path $accepted)) {
     if ($LASTEXITCODE -ne 0) { throw "rebuild repair fixture failed" }
 }
 Invoke-Vaa patch evidence-verify $accepted
+Invoke-Vaa repair verify fixtures/repair/hlax64-min-usize-sysv-live/repair-packet.json
+Invoke-Vaa patch evidence-verify fixtures/repair/hlax64-min-usize-sysv-live/patch-evidence.json
 $jsonText = & cargo run -q -- patch evidence-verify $forbidden --format json
 if ($LASTEXITCODE -ne 0) { throw "forbidden fixture failed structural verify" }
 $parsed = $jsonText | ConvertFrom-Json

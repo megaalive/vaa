@@ -1050,8 +1050,12 @@ workflow remains optional.
 
 **Status:** **Done** (code surface) — `vaa repair export/verify/rules`,
 diagnostic registry (`vaa generator diagnostics`), triage routing; export
-fails closed for non-generator failures. Live agent-repair exercise on a
-deliberately broken backend case remains open.
+fails closed for non-generator failures. **Live repair acceptance done:**
+controlled HlaX64 SysV unsigned-compare defect (`jb` inverted to `ja`) was
+classified `BEHAVIOR_VECTOR_MISMATCH_001`, repaired only in allowed
+backend/test paths, deterministically regenerated, and accepted by SemASM.
+Committed packet/evidence:
+`fixtures/repair/hlax64-min-usize-sysv-live/`.
 
 **Deliverables**
 
@@ -1105,12 +1109,19 @@ deliberately broken backend case remains open.
   (emit-nasm `--target linux-x64-sysv`; `rdi`/`rsi` argument registers,
   CI-asserted).
 - Locked EchoAsm repair patch-evidence fixtures (Accepted + forbidden Failed)
+- **Live HlaX64 repair:** evidence branch
+  `evidence/vaa-live-repair-unsigned-sysv` records broken `354fabb` →
+  repaired `06d1113`; `scalar-sysv` changed Rejected (`min_usize` Violated,
+  4/6 vectors failed) → **Accepted** (2/2 Verified). Patch evidence is
+  Accepted, deterministic regeneration enabled, authority files untouched.
+  Production regression test landed on HlaX64 main `5379729`.
 - CI: `generator-packs` matrix (ubuntu/windows) + HlaX64 bridge live pack
   suites (scalar / Phase E / SysV) + Gate pack scalar (Win64 + SysV)
 
-**Honesty:** EchoAsm repair smoke ≠ a live HlaX64 backend defect fixed by an
-agent. SemASM Gate Verified remains the existing `hlax64-bridge` ingest
-jobs. Incomplete ≠ Verified.
+**Honesty:** the live exercise used a controlled, committed backend mutation
+to make the repair path reproducible; it was not a naturally occurring
+production incident. The final production state contains only regression
+coverage. Practice seal ≠ trust root. Incomplete ≠ Verified.
 
 **Deliverables**
 

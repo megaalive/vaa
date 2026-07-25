@@ -37,16 +37,14 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 **External generator bridge (HlaX64 first):** plan
 [`hlax64-vaa-semasm-bridge-plan.md`](hlax64-vaa-semasm-bridge-plan.md).
 **P0 + P1 + P2 done (unit-tested).** **P3.15 done:** HlaX64 pack corpus —
-10 interop cases (`min_usize`…`memcpy`) + phase suites
-(scalar/loop/memory-read/memory-write/backend-win64) + `CORPUS.md`
-(Phase A/B proxies; C/D wired; E open). **P3.16 done:** suite `abi` field +
-`vaa suite check-parity` (Win64 suites annotated; SysV scalar scaffold).
+15 cases (A/B proxies, C/D leaves, Phase E calls/data) + phase suites +
+`CORPUS.md`. **P3.16 done:** suite `abi` field + `vaa suite check-parity`;
+Win64 and live SysV scalar suites.
 **P3.17 done:** `integrations/echoasm/` second pack smoke (copy-generator
 **P0–P3 done.** **Milestone 6 done (surface):** live HlaX64 scalar suite
 generate path (`scripts/run-hlax64-suite.ps1`), EchoAsm repair patch-evidence
 fixtures + verify, CI `generator-packs` matrix + pack suite on
-`hlax64-bridge`. EchoAsm repair ≠ live HlaX64 agent backend fix; pack
-`--skip-verify` Incomplete ≠ Verified. Incomplete ≠ Verified;
+`hlax64-bridge`. Pack `--skip-verify` Incomplete ≠ Verified;
 under_preconditions ≠ verified.
 **Phase E done (calls/data):** 5 cases (`internal_function_call`,
 `nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return`) +
@@ -55,8 +53,8 @@ generate (5 candidate digests). `small_struct_return` covers aggregate
 layout/field offsets with a register-returned scalar (HlaX64 returns via
 register, not by-value struct). **SysV live:** `generator.sysv.spec.toml`
 (emit-nasm `--target linux-x64-sysv`); `scalar-sysv` now generates real
-System V asm (`rdi`/`rsi` argument registers, CI-asserted). SysV emit ≠ SysV
-SemASM Gate — full Linux `vaa suite run` without `--skip-verify` still owed.
+System V asm (`rdi`/`rsi` argument registers, CI-asserted). Emit alone ≠
+Verified; the Linux Pack Gate below supplies the separate SemASM evidence.
 **Pack Gate (Win64 scalar):** `vaa suite run` without `--skip-verify` +
 `--allow-execution` on `scalar-win64` yields suite **Accepted** with
 `min_usize`/`max_usize` **Verified** (live generate → SemASM). Fix:
@@ -67,8 +65,19 @@ so `agent verify` can create its scratch dir. Practice seal ≠ trust root.
 **Verified**). SemASM `afaa19d` accepts SysV `mov rsp,rbp` framed
 epilogues (parity with Win64). `scripts/run-hlax64-suite.sh --gate` + CI
 `hlax64-pack-sysv-gate`. Stack lock pins SemASM `afaa19d`.
-**Next:** live agent repair on a deliberately broken HlaX64 backend case
-(Milestone 4/6 acceptance).
+**Live HlaX64 repair acceptance done:** controlled evidence branch
+`evidence/vaa-live-repair-unsigned-sysv` records a System V unsigned compare
+mutation (`jb` → `ja`, broken `354fabb`) and constrained repair (`06d1113`).
+SemASM observed `behavior_failed` (4/6 `min_usize` vectors failed); repair
+packet routed `BEHAVIOR_VECTOR_MISMATCH_001` to generator repair. Only
+`src/HlaX64.Compiler/Abi/**` and `tests/HlaX64.Compiler.Tests/**` changed;
+authority files were untouched. Deterministic regeneration produced
+`scalar-sysv` **Accepted** (2/2 Verified), and patch evidence verifies
+Accepted. Regression coverage landed on HlaX64 main `5379729`. Fixture:
+`fixtures/repair/hlax64-min-usize-sysv-live/`. Controlled exercise ≠
+naturally occurring production incident; practice seal ≠ trust root.
+**Next:** fill the named Phase A i64 corpus (`return_i64`, `add_i64`,
+`sub_i64`, `min_i64`, `max_i64`, `abs_i64`).
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

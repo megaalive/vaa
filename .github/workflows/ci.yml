@@ -256,7 +256,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml generators.hlax64.
-          ref: 4546be1da3bac70e68e9027e9b323903e1800e71
+          ref: 53797298833a367d7fa1737fdf24bb1229a026e2
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -637,7 +637,7 @@ jobs:
         with:
           repository: megaalive/hlax64
           path: hlax64
-          ref: 4546be1da3bac70e68e9027e9b323903e1800e71
+          ref: 53797298833a367d7fa1737fdf24bb1229a026e2
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -706,8 +706,9 @@ jobs:
           path: target/hlax64-suite-runs/scalar-sysv-gate/
           if-no-files-found: error
 
-  # Milestone 6: generator pack matrix (schema / parity / echoasm / patch evidence).
-  # Does not claim HlaX64 Gate Verified or a live agent backend repair.
+  # Milestone 6: generator pack matrix (schema / parity / repair evidence).
+  # Structural verification includes EchoAsm fixtures + the sealed HlaX64
+  # live-repair packet/evidence; live Gate execution is in dedicated jobs.
   generator-packs:
     name: Generator packs matrix
     strategy:

@@ -85,3 +85,17 @@ export HLAX64_ROOT="<path-to-hlax64>"
 
 CI job `hlax64-pack-sysv-gate` runs this path. SysV emit uses `rdi`/`rsi`;
 Gate Accepted with `min_usize_sysv` / `max_usize_sysv` Verified.
+
+## Live repair evidence
+
+`fixtures/repair/hlax64-min-usize-sysv-live/` records the constrained
+repair exercise for a controlled SysV unsigned-compare defect:
+
+```text
+vaa repair verify fixtures/repair/hlax64-min-usize-sysv-live/repair-packet.json
+vaa patch evidence-verify fixtures/repair/hlax64-min-usize-sysv-live/patch-evidence.json
+```
+
+The broken evidence branch returned max instead of min for 4/6 vectors.
+Only actual HlaX64 ABI/test paths were editable; authority files were
+untouched. Post-repair `scalar-sysv` was Accepted (2/2 Verified).

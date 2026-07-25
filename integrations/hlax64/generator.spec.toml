@@ -8,7 +8,7 @@ kind = "compiler"
 [repository]
 # Relative to this pack: CI checks out hlax64 at $GITHUB_WORKSPACE/hlax64.
 path = "../../hlax64"
-expected_revision = "git:4546be1da3bac70e68e9027e9b323903e1800e71"
+expected_revision = "git:53797298833a367d7fa1737fdf24bb1229a026e2"
 require_clean_worktree = true
 allow_untracked_files = false
 
@@ -56,10 +56,10 @@ require_toolchain_identity = false
 
 [patch_policy]
 allowed_paths = [
-  "src/backend/**",
-  "src/codegen/**",
-  "src/ir/**",
-  "tests/backend/**"
+  "src/HlaX64.Compiler/Abi/**",
+  "src/HlaX64.Compiler/Ir/**",
+  "src/HlaX64.Backend.Nasm/**",
+  "tests/HlaX64.Compiler.Tests/**"
 ]
 forbidden_paths = [
   "**/integrations/hlax64/cases/**/task.vaa.toml",

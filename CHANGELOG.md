@@ -43,8 +43,16 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   **Pack Gate (SysV scalar, Linux):** `scalar-sysv` Accepted with
   `min_usize_sysv`/`max_usize_sysv` Verified. Depends on SemASM `afaa19d`
   (SysV framed `mov rsp,rbp` epilogue). `scripts/run-hlax64-suite.sh --gate`
-  + CI `hlax64-pack-sysv-gate`. Stack lock SemASM pin bumped. Honesty locks
-  unchanged.
+  + CI `hlax64-pack-sysv-gate`. Stack lock SemASM pin bumped.
+  **Live HlaX64 repair acceptance:** controlled SysV unsigned-compare defect
+  (`jb` → `ja`) produced `behavior_failed` (4/6 `min_usize` vectors).
+  Repair packet `BEHAVIOR_VECTOR_MISMATCH_001` constrained changes to the
+  ABI lowerer/test; deterministic regeneration returned `scalar-sysv`
+  Accepted (2/2 Verified). Committed repair packet + Accepted patch evidence
+  under `fixtures/repair/hlax64-min-usize-sysv-live/`; generator pack CI
+  verifies both. HlaX64 main `5379729` carries regression coverage.
+  Controlled exercise ≠ naturally occurring incident; practice seal ≠ trust
+  root. Honesty locks unchanged.
 
 ### Changed
 
