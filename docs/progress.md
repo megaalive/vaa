@@ -112,14 +112,16 @@ loci into `candidate.map.json`; CI asserts presence after Phase B Gate.
 **Fb4 Indexed done (SemASM `ca11fc7`):** `AccessAddr::Indexed` modeled;
 region_access under_preconditions (≠ proven_inside) without const index.
 **Fb5 constant-index done:** `index_const` fold → `proven_inside` on
-literal regions (SemASM tip after Fb5 commit). Loop index (Fb6) locked.
-**EchoAsm Gate done:** `gate-concrete-win64` — `load_byte0` + `store_byte0`
-second generator **Verified** (universality ≠ CryptOpt).
-**Repair map-join E2E done:** `fixtures/repair/compiler-source-mapjoin` +
-CI asserts `repair export --map` fills `generator_source` from
-`compiler_source`.
-**Next:** Fb6 loop-carried index; richer live repair exercise; or more
-EchoAsm/HlaX64 leaves.
+literal regions (SemASM `ebd5114`).
+**Fb6 range-guard done (SemASM `5d81be5`):** `cmp`+`jae`/`jge` fall-through
+→ `index_max_exclusive` → `proven_inside` on literal regions. Full loop
+induction (Fb7) locked.
+**EchoAsm Gate done:** `gate-concrete-win64` + `gate-scalar-i64-win64`
+(`return_i64`) — second generator **Verified**.
+**Repair map-join E2E done:** offset join + Win64 `--map-line` live path
+(`hlax64-min-i64-win64-live`).
+**Next:** Fb7 loop induction; third ABI/live repair depth; or more
+EchoAsm/HlaX64 leaves (add_i64 / Phase B).
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
