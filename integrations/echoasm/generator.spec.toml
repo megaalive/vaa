@@ -6,7 +6,7 @@ kind = "template"
 [repository]
 # Pack is hosted inside the VAA tree; resolve `.git` via the VAA root.
 path = "../.."
-expected_revision = "git:8add4caafd549932b82d4705a8bf8f9c10744435"
+expected_revision = "git:0a7991f17fc027f68d3cb05b03c250684470fa49"
 require_clean_worktree = false
 allow_untracked_files = true
 

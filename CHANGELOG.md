@@ -110,6 +110,13 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   **Repair join depth:** prior surfaces + Win64/SysV signed greater-than
   worktree repairs (`a9bf2ea`→`bd85039`, `94a01b2`→`938f6bb`) + SysV
   unsigned greater-than (`6b4d96a`→`8045551`; main `0df45a5`).
+  **Hands-on findings triage:** `vaa build` maps LLVM triples to NASM
+  `-f` formats (was passing the raw triple); `SEMASM_BIN` discovery
+  override (file or dir, fail-closed when invalid); SemASM `*-abi`
+  commands reject zero-decode inputs instead of passing vacuously
+  (SemASM `98fed7e`). Other findings assessed, not adopted: harness
+  shapes beyond golden leaves, `void`/I-O contract types, hosted-program
+  behavioral harness stay locked pending a narrow honest claim.
 ### Changed
 
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate

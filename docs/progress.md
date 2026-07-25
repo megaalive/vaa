@@ -132,6 +132,10 @@ SysV signed greater-than (`evidence/vaa-live-repair-max-signed-sysv`,
 `94a01b2` → `938f6bb`; main `dcdd33b`) and SysV unsigned greater-than
 (`evidence/vaa-live-repair-max-unsigned-sysv`, `6b4d96a` → `8045551`;
 main regression `0df45a5`).
+**Findings triage done (SemASM `e6b85fc`):** NASM triple→format mapping in
+`vaa build`, `SEMASM_BIN` fail-closed discovery override, SemASM `*-abi`
+zero-decode guard. Harness shapes / `void` / hosted-program harness stay
+locked (product claims, not bugfixes).
 **Next:** Fb9c stays locked without a new narrow claim; compare-repair
 surfaces closed. Further waves need a new SemASM chip, EchoAsm C/D
 honesty-bound leaves, or non-compare repair diagnostics.
