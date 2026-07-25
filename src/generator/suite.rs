@@ -260,6 +260,7 @@ struct CaseMetaFile {
 
 fn find_default_input(case_dir: &Path) -> Option<PathBuf> {
     const CANDIDATES: &[&str] = &[
+        "input.hla64",
         "input.hlx",
         "input.s",
         "input.asm",

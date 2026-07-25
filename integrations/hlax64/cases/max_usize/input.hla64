@@ -1,0 +1,27 @@
+// max_usize.hla64 — return the larger of two unsigned sizes (SemASM/VAA bridge).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (usize, usize) -> usize  (builtin.pure_int.binary_usize, claim "max")
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Win64: only volatile regs (rax/rcx/rdx/r8/r9) — rcx=a, rdx=b, no r10-r15
+// clobber.
+// Unsigned compare (`>?`) matches the `usize` contract type; a plain signed
+// `>` would misorder values with the high bit set.
+// `a`/`b` are loaded into registers before the compare: comparing two
+// stack-spilled parameters directly lowers to an invalid mem-mem `cmp`.
+
+program max_usize;
+
+export procedure max_usize(a: int64; b: int64); @returns("rax");
+begin max_usize;
+    mov(a, r8);
+    mov(b, r9);
+    if(r8 >? r9) then
+        mov(r8, rax);
+    else
+        mov(r9, rax);
+    endif;
+end max_usize;
+
+begin max_usize;
+end max_usize;

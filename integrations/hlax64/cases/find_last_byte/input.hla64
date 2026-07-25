@@ -1,0 +1,26 @@
+// find_last_byte.hla64 — last index of needle, or length if absent (SemASM/VAA bridge).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (ptr<const u8>, usize, u8) -> usize  (builtin.buffer.find_last_u8)
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+
+program find_last_byte;
+
+export procedure find_last_byte(buffer: ptr; length: int64; needle: int64); @returns("rax");
+begin find_last_byte;
+    mov(length, rax);
+    mov(0, r9);
+    mov(buffer, r10);
+
+    while(r9 < length) do
+        mov([r10].byte, r11);
+        if(r11 = needle) then
+            mov(r9, rax);
+        endif;
+        add(1, r9);
+        add(1, r10);
+    endwhile;
+end find_last_byte;
+
+begin find_last_byte;
+end find_last_byte;

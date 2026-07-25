@@ -36,16 +36,10 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 
 **External generator bridge (HlaX64 first):** plan
 [`hlax64-vaa-semasm-bridge-plan.md`](hlax64-vaa-semasm-bridge-plan.md).
-**P0 + P1 done (unit-tested):** suite, patch evidence, path-policy CLI,
-generator-vs-verifier triage. **P2.11 done:** `vaa repair export` /
-`vaa repair verify` (JSON + Markdown brief; export refuses non-generator
-failures per triage). **P2.12 done:** stable diagnostic registry +
-`vaa generator diagnostics` (verifier-gap codes never route to generator
-repair). **P2.13 done:** `candidate.map.json` join (`vaa generator
-map-join`; `repair export --map`; missing map never downgrades status).
-**P2.14 done:** `vaa repair rules` (agent/editor rules from spec;
-`integrations/hlax64/agent-rules.md` generated). **P2 complete.** Next:
-P3 (backend corpus, target/ABI parity, CryptOpt-lineage pack, CI matrix).
+**P0 + P1 + P2 done (unit-tested).** **P3.15 done:** HlaX64 pack corpus —
+10 interop cases (`min_usize`…`memcpy`) + phase suites
+(scalar/loop/memory-read/memory-write/backend-win64) + `CORPUS.md`
+(Phase A/B proxies; C/D wired; E open). Next: P3.16 target/ABI parity.
 Placeholder pack ≠ live HlaX64 Gate; live agent-repair exercise open.
 Incomplete ≠ Verified; under_preconditions ≠ verified.
 

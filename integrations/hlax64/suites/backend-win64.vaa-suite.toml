@@ -1,0 +1,27 @@
+# Full Win64 backend slice (phases A-D proxies). See CORPUS.md.
+schema_version = "0.1"
+suite_id = "hlax64.backend.win64.v0"
+target = "x86_64-pc-windows-msvc"
+stack_lock = "../stack.lock.toml"
+required_cases = [
+  "../cases/min_usize",
+  "../cases/max_usize",
+  "../cases/sum_i64",
+  "../cases/count_byte",
+  "../cases/find_first_byte",
+  "../cases/find_last_byte",
+  "../cases/memcmp",
+  "../cases/replace_byte",
+  "../cases/memset",
+  "../cases/memcpy",
+]
+
+[generator]
+spec = "../generator.spec.toml"
+
+[policy]
+require_all_cases = true
+allow_verified_under_preconditions = false
+allow_incomplete = false
+stop_on_first_failure = false
+max_parallel_cases = 1

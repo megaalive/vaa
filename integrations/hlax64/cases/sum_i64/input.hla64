@@ -1,0 +1,23 @@
+// sum_i64.hla64 — wrapping sum of int64 elements (SemASM/VAA bridge leaf).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (ptr<const i64>, usize) -> i64  (builtin.buffer.wrapping_sum_i64)
+
+program sum_i64;
+
+export procedure sum_i64(values: ptr; length: int64); @returns("rax");
+begin sum_i64;
+    mov(0, rax);
+    mov(0, r8);
+    mov(values, r10);
+
+    while(r8 < length) do
+        mov([r10].qword, r9);
+        add(r9, rax);
+        add(1, r8);
+        add(8, r10);
+    endwhile;
+end sum_i64;
+
+begin sum_i64;
+end sum_i64;

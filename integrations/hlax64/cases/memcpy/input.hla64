@@ -1,0 +1,32 @@
+// memcpy.hla64 — copy src[0..length] into dst[0..length]; return status 0 (SemASM/VAA bridge).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (ptr<u8>, ptr<const u8>, usize) -> usize  (builtin.buffer.memcpy)
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Win64: only volatile regs (rax/rcx/rdx/r8-r11) — no r12–r15 clobber.
+// Non-overlapping dst/src assumed (SemASM ADR 0003, "overlap fail-closed").
+// Same bug class as memset/replace_byte: byte-store lowering can route the
+// stored value through rax/al as scratch, so the constant status is only
+// written to rax once, after the copy loop — never before it.
+
+program memcpy;
+
+export procedure memcpy(dst: ptr; src: ptr; length: int64); @returns("rax");
+begin memcpy;
+    mov(0, r9);
+    mov(dst, r10);
+    mov(src, r11);
+
+    while(r9 < length) do
+        mov([r11].byte, r8);
+        mov(r8, [r10].byte);
+        add(1, r9);
+        add(1, r10);
+        add(1, r11);
+    endwhile;
+
+    mov(0, rax);
+end memcpy;
+
+begin memcpy;
+end memcpy;

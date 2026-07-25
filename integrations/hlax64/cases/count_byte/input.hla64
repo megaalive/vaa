@@ -1,0 +1,28 @@
+// count_byte.hla64 — count occurrences of needle in buffer[0..length] (SemASM/VAA bridge).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (ptr<const u8>, usize, u8) -> usize  (builtin.buffer.count_equal_u8)
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+
+program count_byte;
+
+export procedure count_byte(buffer: ptr; length: int64; needle: int64); @returns("rax");
+begin count_byte;
+    mov(0, r8);
+    mov(0, r9);
+    mov(buffer, r10);
+
+    while(r9 < length) do
+        mov([r10].byte, r11);
+        if(r11 = needle) then
+            add(1, r8);
+        endif;
+        add(1, r9);
+        add(1, r10);
+    endwhile;
+
+    mov(r8, rax);
+end count_byte;
+
+begin count_byte;
+end count_byte;

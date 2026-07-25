@@ -1255,7 +1255,7 @@ P2
 14. agent/editor rules and command templates — **done**
 
 P3
-15. backend feature corpus expansion (HlaX64 pack)
+15. backend feature corpus expansion (HlaX64 pack) — **done**
 16. target/ABI parity
 17. second generator pack smoke (proves universality)
 18. stronger isolation for shared execution
