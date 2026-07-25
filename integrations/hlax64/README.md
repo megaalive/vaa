@@ -37,5 +37,16 @@ Verified until generation + SemASM evidence exists.
 
 ```text
 vaa suite validate integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+vaa suite check-parity integrations/hlax64/suites/scalar-win64.vaa-suite.toml
 vaa suite validate integrations/hlax64/suites/backend-win64.vaa-suite.toml
 ```
+
+## Live generate suite (HlaX64 checkout required)
+
+```powershell
+$env:HLAX64_ROOT = "<path-to-hlax64>"
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+```
+
+`--skip-verify` (default) ⇒ suite status Incomplete ≠ Verified. Emit ≠
+SemASM verified. Pack CI also runs this generate path on `hlax64-bridge`.

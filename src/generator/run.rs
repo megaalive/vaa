@@ -75,14 +75,24 @@ pub fn run_generator_case(
         None => None,
     };
 
-    let mut guard_config = RepoGuardConfig::from_spec(&spec, &config.spec_path)?;
-    if let Some(repo) = &config.repo_override {
-        guard_config.repository_path =
-            std::fs::canonicalize(repo).map_err(|source| GeneratorError::Io {
-                path: repo.clone(),
-                source,
-            })?;
-    }
+    let guard_config = if let Some(repo) = &config.repo_override {
+        // Prefer explicit --repo; do not require the pack-relative default
+        // path to exist (CI uses workspace/hlax64; local may use a sibling).
+        let repository_path = std::fs::canonicalize(repo).map_err(|source| GeneratorError::Io {
+            path: repo.clone(),
+            source,
+        })?;
+        RepoGuardConfig {
+            repository_path,
+            expected_revision: spec.repository.expected_revision.clone(),
+            require_clean_worktree: spec.repository.require_clean_worktree,
+            allow_untracked_files: spec.repository.allow_untracked_files,
+            patch_policy: spec.patch_policy.clone(),
+            check_path_policy: true,
+        }
+    } else {
+        RepoGuardConfig::from_spec(&spec, &config.spec_path)?
+    };
     let repo_root = guard_config.repository_path.clone();
 
     let repo_guard = if config.skip_repo_guard {
@@ -99,13 +109,36 @@ pub fn run_generator_case(
         load_locked_task(&config.task_path)?.task().target.clone()
     };
 
+    // Generation cwd is the generator repo; inputs/outputs from the pack must
+    // be absolute so emit-nasm can open them regardless of cwd.
+    let input = std::fs::canonicalize(&config.input_path).map_err(|source| GeneratorError::Io {
+        path: config.input_path.clone(),
+        source,
+    })?;
+    let output = if config.output_path.is_absolute() {
+        config.output_path.clone()
+    } else {
+        std::env::current_dir()
+            .map_err(|source| GeneratorError::Io {
+                path: PathBuf::from("."),
+                source,
+            })?
+            .join(&config.output_path)
+    };
+    if let Some(parent) = output.parent() {
+        std::fs::create_dir_all(parent).map_err(|source| GeneratorError::Io {
+            path: parent.to_path_buf(),
+            source,
+        })?;
+    }
+
     let generation = generate_candidate(
         &spec,
         &GenerationRequest {
             generator_binary: identity.binary_path.clone(),
-            input: config.input_path.clone(),
+            input,
             target,
-            output: config.output_path.clone(),
+            output,
             working_directory: Some(repo_root.clone()),
             clean_output: spec.generation.clean_output_directory,
             check_deterministic: config.check_deterministic,

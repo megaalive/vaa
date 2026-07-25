@@ -1,0 +1,90 @@
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+  CI Gate: generator pack matrix (schema, parity, echoasm generate, patch evidence).
+
+.DESCRIPTION
+  Milestone 6 pack CI. Does not claim HlaX64 Gate Verified or live agent repair.
+#>
+$ErrorActionPreference = "Stop"
+$vaaRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $vaaRoot
+
+function Invoke-Vaa {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$CmdArgs)
+    & cargo run -q -- @CmdArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "vaa $($CmdArgs -join ' ') failed with exit $LASTEXITCODE"
+    }
+}
+
+Write-Host "== Gate 1: validate pack locks + specs =="
+Invoke-Vaa generator validate-lock integrations/hlax64/stack.lock.toml
+Invoke-Vaa generator validate-spec integrations/hlax64/generator.spec.toml
+Invoke-Vaa generator validate-lock integrations/echoasm/stack.lock.toml
+Invoke-Vaa generator validate-spec integrations/echoasm/generator.spec.toml
+
+Write-Host "== Gate 1b: validate suites =="
+$suites = @(
+    "integrations/hlax64/suites/smoke.vaa-suite.toml",
+    "integrations/hlax64/suites/scalar-win64.vaa-suite.toml",
+    "integrations/hlax64/suites/scalar-sysv.vaa-suite.toml",
+    "integrations/hlax64/suites/loop-win64.vaa-suite.toml",
+    "integrations/hlax64/suites/memory-read-win64.vaa-suite.toml",
+    "integrations/hlax64/suites/memory-write-win64.vaa-suite.toml",
+    "integrations/hlax64/suites/backend-win64.vaa-suite.toml",
+    "integrations/echoasm/suites/smoke.vaa-suite.toml"
+)
+foreach ($s in $suites) {
+    Invoke-Vaa suite validate $s
+}
+
+Write-Host "== Gate 1c: target/ABI parity =="
+Invoke-Vaa suite check-parity integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+Invoke-Vaa suite check-parity integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
+Invoke-Vaa suite check-parity integrations/hlax64/suites/backend-win64.vaa-suite.toml
+Invoke-Vaa suite check-parity integrations/echoasm/suites/smoke.vaa-suite.toml
+
+Write-Host "== Gate 3: EchoAsm deterministic generation =="
+$gen = (Resolve-Path "integrations/echoasm/tools/echoasm.cmd").Path
+$in = (Resolve-Path "integrations/echoasm/cases/passthrough/input.asm").Path
+$outDir = Join-Path $vaaRoot "target/ci-echoasm"
+New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+$out = Join-Path $outDir "candidate.asm"
+Invoke-Vaa generator generate `
+    integrations/echoasm/generator.spec.toml `
+    --generator $gen `
+    --input $in `
+    --output $out `
+    --target x86_64-pc-windows-msvc `
+    --check-deterministic
+
+$h1 = (Get-FileHash $out -Algorithm SHA256).Hash
+$h2 = (Get-FileHash $in -Algorithm SHA256).Hash
+if ($h1 -ne $h2) {
+    throw "EchoAsm output digest mismatch (universality smoke broken)"
+}
+Write-Host "EchoAsm digest match OK"
+
+Write-Host "== Gate 7: patch evidence fixtures =="
+$accepted = "fixtures/repair/echoasm-passthrough/patch-evidence.json"
+$forbidden = "fixtures/repair/echoasm-passthrough/patch-evidence.forbidden-failed.json"
+if (-not (Test-Path $accepted)) {
+    Write-Host "Repair fixtures missing - rebuilding"
+    & "$PSScriptRoot/rebuild-echoasm-repair-fixture.ps1"
+    if ($LASTEXITCODE -ne 0) { throw "rebuild repair fixture failed" }
+}
+Invoke-Vaa patch evidence-verify $accepted
+$jsonText = & cargo run -q -- patch evidence-verify $forbidden --format json
+if ($LASTEXITCODE -ne 0) { throw "forbidden fixture failed structural verify" }
+$parsed = $jsonText | ConvertFrom-Json
+$status = [string]$parsed.evidence.status
+if ($status -ne "Failed" -and $status -ne "failed") {
+    throw "forbidden-path fixture status must be Failed, got: $status"
+}
+Write-Host "forbidden fixture correctly Failed"
+
+Write-Host "== isolation audit =="
+Invoke-Vaa generator isolation-check
+
+Write-Host "OK: generator pack matrix passed"

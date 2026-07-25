@@ -255,13 +255,13 @@ jobs:
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: min_usize/max_usize SemASM/VAA bridge leaves (Thin Th8).
-          ref: 90cbf3b24faef253467a43ef270656dc6de49f0b
+          # Pin: match integrations/hlax64/stack.lock.toml generators.hlax64.
+          ref: 4546be1da3bac70e68e9027e9b323903e1800e71
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -324,6 +324,31 @@ jobs:
             }
             Write-Host "$($leaf.Name) candidate.asm matches HlaX64 emit"
           }
+
+      - name: Live HlaX64 pack scalar suite (generate-only)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          # Milestone 6 live suite path: generation + identity via pack spec.
+          # --skip-verify ⇒ Incomplete ≠ Verified (SemASM Gate remains the
+          # existing hlax64-bridge ingest steps below / above).
+          ./scripts/run-hlax64-suite.ps1 `
+            -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -SkipVerify `
+            -Output target/hlax64-suite-runs/scalar-win64-evidence.json
+          if (-not (Test-Path target/hlax64-suite-runs/scalar-win64-evidence.json)) {
+            throw "scalar suite evidence missing"
+          }
+          Get-Content target/hlax64-suite-runs/scalar-win64-evidence.json | Select-Object -First 30
+
+      - name: Upload HlaX64 pack suite evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: hlax64-pack-scalar-suite-evidence
+          path: target/hlax64-suite-runs/
+          if-no-files-found: error
 
       - name: Gate ingest + Gate-2 verify for hlax64 leaves
         shell: pwsh
@@ -518,3 +543,28 @@ jobs:
           name: gate2-linux-transparency
           path: target/vaa-transparency/gate2-linux/
           if-no-files-found: error
+
+  # Milestone 6: generator pack matrix (schema / parity / echoasm / patch evidence).
+  # Does not claim HlaX64 Gate Verified or a live agent backend repair.
+  generator-packs:
+    name: Generator packs matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Pack matrix (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/ci-generator-packs.ps1
+      - name: Pack matrix (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          cargo build -q
+          ./scripts/ci-generator-packs.sh

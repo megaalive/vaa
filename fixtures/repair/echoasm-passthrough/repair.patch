@@ -1,0 +1,8 @@
+--- a/integrations/echoasm/tools/echoasm.cmd
++++ b/integrations/echoasm/tools/echoasm.cmd
+@@
+-REM BROKEN echoasm ??? prepends a hostile marker (repair demo base).
+-echo ; BROKEN > "%~2"
+-type "%~1" >> "%~2"
++REM EchoAsm generator (cmd twin): copy locked input bytes to candidate output.
++copy /Y "%~1" "%~2" >nul

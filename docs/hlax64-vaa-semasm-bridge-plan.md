@@ -1072,10 +1072,17 @@ deliberately broken backend case remains open.
 
 ## Milestone 6 — Verified backend slice v1
 
-**Status:** Partial — pack corpus (A–D proxies) + Win64/SysV parity
-scaffolds + EchoAsm universality smoke + isolation audit are in tree.
-Live HlaX64 Gate suite run, sealed patch evidence from a real repair, and
-CI Gate matrix for packs remain open.
+**Status:** **Done** (code surface + CI pack gates + live generate suite).
+
+- Pack corpus A–D + Win64/SysV parity scaffolds
+- Live `vaa suite run` for `scalar-win64` via `scripts/run-hlax64-suite.ps1`
+  (generate + identity; `--skip-verify` ⇒ Incomplete ≠ Verified)
+- Locked EchoAsm repair patch-evidence fixtures (Accepted + forbidden Failed)
+- CI: `generator-packs` matrix (ubuntu/windows) + HlaX64 bridge live pack suite
+
+**Honesty:** EchoAsm repair smoke ≠ a live HlaX64 backend defect fixed by an
+agent. SemASM Gate Verified remains the existing `hlax64-bridge` ingest
+jobs. Incomplete ≠ Verified.
 
 **Deliverables**
 

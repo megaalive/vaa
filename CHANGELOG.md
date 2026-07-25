@@ -26,7 +26,9 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   (cmd echo generator; schema/CLI universality; ≠ Gate Verified).
   P3.18: generator subprocess isolation (`docs/generator-isolation.md`,
   `vaa generator isolation-check`; credential env never inherits).
-  Honesty locks unchanged.
+  **Milestone 6:** live HlaX64 scalar suite generate path, EchoAsm repair
+  patch-evidence fixtures, CI `generator-packs` matrix + pack suite step
+  on `hlax64-bridge`. Honesty locks unchanged.
 
 ### Changed
 

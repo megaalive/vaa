@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "base_revision": "git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "patched_revision": "git:cccccccccccccccccccccccccccccccccccccccc",
+  "patch_digest": "sha256:1d2ae195d26475f335d26dffa43382f6f7999bafe604e46e5936f2aad780f3cd",
+  "changed_files": [
+    "integrations/echoasm/stack.lock.toml"
+  ],
+  "forbidden_paths_changed": [
+    "integrations/echoasm/stack.lock.toml"
+  ],
+  "generator_binary_digest": "sha256:bdfcfd4e62db10d9dd8401c5b482116b18c6d3ef05d0dd7c42ae21fd7129cdff",
+  "suite_id": "echoasm.smoke.v0",
+  "suite_digest": "sha256:978ba97b4ef40429580265edd0e36b1ca589cba431d04744f89b15b937dcf44f",
+  "suite_status": "accepted",
+  "status": "failed"
+}
