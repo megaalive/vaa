@@ -122,6 +122,8 @@ export HLAX64_ROOT="<path-to-hlax64>"
 
 CI job `hlax64-pack-sysv-gate` runs these paths. SysV emit uses `rdi`/`rsi`;
 Gate Accepted with Verified cases (usize pair + named i64 + loop/stack).
+On WSL, put Linux `dotnet` (`~/.dotnet`) before any Windows `dotnet.exe`
+shim on `PATH`, or generation fails with “Source file … not found”.
 
 ## Live repair evidence
 
@@ -165,3 +167,32 @@ SysV unsigned greater-than twin:
 `fixtures/repair/hlax64-max-usize-sysv-live-worktree/`
 (`evidence/vaa-live-repair-max-unsigned-sysv`, broken `6b4d96a` → repaired
 `8045551`; main regression `0df45a5`).
+
+Win64 signed less-than worktree twin:
+`fixtures/repair/hlax64-min-i64-win64-live-worktree/`
+(`evidence/vaa-live-repair-signed-win64`).
+
+Non-compare ABI — Win64 stack-balance (`ABI_STACK_BALANCE_001`):
+`fixtures/repair/hlax64-stack-balance-win64-live-worktree/`
+(`evidence/vaa-live-repair-win64-stack-balance`, broken `535136d` → repaired
+`0f4e8bf`; main regression `78ea932`; CI Gate **7k**).
+
+Non-compare ABI — Win64 callee-saved (`ABI_CALLEE_SAVED_001`):
+`fixtures/repair/hlax64-callee-saved-win64-live-worktree/`
+(`evidence/vaa-live-repair-win64-callee-saved`, broken `9bf1e7b` → repaired
+`8e9d582`; main regression `89c4e20`; CI Gate **7l**).
+
+Non-compare ABI — SysV stack-balance twin (WSL Gate):
+`fixtures/repair/hlax64-stack-balance-sysv-live-worktree/`
+(`evidence/vaa-live-repair-sysv-stack-balance`, broken `9cec09d` → repaired
+`0b9dee2`; main regression `40d778d`; CI Gate **7m**).
+
+Non-compare ABI — SysV callee-saved twin (WSL Gate):
+`fixtures/repair/hlax64-callee-saved-sysv-live-worktree/`
+(`evidence/vaa-live-repair-sysv-callee-saved`, broken `4461cbd` → repaired
+`e23b1d9`; main regression `0778aad`; CI Gate **7n**).
+
+Pack CI (`scripts/ci-generator-packs.*`) verifies the repair packets above.
+SysV Gate / live-repair reproduction on Windows hosts needs WSL (or Linux CI)
+with a **Linux** `dotnet` on `PATH` ahead of any Windows SDK shim, plus Linux
+`semasm` / `nasm` / `gcc`. Practice seal ≠ trust root. Fb9c stays locked.

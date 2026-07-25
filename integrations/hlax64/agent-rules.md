@@ -5,7 +5,7 @@ generator. Acceptance authority is VAA/SemASM evidence, never agent output.
 
 ## Scope
 
-- repository: `../../hlax64` at `git:53797298833a367d7fa1737fdf24bb1229a026e2`
+- repository: `../../hlax64` at `git:0778aad3bd8bb5394252755367de00e52618bde8`
 - fix the **generator source**, never the generated assembly.
 
 ## Allowed paths (editable)
@@ -34,6 +34,7 @@ and evidence files.
 | regenerate one case | `vaa generator-run --spec integrations/hlax64/generator.spec.toml --lock integrations/hlax64/stack.lock.toml --task <case>/task.vaa.toml --contract <case>/contract.sem.toml --input <case>/input.hla64 --output <run>/candidate.asm --skip-verify` |
 | verify one case | `vaa generator-run --spec integrations/hlax64/generator.spec.toml --lock integrations/hlax64/stack.lock.toml --task <case>/task.vaa.toml --contract <case>/contract.sem.toml --input <case>/input.hla64 --output <run>/candidate.asm --allow-execution` |
 | full regression suite | `./scripts/run-hlax64-suite.ps1 -Gate -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml` |
+| SysV Gate (Linux/WSL) | `./scripts/run-hlax64-suite.sh --gate --suite integrations/hlax64/suites/loop-stack-sysv.vaa-suite.toml` |
 
 ## Loop (after each change)
 

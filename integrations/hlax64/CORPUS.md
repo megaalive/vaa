@@ -85,3 +85,12 @@ cases/<id>/
 
 Do not hand-edit authority files as part of generator repair
 (see `agent-rules.md` / `patch_policy`).
+
+## Live repair fixtures
+
+Constrained evidence packets live under `fixtures/repair/hlax64-*-live*/`
+(compare flips + non-compare ABI stack-balance / callee-saved, Win64 and
+SysV). Pack CI Gates **7*** run `vaa repair verify` +
+`vaa patch evidence-verify` on each. Index and hashes: see
+`integrations/hlax64/README.md` § Live repair evidence. SysV Gate twins
+were closed via WSL / `hlax64-pack-sysv-gate`. Practice seal ≠ trust root.

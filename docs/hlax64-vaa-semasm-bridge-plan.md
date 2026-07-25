@@ -1071,7 +1071,11 @@ controlled HlaX64 SysV unsigned-compare defect (`jb` inverted to `ja`) was
 classified `BEHAVIOR_VECTOR_MISMATCH_001`, repaired only in allowed
 backend/test paths, deterministically regenerated, and accepted by SemASM.
 Committed packet/evidence:
-`fixtures/repair/hlax64-min-usize-sysv-live/`.
+`fixtures/repair/hlax64-min-usize-sysv-live/`. Later waves closed signed /
+unsigned compare twins (Win64+SysV) and non-compare ABI twins
+(`ABI_STACK_BALANCE_001`, `ABI_CALLEE_SAVED_001`) including SysV via WSL;
+see `integrations/hlax64/README.md` § Live repair evidence and CI Gates
+**7k–7n**.
 
 **Deliverables**
 
