@@ -247,16 +247,16 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: match integrations/hlax64/stack.lock.toml (unary i64 v2 + Phase B).
-          ref: 3cae1e1f9582ef6bffbb455f6c326cc51237f9bc
+          # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
+          ref: ecde42339b290fcce0cc84b71dd1c74833d0c41f
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: match integrations/hlax64/stack.lock.toml (VAA candidate.map.json).
-          ref: 22ef2417192c16238ab1ca92ef1ae88d9139063f
+          # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
+          ref: 62c9f2227c33f03003e6a1a28a1fc61ae902e621
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -430,8 +430,62 @@ jobs:
           }
           $join = & cargo run -q -- generator map-join $maps[0].FullName --line 7 --format json
           if ($LASTEXITCODE -ne 0) { throw "map-join failed on $($maps[0].FullName)" }
-          Write-Host "Gate pack Phase B Accepted (4 Verified) + source maps joinable"
+          # Quality: IR→NASM lines must not all collapse onto one label line.
+          $json = Get-Content -Raw $maps[0].FullName | ConvertFrom-Json
+          $distinct = @($json.entries | ForEach-Object { $_.assembly_line } | Select-Object -Unique)
+          if ($distinct.Count -lt 2) {
+            throw "source map quality: expected >=2 distinct assembly_line values"
+          }
+          Write-Host "Gate pack Phase B Accepted (4 Verified) + source maps joinable ($($distinct.Count) distinct lines)"
           Get-Content target/hlax64-suite-runs/loop-stack-gate-evidence.json | Select-Object -First 30
+
+      - name: Gate HlaX64 pack Phase C memory-read (VerifiedUnderPreconditions)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          # Honesty: memory-leaf affine ⇒ verified_under_preconditions ≠ verified.
+          ./scripts/run-hlax64-suite.ps1 -Gate `
+            -Suite integrations/hlax64/suites/memory-read-win64.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -RunDir target/hlax64-suite-runs/memory-read-gate `
+            -Output target/hlax64-suite-runs/memory-read-gate-evidence.json
+          $ev = Get-Content -Raw target/hlax64-suite-runs/memory-read-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "Phase C status=$($ev.status)" }
+          Write-Host "Gate pack Phase C Accepted (VerifiedUnderPreconditions)"
+
+      - name: Gate HlaX64 pack Phase D memory-write (VerifiedUnderPreconditions)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          ./scripts/run-hlax64-suite.ps1 -Gate `
+            -Suite integrations/hlax64/suites/memory-write-win64.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -RunDir target/hlax64-suite-runs/memory-write-gate `
+            -Output target/hlax64-suite-runs/memory-write-gate-evidence.json
+          $ev = Get-Content -Raw target/hlax64-suite-runs/memory-write-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "Phase D status=$($ev.status)" }
+          Write-Host "Gate pack Phase D Accepted (VerifiedUnderPreconditions)"
+
+      - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          # Requires SemASM ecde423+ (Phase E pure-int oracles).
+          ./scripts/run-hlax64-suite.ps1 -Gate `
+            -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -RunDir target/hlax64-suite-runs/calls-data-gate `
+            -Output target/hlax64-suite-runs/calls-data-gate-evidence.json
+          $ev = Get-Content -Raw target/hlax64-suite-runs/calls-data-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "Phase E status=$($ev.status)" }
+          if (@($ev.cases).Count -ne 5) { throw "Phase E expected 5 cases" }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'Verified') { throw "Phase E $($c.case_id)=$($c.status)" }
+          }
+          Write-Host "Gate pack Phase E Accepted (5 Verified)"
 
       - name: Negative HlaX64 suite must Reject (locked wrong min_i64)
         shell: pwsh
@@ -690,7 +744,7 @@ jobs:
           if-no-files-found: error
 
   # Pack Gate SysV: live HlaX64 generate (linux-x64-sysv) + SemASM Verified on Linux.
-  # Requires SemASM 3cae1e1+ (SysV framed epilogue + unary i64 v2).
+  # Requires SemASM ecde423+ (SysV framed epilogue + Phase E pure-int oracles).
   # Practice seal != trust root.
   hlax64-pack-sysv-gate:
     name: Gate HlaX64 pack scalar SysV (Linux)
@@ -704,16 +758,16 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: match integrations/hlax64/stack.lock.toml (unary i64 v2 + Phase B).
-          ref: 3cae1e1f9582ef6bffbb455f6c326cc51237f9bc
+          # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
+          ref: ecde42339b290fcce0cc84b71dd1c74833d0c41f
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: match integrations/hlax64/stack.lock.toml (VAA candidate.map.json).
-          ref: 22ef2417192c16238ab1ca92ef1ae88d9139063f
+          # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
+          ref: 62c9f2227c33f03003e6a1a28a1fc61ae902e621
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -774,6 +828,48 @@ jobs:
             grep -Eq '\brsi\b' "$f"
             echo "SysV registers ok: $f"
           done
+
+      - name: Gate pack scalar-i64 SysV (generate + SemASM Verified)
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          set -euo pipefail
+          ./scripts/run-hlax64-suite.sh \
+            --gate \
+            --suite integrations/hlax64/suites/scalar-i64-sysv.vaa-suite.toml \
+            --repo "${HLAX64_ROOT}" \
+            --run-dir target/hlax64-suite-runs/scalar-i64-sysv-gate \
+            --output target/hlax64-suite-runs/scalar-i64-sysv-gate/suite-evidence.json
+          python3 - <<'PY'
+          import json
+          ev = json.load(open("target/hlax64-suite-runs/scalar-i64-sysv-gate/suite-evidence.json", encoding="utf-8"))
+          assert ev.get("status", "").lower() == "accepted", ev
+          assert len(ev.get("cases", [])) == 6, ev
+          for c in ev["cases"]:
+              assert c.get("status") == "Verified", c
+          print("Gate pack scalar-i64 SysV Accepted:", [c["case_id"] for c in ev["cases"]])
+          PY
+
+      - name: Gate pack loop-stack SysV (generate + SemASM Verified)
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          set -euo pipefail
+          ./scripts/run-hlax64-suite.sh \
+            --gate \
+            --suite integrations/hlax64/suites/loop-stack-sysv.vaa-suite.toml \
+            --repo "${HLAX64_ROOT}" \
+            --run-dir target/hlax64-suite-runs/loop-stack-sysv-gate \
+            --output target/hlax64-suite-runs/loop-stack-sysv-gate/suite-evidence.json
+          python3 - <<'PY'
+          import json
+          ev = json.load(open("target/hlax64-suite-runs/loop-stack-sysv-gate/suite-evidence.json", encoding="utf-8"))
+          assert ev.get("status", "").lower() == "accepted", ev
+          assert len(ev.get("cases", [])) == 4, ev
+          for c in ev["cases"]:
+              assert c.get("status") == "Verified", c
+          print("Gate pack loop-stack SysV Accepted:", [c["case_id"] for c in ev["cases"]])
+          PY
 
       - name: Upload SysV pack Gate evidence
         uses: actions/upload-artifact@v6

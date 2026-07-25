@@ -15,9 +15,9 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 |---|---|---|
 | A — scalar leaf | `return_i64`, `add_i64`, `sub_i64`, `min_i64`, `max_i64`, `abs_i64` | **done** (named i64 pack wired; Win64 Gate Accepted, 6 Verified via SemASM `builtin.pure_int.binary_i64` / `unary_i64`, SemASM 566ca8e+). `min_usize` / `max_usize` retained as the usize-oracle pair. |
 | B — loops / stack | `sum_range`, `countdown_loop`, `stack_local_i64`, `forced_register_spill` | **done** (named pack wired; Win64 Gate Accepted, 4 Verified via SemASM unary i64 v2 — `sum_range` / `countdown` / identity aliases). `sum_i64` retained as buffer-sum oracle proxy. |
-| C — memory reads | `count_byte`, `find_first_byte`, `find_last_byte`, `memcmp` | **done** (pack wired) |
-| D — memory writes | `replace_byte`, `memset`, `memcpy` | **done** (pack wired) |
-| E — calls / data | `internal_function_call`, `nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return` | **done** (pack wired; live Win64 generate). `small_struct_return` exercises aggregate layout/field offsets and returns a scalar (HlaX64 returns via register). |
+| C — memory reads | `count_byte`, `find_first_byte`, `find_last_byte`, `memcmp` | **done** (pack wired; Win64 Gate Accepted with VerifiedUnderPreconditions — honesty: under_preconditions ≠ unconditional verified). |
+| D — memory writes | `replace_byte`, `memset`, `memcpy` | **done** (pack wired; Win64 Gate Accepted with VerifiedUnderPreconditions). |
+| E — calls / data | `internal_function_call`, `nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return` | **done** (pack wired; Win64 Gate Accepted, 5 Verified via SemASM Phase-E pure-int oracles, SemASM ecde423+). |
 
 ## Suites
 
@@ -26,9 +26,11 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 | `suites/smoke.vaa-suite.toml` | `_placeholder` (wiring only) |
 | `suites/scalar-win64.vaa-suite.toml` | Phase A usize pair (Win64) |
 | `suites/scalar-i64-win64.vaa-suite.toml` | Phase A named i64 (Win64) — Gate needs SemASM 566ca8e+ |
-| `suites/scalar-sysv.vaa-suite.toml` | Phase A SysV — **live** via `generator.sysv.spec.toml` |
+| `suites/scalar-i64-sysv.vaa-suite.toml` | Phase A named i64 (SysV) — Gate on Linux |
+| `suites/scalar-sysv.vaa-suite.toml` | Phase A SysV usize pair — **live** via `generator.sysv.spec.toml` |
 | `suites/loop-win64.vaa-suite.toml` | Phase B proxy (`sum_i64`) |
 | `suites/loop-stack-win64.vaa-suite.toml` | Phase B named loops/stack (Win64) — Gate needs SemASM 3cae1e1+ |
+| `suites/loop-stack-sysv.vaa-suite.toml` | Phase B named loops/stack (SysV) — Gate on Linux |
 | `suites/negative-reject-win64.vaa-suite.toml` | Locked wrong `min_i64` (must Reject / Violated) |
 | `suites/memory-read-win64.vaa-suite.toml` | Phase C |
 | `suites/memory-write-win64.vaa-suite.toml` | Phase D |
@@ -64,7 +66,8 @@ vaa suite run integrations/hlax64/suites/scalar-sysv.vaa-suite.toml \
 
 The emitted `candidate.asm` uses System V argument registers (`rdi`,
 `rsi`, ...) — CI asserts this. Pack Gate on Linux is claimed by the
-`hlax64-pack-sysv-gate` job (`min_usize_sysv` / `max_usize_sysv` Verified).
+`hlax64-pack-sysv-gate` job: `scalar-sysv` (usize pair),
+`scalar-i64-sysv` (6 named i64), and `loop-stack-sysv` (4) Verified.
 Practice seal is not a trust root. SemASM SysV ABI now accepts HlaX64
 `mov rsp, rbp` framed epilogues (parity with Win64).
 

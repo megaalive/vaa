@@ -48,10 +48,15 @@ fixtures + verify, CI `generator-packs` matrix + pack suite on
 under_preconditions ≠ verified.
 **Phase E done (calls/data):** 5 cases (`internal_function_call`,
 `nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return`) +
-`suites/calls-data-win64.vaa-suite.toml`; validated + parity + live Win64
-generate (5 candidate digests). `small_struct_return` covers aggregate
-layout/field offsets with a register-returned scalar (HlaX64 returns via
-register, not by-value struct). **SysV live:** `generator.sysv.spec.toml`
+`suites/calls-data-win64.vaa-suite.toml`; Win64 pack Gate **Accepted**,
+5/5 **Verified** (SemASM `ecde423` Phase-E pure-int oracles:
+`AddThenDouble` / `Double` / `Inc` / `AddBase100`). `small_struct_return`
+stages field ops through registers (illegal mem/mem + unresolved `field:`
+lowering fixed). **Phase C/D Gate done:** `memory-read-win64` /
+`memory-write-win64` Accepted with
+`VerifiedUnderPreconditions` (`allow_verified_under_preconditions = true`;
+honesty: ≠ unconditional Verified). Gate scripts accept both statuses.
+**SysV live:** `generator.sysv.spec.toml`
 (emit-nasm `--target linux-x64-sysv`); `scalar-sysv` now generates real
 System V asm (`rdi`/`rsi` argument registers, CI-asserted). Emit alone ≠
 Verified; the Linux Pack Gate below supplies the separate SemASM evidence.
@@ -89,11 +94,17 @@ signed/wrapping vectors). CI gates the i64 suite on `hlax64-bridge`.
 `suites/loop-stack-win64.vaa-suite.toml`; Gate **Accepted** 4/4 Verified.
 **Source-map emission done:** HlaX64 `22ef241` emits VAA `candidate.map.json`
 via `--source-map`; pack specs enable it; CI map-joins after Phase B Gate.
-**Negative suite done:** `min_i64_wrong` + `negative-reject-win64` must
-**Rejected** / **Violated** (`scripts/ci-negative-suite-reject.ps1`).
-**Next:** deepen pack Gate coverage (Phase C/D/E Gate, not generate-only),
-or SysV named i64/loop-stack Gate parity, or tighten HlaX64 IR→NASM line
-mapping quality (many entries currently share the function label line).
+**Source-map line quality done:** HlaX64 `62c9f22` maps IR nodes to distinct
+NASM opcode lines via `; ir:N` annotations (CI asserts ≥2 distinct
+`assembly_line` values). **Negative suite done:** `min_i64_wrong` +
+`negative-reject-win64` must **Rejected** / **Violated**
+(`scripts/ci-negative-suite-reject.ps1`).
+**SysV named i64 + loop-stack done:** `scalar-i64-sysv` (6) +
+`loop-stack-sysv` (4) generate on Windows; Gate claimed on Linux CI
+`hlax64-pack-sysv-gate` (SemASM `ecde423`+, HlaX64 `62c9f22`).
+**Next:** deepen memory-leaf evidence toward unconditional Verified where
+honest; tighten `compiler_source` join in maps; or widen corpus /
+other generators.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

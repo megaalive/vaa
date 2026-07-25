@@ -952,20 +952,20 @@ Covers:
 - sections;
 - aggregate layout.
 
-**Status:** **Done** (pack wired; live Win64 generate). Cases live under
+**Status:** **Done** (pack wired; Win64 Gate Accepted, 5 Verified via
+SemASM `ecde423` Phase-E pure-int oracles). Cases live under
 `integrations/hlax64/cases/{internal_function_call,nested_call,global_rodata,
-multiple_exports,small_struct_return}` with `suites/calls-data-win64.vaa-suite.toml`
-(validated + parity + 5 live candidate digests via `--skip-verify`).
-`small_struct_return` covers aggregate field layout/offsets and returns a
-scalar via register (HlaX64 has no by-value struct return). Incomplete ≠
-Verified; SemASM Gate for Phase E remains open.
+multiple_exports,small_struct_return}` with `suites/calls-data-win64.vaa-suite.toml`.
+`small_struct_return` stages field ops through registers and returns a
+scalar via register (HlaX64 has no by-value struct return). Practice seal ≠
+trust root.
 
 **SysV live + Gate:** `integrations/hlax64/generator.sysv.spec.toml` emits
-`--target linux-x64-sysv`. `suites/scalar-sysv.vaa-suite.toml` generates
-real System V AMD64 assembly (`rdi`/`rsi` argument registers, CI-asserted)
-and on Linux runs SemASM Gate (`scripts/run-hlax64-suite.sh --gate`) to
-**Accepted** / **Verified** (`min_usize_sysv`, `max_usize_sysv`). Requires
-SemASM `afaa19d+` (SysV framed epilogue). Practice seal ≠ trust root.
+`--target linux-x64-sysv`. Suites `scalar-sysv`, `scalar-i64-sysv`, and
+`loop-stack-sysv` generate real System V AMD64 assembly (`rdi`/`rsi`,
+CI-asserted) and on Linux run SemASM Gate to **Accepted** / **Verified**.
+Requires SemASM `ecde423+` (framed epilogue + Phase-E oracles). Practice
+seal ≠ trust root.
 
 ---
 
@@ -1112,21 +1112,22 @@ specs pass `--source-map`; CI joins a live map after Phase B Gate.
 
 **Status:** **Done** (code surface + CI pack gates + live generate suite).
 
-- Pack corpus A–E + Win64/SysV parity
+- Pack corpus A–E + Win64/SysV parity (named i64 + loop-stack SysV clones)
 - Live `vaa suite run` for `scalar-win64`, `calls-data-win64` (Phase E), and
   `scalar-sysv` via `scripts/run-hlax64-suite.ps1`
   (generate + identity; `--skip-verify` ⇒ Incomplete ≠ Verified)
-- **Pack Gate (Win64 scalar):** `scripts/run-hlax64-suite.ps1 -Gate` runs
-  generate → SemASM `--allow-execution` → suite **Accepted** (`min_usize` /
-  `max_usize` **Verified**). SemASM subprocess env allowlist includes
-  `TEMP`/`TMP` (Windows scratch dir). Practice seal ≠ trust root.
-- **Pack Gate (SysV scalar, Linux):** `scripts/run-hlax64-suite.sh --gate`
-  on `scalar-sysv` → **Accepted** (`min_usize_sysv` / `max_usize_sysv`
-  **Verified**). SemASM `afaa19d` accepts SysV framed `mov rsp,rbp`
-  epilogues (parity with Win64). CI job `hlax64-pack-sysv-gate`.
+- **Pack Gate (Win64 scalar / i64 / loop-stack / C/D/E):** Gate scripts
+  accept `Verified` or `VerifiedUnderPreconditions`. Phase C/D Accepted
+  under_preconditions; Phase E Accepted 5 Verified (SemASM `ecde423`).
+  Practice seal ≠ trust root.
+- **Pack Gate (SysV, Linux):** `scalar-sysv` + `scalar-i64-sysv` +
+  `loop-stack-sysv` → **Accepted** / **Verified**. CI
+  `hlax64-pack-sysv-gate` (SemASM `ecde423`, HlaX64 `62c9f22`).
 - SysV live generation via `generator.sysv.spec.toml`
   (emit-nasm `--target linux-x64-sysv`; `rdi`/`rsi` argument registers,
   CI-asserted).
+- Source-map quality: distinct IR→NASM opcode lines (`62c9f22`); CI asserts
+  ≥2 distinct `assembly_line` values after Phase B Gate.
 - Locked EchoAsm repair patch-evidence fixtures (Accepted + forbidden Failed)
 - **Live HlaX64 repair:** evidence branch
   `evidence/vaa-live-repair-unsigned-sysv` records broken `354fabb` →
@@ -1134,8 +1135,8 @@ specs pass `--source-map`; CI joins a live map after Phase B Gate.
   4/6 vectors failed) → **Accepted** (2/2 Verified). Patch evidence is
   Accepted, deterministic regeneration enabled, authority files untouched.
   Production regression test landed on HlaX64 main `5379729`.
-- CI: `generator-packs` matrix (ubuntu/windows) + HlaX64 bridge live pack
-  suites (scalar / Phase E / SysV) + Gate pack scalar (Win64 + SysV)
+- CI: `generator-packs` matrix (ubuntu/windows) + HlaX64 bridge Gate
+  packs (A–E Win64 + SysV named suites)
 
 **Honesty:** the live exercise used a controlled, committed backend mutation
 to make the repair path reproducible; it was not a naturally occurring

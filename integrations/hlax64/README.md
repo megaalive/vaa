@@ -52,17 +52,21 @@ $env:HLAX64_ROOT = "<path-to-hlax64>"
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-i64-win64.vaa-suite.toml
 # Phase B named loops/stack (Win64)
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/loop-stack-win64.vaa-suite.toml
+# Phase C/D memory leaves (Win64) — Gate → VerifiedUnderPreconditions
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/memory-read-win64.vaa-suite.toml
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/memory-write-win64.vaa-suite.toml
 # Phase E calls / data (Win64)
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
 # SysV live (System V AMD64 — emits rdi/rsi arg registers)
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-i64-sysv.vaa-suite.toml
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/loop-stack-sysv.vaa-suite.toml
 ```
 
 `--skip-verify` (default) ⇒ suite status Incomplete ≠ Verified. Emit ≠
-SemASM verified. The SysV suite generates real System V assembly via
-`generator.sysv.spec.toml`, but SysV **Gate** evidence on Linux (a run
-without `--skip-verify`) is not yet claimed. Pack CI also runs the scalar,
-Phase E, and SysV generate paths on `hlax64-bridge`.
+SemASM verified. SysV suites generate real System V assembly via
+`generator.sysv.spec.toml`; SysV **Gate** evidence is claimed on Linux CI
+(`hlax64-pack-sysv-gate`). Pack CI also runs Win64 Gate for Phase A–E.
 
 ## Gate pack suite (SemASM Verified)
 
@@ -80,13 +84,23 @@ $env:HLAX64_ROOT = "<path-to-hlax64>"
 # Phase B loops/stack Gate (4 Verified) — requires SemASM 3cae1e1+
 ./scripts/run-hlax64-suite.ps1 -Gate `
   -Suite integrations/hlax64/suites/loop-stack-win64.vaa-suite.toml
+# Phase C/D memory Gate — VerifiedUnderPreconditions (≠ unconditional Verified)
+./scripts/run-hlax64-suite.ps1 -Gate `
+  -Suite integrations/hlax64/suites/memory-read-win64.vaa-suite.toml
+./scripts/run-hlax64-suite.ps1 -Gate `
+  -Suite integrations/hlax64/suites/memory-write-win64.vaa-suite.toml
+# Phase E calls/data Gate (5 Verified) — requires SemASM ecde423+
+./scripts/run-hlax64-suite.ps1 -Gate `
+  -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
 # Negative suite must Reject (locked wrong min_i64)
 ./scripts/ci-negative-suite-reject.ps1
 ```
 
-Expect suite status **Accepted** with cases **Verified**. Practice seal ≠
+Expect suite status **Accepted** with cases **Verified** (or
+`VerifiedUnderPreconditions` for memory leaves). Practice seal ≠
 trust root. Generator emit also writes `candidate.map.json` (join with
-`vaa generator map-join <map> --line N`).
+`vaa generator map-join <map> --line N`; HlaX64 `62c9f22+` maps IR to
+distinct NASM opcode lines).
 
 ## Gate pack suite SysV (Linux)
 
@@ -95,10 +109,15 @@ export HLAX64_ROOT="<path-to-hlax64>"
 # Requires Linux host + semasm on PATH (afaa19d+: SysV framed epilogue).
 ./scripts/run-hlax64-suite.sh --gate \
   --suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
+# Named i64 + loop/stack SysV (SemASM ecde423+)
+./scripts/run-hlax64-suite.sh --gate \
+  --suite integrations/hlax64/suites/scalar-i64-sysv.vaa-suite.toml
+./scripts/run-hlax64-suite.sh --gate \
+  --suite integrations/hlax64/suites/loop-stack-sysv.vaa-suite.toml
 ```
 
-CI job `hlax64-pack-sysv-gate` runs this path. SysV emit uses `rdi`/`rsi`;
-Gate Accepted with `min_usize_sysv` / `max_usize_sysv` Verified.
+CI job `hlax64-pack-sysv-gate` runs these paths. SysV emit uses `rdi`/`rsi`;
+Gate Accepted with Verified cases (usize pair + named i64 + loop/stack).
 
 ## Live repair evidence
 

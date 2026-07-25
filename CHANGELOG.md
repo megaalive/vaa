@@ -77,6 +77,14 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   `suites/negative-reject-win64.vaa-suite.toml` +
   `scripts/ci-negative-suite-reject.ps1` assert suite **Rejected** with
   **Violated** — fail-closed without live agent edits.
+  **Phase C/D/E Gate (Win64):** `memory-read` / `memory-write` suites
+  Accepted with `VerifiedUnderPreconditions` (policy + Gate scripts
+  honest); `calls-data` Accepted 5/5 Verified via SemASM `ecde423`
+  Phase-E pure-int oracles; `small_struct_return` stages fields through
+  registers. **SysV named i64 + loop-stack:** `scalar-i64-sysv` /
+  `loop-stack-sysv` + Linux CI Gate steps. **Source-map line quality:**
+  pin HlaX64 `62c9f22` (distinct IR→NASM lines); CI asserts ≥2 distinct
+  `assembly_line` values after Phase B Gate.
 
 ### Changed
 
