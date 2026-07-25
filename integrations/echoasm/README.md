@@ -29,14 +29,20 @@
 | `cases/nested_call_echo/` | Locked nested-call asm — Gate Verified (Phase E) |
 | `cases/multiple_exports_echo/` | Locked multi-export asm — Gate Verified (Phase E) |
 | `cases/small_struct_return_echo/` | Locked aggregate-sum asm — Gate Verified (Phase E) |
-| `suites/smoke.vaa-suite.toml` | Suite smoke |
+| `cases/find_first_byte_echo/` | Locked find_first asm — Gate VerifiedUnderPreconditions (Phase C) |
+| `cases/find_last_byte_echo/` | Locked find_last asm — Gate VerifiedUnderPreconditions (Phase C) |
+| `cases/memcmp_echo/` | Locked memcmp asm — Gate VerifiedUnderPreconditions (Phase C) |
+| `cases/replace_byte_echo/` | Locked replace_byte asm — Gate VerifiedUnderPreconditions (Phase D) |
+| `cases/memset_echo/` | Locked memset asm — Gate VerifiedUnderPreconditions (Phase D) |
+| `cases/memcpy_echo/` | Locked memcpy asm — Gate VerifiedUnderPreconditions (Phase D) || `suites/smoke.vaa-suite.toml` | Suite smoke |
 | `suites/gate-load-byte0-win64.vaa-suite.toml` | Second-generator Gate (load only) |
 | `suites/gate-concrete-win64.vaa-suite.toml` | Second-generator Gate (load + store) |
 | `suites/gate-scalar-i64-win64.vaa-suite.toml` | Second-generator Gate (return_i64 + add_i64) |
 | `suites/gate-phase-b-loops-win64.vaa-suite.toml` | Second-generator Gate (sum_range + countdown) |
 | `suites/gate-phase-b-stack-win64.vaa-suite.toml` | Second-generator Gate (stack local + spill) |
 | `suites/gate-phase-e-calls-win64.vaa-suite.toml` | Second-generator Gate (all 5 Phase E leaves) |
-
+| `suites/gate-memory-read-win64.vaa-suite.toml` | Second-generator Gate Phase C (under_preconditions) |
+| `suites/gate-memory-write-win64.vaa-suite.toml` | Second-generator Gate Phase D (under_preconditions) |
 ## Commands
 
 ```text

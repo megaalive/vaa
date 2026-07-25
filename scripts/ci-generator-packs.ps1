@@ -47,7 +47,9 @@ $suites = @(
     "integrations/echoasm/suites/gate-scalar-i64-win64.vaa-suite.toml",
     "integrations/echoasm/suites/gate-phase-b-loops-win64.vaa-suite.toml",
     "integrations/echoasm/suites/gate-phase-b-stack-win64.vaa-suite.toml",
-    "integrations/echoasm/suites/gate-phase-e-calls-win64.vaa-suite.toml"
+    "integrations/echoasm/suites/gate-phase-e-calls-win64.vaa-suite.toml",
+    "integrations/echoasm/suites/gate-memory-read-win64.vaa-suite.toml",
+    "integrations/echoasm/suites/gate-memory-write-win64.vaa-suite.toml"
 )
 foreach ($s in $suites) {
     Invoke-Vaa suite validate $s
@@ -71,6 +73,8 @@ Invoke-Vaa suite check-parity integrations/echoasm/suites/gate-scalar-i64-win64.
 Invoke-Vaa suite check-parity integrations/echoasm/suites/gate-phase-b-loops-win64.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/echoasm/suites/gate-phase-b-stack-win64.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/echoasm/suites/gate-phase-e-calls-win64.vaa-suite.toml
+Invoke-Vaa suite check-parity integrations/echoasm/suites/gate-memory-read-win64.vaa-suite.toml
+Invoke-Vaa suite check-parity integrations/echoasm/suites/gate-memory-write-win64.vaa-suite.toml
 
 Write-Host "== Gate 3: EchoAsm deterministic generation =="
 $gen = (Resolve-Path "integrations/echoasm/tools/echoasm.cmd").Path

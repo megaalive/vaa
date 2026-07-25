@@ -139,9 +139,13 @@ locked (product claims, not bugfixes).
 **Inspect `--target` done (SemASM `67cba2a`):** `decode`/`cfg`/`analyze`
 accept a known triple; `analyze` remains x86-only (fail-closed). Stack
 locks + CI refs pin `67cba2a`.
+**EchoAsm Phase C/D honesty done:** second-generator Gate suites
+`gate-memory-read-win64` (3) + `gate-memory-write-win64` (3) Accepted
+with **VerifiedUnderPreconditions** only (CI asserts ≠ Verified). Locked
+SemASM Win64 fixtures + `memory-leaf-affine-v1`.
 **Next:** Fb9c stays locked without a new narrow claim; compare-repair
-surfaces closed. Further waves: EchoAsm C/D honesty-bound leaves, or
-non-compare repair diagnostics.
+surfaces closed. Further waves: non-compare repair diagnostics, or a
+new SemASM chip with a narrow honest claim.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

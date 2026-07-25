@@ -603,6 +603,53 @@ jobs:
           }
           Write-Host "Gate EchoAsm Phase E calls/data Accepted (5 Verified)"
 
+      - name: Gate EchoAsm Phase C memory-read (VerifiedUnderPreconditions)
+        shell: pwsh
+        run: |
+          # Honesty: symbolic-length memory-leaf => under_preconditions != Verified.
+          if (-not $env:VAA_SEAL_SIGNING_KEY) {
+            ./scripts/ci-gate-sign-setup.ps1
+          }
+          New-Item -ItemType Directory -Force -Path target/echoasm-suite-runs/memory-read-gate | Out-Null
+          cargo run -q -- suite run integrations/echoasm/suites/gate-memory-read-win64.vaa-suite.toml `
+            --repo . `
+            --run-dir target/echoasm-suite-runs/memory-read-gate `
+            --output target/echoasm-suite-runs/memory-read-gate-evidence.json `
+            --skip-repo-guard `
+            --allow-execution
+          $ev = Get-Content -Raw target/echoasm-suite-runs/memory-read-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm Phase C status=$($ev.status)" }
+          if (@($ev.cases).Count -ne 3) { throw "EchoAsm Phase C expected 3 cases" }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'VerifiedUnderPreconditions') {
+              throw "EchoAsm $($c.case_id)=$($c.status) (expected VerifiedUnderPreconditions, not Verified)"
+            }
+          }
+          Write-Host "Gate EchoAsm Phase C Accepted (3 VerifiedUnderPreconditions)"
+
+      - name: Gate EchoAsm Phase D memory-write (VerifiedUnderPreconditions)
+        shell: pwsh
+        run: |
+          if (-not $env:VAA_SEAL_SIGNING_KEY) {
+            ./scripts/ci-gate-sign-setup.ps1
+          }
+          New-Item -ItemType Directory -Force -Path target/echoasm-suite-runs/memory-write-gate | Out-Null
+          cargo run -q -- suite run integrations/echoasm/suites/gate-memory-write-win64.vaa-suite.toml `
+            --repo . `
+            --run-dir target/echoasm-suite-runs/memory-write-gate `
+            --output target/echoasm-suite-runs/memory-write-gate-evidence.json `
+            --skip-repo-guard `
+            --allow-execution
+          $ev = Get-Content -Raw target/echoasm-suite-runs/memory-write-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm Phase D status=$($ev.status)" }
+          if (@($ev.cases).Count -ne 3) { throw "EchoAsm Phase D expected 3 cases" }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'VerifiedUnderPreconditions') {
+              throw "EchoAsm $($c.case_id)=$($c.status) (expected VerifiedUnderPreconditions, not Verified)"
+            }
+          }
+          Write-Host "Gate EchoAsm Phase D Accepted (3 VerifiedUnderPreconditions)"
+
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh
         env:

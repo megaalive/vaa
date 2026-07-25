@@ -122,6 +122,11 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 - **SemASM pin `67cba2a`** — stack locks + CI refs after inspect
   `decode`/`cfg`/`analyze --target` (ISA-constrained raw-blob inspect;
   `analyze` remains x86-only). Gate behaviour unchanged.
+- **EchoAsm Phase C/D honesty Gate** — second-generator suites for
+  symbolic-length memory leaves (`find_first`/`find_last`/`memcmp` +
+  `replace_byte`/`memset`/`memcpy`) Accepted with
+  `VerifiedUnderPreconditions` only (≠ unconditional Verified). CI
+  asserts the under_preconditions status explicitly.
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate
   `find_first_byte` / `find_last_byte` (+ HlaX64) use
   `memory-leaf-affine-v1` with single-buffer `regions.equal`. Sample ≠
