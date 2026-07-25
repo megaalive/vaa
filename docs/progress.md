@@ -143,9 +143,10 @@ locks + CI refs pin `67cba2a`.
 `gate-memory-read-win64` (3) + `gate-memory-write-win64` (3) Accepted
 with **VerifiedUnderPreconditions** only (CI asserts ≠ Verified). Locked
 SemASM Win64 fixtures + `memory-leaf-affine-v1`.
-**Next:** Fb9c stays locked without a new narrow claim; compare-repair
-surfaces closed. Further waves: non-compare repair diagnostics, or a
-new SemASM chip with a narrow honest claim.
+**Next:** Fb9c stays locked. Compare-repair surfaces closed. Remaining
+landable without a new SemASM chip: **non-compare live repair** (e.g.
+`ABI_CALLEE_SAVED_001` / stack-balance controlled defect + evidence
+fixture) — needs a narrow honest mutation path in HlaX64, not rushed.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
