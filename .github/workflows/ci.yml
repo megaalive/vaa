@@ -343,6 +343,32 @@ jobs:
           }
           Get-Content target/hlax64-suite-runs/scalar-win64-evidence.json | Select-Object -First 30
 
+      - name: Gate HlaX64 pack scalar suite (generate + SemASM Verified)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          # Pack path Gate: live generate → SemASM agent verify --allow-execution.
+          # Expects suite Accepted with Verified cases. Practice seal ≠ trust root.
+          # Relies on semasm already on PATH from earlier steps.
+          ./scripts/run-hlax64-suite.ps1 `
+            -Gate `
+            -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -RunDir target/hlax64-suite-runs/scalar-gate `
+            -Output target/hlax64-suite-runs/scalar-gate-evidence.json
+          $ev = Get-Content -Raw target/hlax64-suite-runs/scalar-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) {
+            throw "Gate pack suite status=$($ev.status) (expected Accepted)"
+          }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'Verified') {
+              throw "Gate case $($c.case_id) status=$($c.status) (expected Verified)"
+            }
+          }
+          Write-Host "Gate pack scalar suite Accepted (2 Verified)"
+          Get-Content target/hlax64-suite-runs/scalar-gate-evidence.json | Select-Object -First 30
+
       - name: Live HlaX64 Phase E calls/data suite (generate-only)
         shell: pwsh
         env:

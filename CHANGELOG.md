@@ -35,8 +35,12 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   aggregate layout with a register-returned scalar.
   **SysV live:** `integrations/hlax64/generator.sysv.spec.toml` emits
   `--target linux-x64-sysv`; `scalar-sysv` generates real System V asm
-  (`rdi`/`rsi`, CI-asserted). Emit ≠ SysV SemASM Gate. Honesty locks
-  unchanged.
+  (`rdi`/`rsi`, CI-asserted). Emit ≠ SysV SemASM Gate.
+  **Pack Gate (Win64 scalar):** live `vaa suite run` without `--skip-verify`
+  + `--allow-execution` accepts `scalar-win64` (`min_usize`/`max_usize`
+  Verified). SemASM subprocess allowlist now includes `TEMP`/`TMP` (scratch
+  dir). `scripts/run-hlax64-suite.ps1 -Gate`. Practice seal ≠ trust root.
+  Honesty locks unchanged.
 
 ### Changed
 

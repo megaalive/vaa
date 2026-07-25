@@ -59,3 +59,17 @@ SemASM verified. The SysV suite generates real System V assembly via
 `generator.sysv.spec.toml`, but SysV **Gate** evidence on Linux (a run
 without `--skip-verify`) is not yet claimed. Pack CI also runs the scalar,
 Phase E, and SysV generate paths on `hlax64-bridge`.
+
+## Gate pack suite (SemASM Verified)
+
+Win64 scalar pack path can run SemASM Gate (generate → verify → seal):
+
+```powershell
+$env:HLAX64_ROOT = "<path-to-hlax64>"
+# Requires `semasm` on PATH. Auto-provisions a practice seal key if unset.
+./scripts/run-hlax64-suite.ps1 -Gate `
+  -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+```
+
+Expect suite status **Accepted** with cases **Verified**. Practice seal ≠
+trust root. SysV Gate on Linux remains the next step.

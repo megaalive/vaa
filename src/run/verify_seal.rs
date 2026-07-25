@@ -117,7 +117,12 @@ pub fn verify_candidate_and_seal(
     ) {
         Ok(report) => Some(report),
         Err(VerifyError::BinaryNotFound) => return Err(VerifySealError::SemasmUnavailable),
-        Err(_) => None,
+        Err(e) => {
+            // Do not invent a VerificationReport. Surface the adapter error so
+            // Gate failures are diagnosable (e.g. empty stdout / scratch dir).
+            eprintln!("warning: semasm agent verify failed: {e}");
+            None
+        }
     };
 
     let mut expect = EvidenceExpect::new(

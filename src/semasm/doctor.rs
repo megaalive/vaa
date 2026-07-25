@@ -253,17 +253,35 @@ impl SemasmDoctor {
     }
 }
 
-fn doctor_allowed_env() -> Vec<String> {
-    vec![
+/// Env allowlist for SemASM subprocesses (`doctor`, `agent verify`).
+///
+/// Must include Windows OS roots + temp dirs: without `TEMP`/`TMP`, SemASM fails
+/// to create its scratch directory (`Access is denied`) and VAA sees an empty
+/// VerificationReport. Credentials are never allowlisted.
+#[must_use]
+pub fn semasm_subprocess_allowed_env() -> Vec<String> {
+    let mut names = vec![
         "PATH".to_owned(),
         "HOME".to_owned(),
         "USER".to_owned(),
+        "USERPROFILE".to_owned(),
+        "TEMP".to_owned(),
+        "TMP".to_owned(),
+        "TMPDIR".to_owned(),
         "SYSTEMROOT".to_owned(),
         "WINDIR".to_owned(),
         "SYSTEMDRIVE".to_owned(),
         "PATHEXT".to_owned(),
         "COMSPEC".to_owned(),
-    ]
+        "NUMBER_OF_PROCESSORS".to_owned(),
+    ];
+    names.sort();
+    names.dedup();
+    names
+}
+
+fn doctor_allowed_env() -> Vec<String> {
+    semasm_subprocess_allowed_env()
 }
 
 fn run_semasm(config: &ProcessConfig) -> Result<String, DoctorError> {
@@ -384,5 +402,22 @@ mod tests {
     #[test]
     fn parse_version_text_strips_prefix() {
         assert_eq!(parse_version_text("semasm 1.2.3\n"), "1.2.3");
+    }
+
+    #[test]
+    fn semasm_subprocess_env_includes_temp_and_windows_roots() {
+        let allowed = semasm_subprocess_allowed_env();
+        for required in ["PATH", "TEMP", "TMP", "SYSTEMROOT", "PATHEXT", "COMSPEC"] {
+            assert!(
+                allowed.iter().any(|n| n == required),
+                "missing {required} in semasm subprocess allowlist"
+            );
+        }
+        for forbidden in ["AWS_SECRET_ACCESS_KEY", "OPENAI_API_KEY", "GITHUB_TOKEN"] {
+            assert!(
+                !allowed.iter().any(|n| n == forbidden),
+                "credential {forbidden} must not be allowlisted"
+            );
+        }
     }
 }

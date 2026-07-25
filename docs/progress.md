@@ -57,6 +57,12 @@ register, not by-value struct). **SysV live:** `generator.sysv.spec.toml`
 (emit-nasm `--target linux-x64-sysv`); `scalar-sysv` now generates real
 System V asm (`rdi`/`rsi` argument registers, CI-asserted). SysV emit ≠ SysV
 SemASM Gate — full Linux `vaa suite run` without `--skip-verify` still owed.
+**Pack Gate (Win64 scalar):** `vaa suite run` without `--skip-verify` +
+`--allow-execution` on `scalar-win64` yields suite **Accepted** with
+`min_usize`/`max_usize` **Verified** (live generate → SemASM). Fix:
+`semasm_subprocess_allowed_env` now forwards `TEMP`/`TMP` (+ Windows roots)
+so `agent verify` can create its scratch dir. Practice seal ≠ trust root.
+**Next:** SysV Gate on Linux (`scalar-sysv` without `--skip-verify`).
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

@@ -95,6 +95,8 @@ impl SemasmVerify {
             args,
             timeout: Duration::from_secs(120),
             max_output_bytes: 4 * 1_048_576,
+            // TEMP/TMP + Windows roots required; PATH/HOME/USER alone fails scratch dir.
+            allowed_env: crate::semasm::doctor::semasm_subprocess_allowed_env(),
             ..ProcessConfig::default()
         };
 

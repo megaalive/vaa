@@ -8,8 +8,8 @@ pub use capabilities::{
     match_task_requirements, CapabilityMatch, TargetCapabilities, CAPABILITY_SOURCE,
 };
 pub use doctor::{
-    probe_live_for_target, DoctorReport, DoctorStatus, EvidencePolicy, LiveProbeSummary,
-    SemasmDoctor,
+    probe_live_for_target, semasm_subprocess_allowed_env, DoctorReport, DoctorStatus,
+    EvidencePolicy, LiveProbeSummary, SemasmDoctor,
 };
 pub use semantic_evidence::{
     project_semantic_evidence, AliasEvidenceSummary, ContractExpressionSummary,

@@ -1092,12 +1092,16 @@ deliberately broken backend case remains open.
 - Live `vaa suite run` for `scalar-win64`, `calls-data-win64` (Phase E), and
   `scalar-sysv` via `scripts/run-hlax64-suite.ps1`
   (generate + identity; `--skip-verify` ⇒ Incomplete ≠ Verified)
+- **Pack Gate (Win64 scalar):** `scripts/run-hlax64-suite.ps1 -Gate` runs
+  generate → SemASM `--allow-execution` → suite **Accepted** (`min_usize` /
+  `max_usize` **Verified**). SemASM subprocess env allowlist includes
+  `TEMP`/`TMP` (Windows scratch dir). Practice seal ≠ trust root.
 - SysV live generation via `generator.sysv.spec.toml`
   (emit-nasm `--target linux-x64-sysv`; `rdi`/`rsi` argument registers,
-  CI-asserted)
+  CI-asserted). SysV **Gate** on Linux still owed.
 - Locked EchoAsm repair patch-evidence fixtures (Accepted + forbidden Failed)
 - CI: `generator-packs` matrix (ubuntu/windows) + HlaX64 bridge live pack
-  suites (scalar / Phase E / SysV)
+  suites (scalar / Phase E / SysV) + Gate pack scalar
 
 **Honesty:** EchoAsm repair smoke ≠ a live HlaX64 backend defect fixed by an
 agent. SemASM Gate Verified remains the existing `hlax64-bridge` ingest
