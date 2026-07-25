@@ -8,11 +8,11 @@ revision = "git:1cdc56314c19a6f2b517aff843e644583d914b62"
 
 [semasm]
 repository = "https://github.com/megaalive/semasm"
-revision = "git:3218d2aff9e73457faf159c2cc910c827478adc2"
+revision = "git:6018502805778590d021447ff246182493a77a49"
 
 [toolchain]
 rust = "1.85"
 
 [generators.hlax64]
 repository = "https://github.com/megaalive/hlax64"
-revision = "git:cdee173552eb57b499f90e5810bf8fbf00cd561a"
+revision = "git:3f63c1b5a42b5d288821363fd7e37c95e18290f5"

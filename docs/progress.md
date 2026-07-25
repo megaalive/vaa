@@ -121,14 +121,17 @@ literal regions (SemASM `ebd5114`).
 `mov N; dec; access; jnz` → `index_max_exclusive`.
 **Fb9a structured CFG induction done (SemASM `3218d2a`):**
 physical targets confirm pre-test header/exit/back-edge before
-`index_max_exclusive`; arbitrary invariants remain Fb9b locked.
-**EchoAsm Gate done:** concrete + scalar + all four Phase B leaves
-(loops + stack-local + spill-pressure) — second generator **Verified**.
-**Repair depth done:** SysV unsigned + Win64 map-line + Win64 signed +
-Win64 unsigned + SysV signed worktree
-(`evidence/vaa-live-repair-signed-sysv`, `0f0dee7` → `f1e56b1`;
-main regression `cdee173`).
-**Next:** Fb9b invariant depth; EchoAsm Phase E; or another repair surface.
+`index_max_exclusive`.
+**Fb9b CFG post-test induction done (SemASM `6018502`):**
+physical `jb`/`jl` back-edge to the access site; arbitrary invariants
+remain Fb9c locked.
+**EchoAsm Gate done:** concrete + scalar + Phase B + Phase E subset
+(`internal_function_call` + `global_rodata`) — second generator **Verified**.
+**Repair depth done:** less-than surfaces + Win64 unsigned greater-than
+(`evidence/vaa-live-repair-max-unsigned-win64`, `e68aac7` → `ee3b1b2`;
+main regression `3f63c1b`).
+**Next:** Fb9c only if a narrow honest path appears; remaining EchoAsm
+Phase E leaves; or SysV/Win64 signed greater-than repair.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
