@@ -494,28 +494,28 @@ jobs:
           }
           Write-Host "Gate pack memory-concrete Accepted (2 Verified)"
 
-      - name: Gate EchoAsm load_byte0 (second-generator Verified)
+      - name: Gate EchoAsm concrete cells (second-generator Verified)
         shell: pwsh
         run: |
           # Universality: EchoAsm copy-generator + SemASM concrete cell Gate.
-          # Requires SemASM ca11fc7+ (load_byte0 oracle). Practice seal ≠ trust root.
+          # load_byte0 + store_byte0. Practice seal ≠ trust root.
           if (-not $env:VAA_SEAL_SIGNING_KEY) {
             ./scripts/ci-gate-sign-setup.ps1
           }
-          New-Item -ItemType Directory -Force -Path target/echoasm-suite-runs/load-byte0-gate | Out-Null
-          cargo run -q -- suite run integrations/echoasm/suites/gate-load-byte0-win64.vaa-suite.toml `
+          New-Item -ItemType Directory -Force -Path target/echoasm-suite-runs/concrete-gate | Out-Null
+          cargo run -q -- suite run integrations/echoasm/suites/gate-concrete-win64.vaa-suite.toml `
             --repo . `
-            --run-dir target/echoasm-suite-runs/load-byte0-gate `
-            --output target/echoasm-suite-runs/load-byte0-gate-evidence.json `
+            --run-dir target/echoasm-suite-runs/concrete-gate `
+            --output target/echoasm-suite-runs/concrete-gate-evidence.json `
             --skip-repo-guard `
             --allow-execution
-          $ev = Get-Content -Raw target/echoasm-suite-runs/load-byte0-gate-evidence.json | ConvertFrom-Json
+          $ev = Get-Content -Raw target/echoasm-suite-runs/concrete-gate-evidence.json | ConvertFrom-Json
           if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm Gate status=$($ev.status)" }
-          if (@($ev.cases).Count -ne 1) { throw "EchoAsm Gate expected 1 case" }
+          if (@($ev.cases).Count -ne 2) { throw "EchoAsm Gate expected 2 cases" }
           foreach ($c in $ev.cases) {
             if ([string]$c.status -ne 'Verified') { throw "EchoAsm $($c.case_id)=$($c.status)" }
           }
-          Write-Host "Gate EchoAsm load_byte0 Accepted (Verified)"
+          Write-Host "Gate EchoAsm concrete cells Accepted (2 Verified)"
 
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh
