@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "task_id": "max-usize-win64-live-worktree-v1",
+  "generator_id": "hlax64",
+  "repository": {
+    "base_revision": "git:cdee173552eb57b499f90e5810bf8fbf00cd561a",
+    "allowed_paths": [
+      "src/HlaX64.Compiler/Abi/**",
+      "src/HlaX64.Compiler/Ir/**",
+      "src/HlaX64.Backend.Nasm/**",
+      "tests/HlaX64.Compiler.Tests/**"
+    ],
+    "forbidden_paths": [
+      "**/integrations/hlax64/cases/**/task.vaa.toml",
+      "**/integrations/hlax64/cases/**/contract.sem.toml",
+      "**/integrations/hlax64/cases/**/vectors.json",
+      "**/integrations/hlax64/stack.lock.toml"
+    ]
+  },
+  "failure": {
+    "classification": "generator_candidate_violated",
+    "diagnostic_code": "BEHAVIOR_VECTOR_MISMATCH_001",
+    "message": "SemASM behavior_failed: unsigned max_usize returned min (GreaterThanUnsigned lowered to jb)"
+  },
+  "generated_artifact": {
+    "path": "candidate.asm",
+    "digest": "sha256:97f48b82ce4c4e48dba1346d81c64d58df457808fd223f69aed99c5662480b0d"
+  },
+  "source_mapping": {
+    "generator_input": "integrations/hlax64/cases/max_usize/input.hla64:19",
+    "ir_node": "CompareKind.GreaterThanUnsigned",
+    "generator_source": "src/HlaX64.Compiler/Abi/WindowsMsAbiLowerer.cs:443"
+  },
+  "commands": {
+    "build": "dotnet build src/HlaX64.Cli/HlaX64.Cli.csproj -c Release --nologo",
+    "regenerate": "./scripts/run-hlax64-suite.ps1 -Gate -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml -Repo ../hlax64-live-repair-win64-max-unsigned",
+    "verify": "dotnet test tests/HlaX64.Compiler.Tests/HlaX64.Compiler.Tests.csproj --filter FullyQualifiedName~Emit_Win64UnsignedGreaterThan_UsesAboveBranch"
+  },
+  "constraints": [
+    "Do not edit generated assembly manually",
+    "Do not edit contracts, vectors, task files, or stack.lock.toml",
+    "Regenerate all candidates after generator changes",
+    "Run the required regression suite before completion"
+  ]
+}

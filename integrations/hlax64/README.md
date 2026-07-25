@@ -145,3 +145,8 @@ SysV signed worktree twin:
 `fixtures/repair/hlax64-min-i64-sysv-live-worktree/`
 (`evidence/vaa-live-repair-signed-sysv`, broken `0f0dee7` → repaired
 `f1e56b1`; main regression `cdee173`).
+
+Win64 unsigned greater-than twin:
+`fixtures/repair/hlax64-max-usize-win64-live-worktree/`
+(`evidence/vaa-live-repair-max-unsigned-win64`, broken `e68aac7` → repaired
+`ee3b1b2`; main regression `3f63c1b`).
