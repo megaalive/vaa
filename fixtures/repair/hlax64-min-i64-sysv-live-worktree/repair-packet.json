@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "task_id": "min-i64-sysv-live-worktree-v1",
+  "generator_id": "hlax64",
+  "repository": {
+    "base_revision": "git:f75d710ff51eb9a40bc2e31fb215377e9fea768b",
+    "allowed_paths": [
+      "src/HlaX64.Compiler/Abi/**",
+      "src/HlaX64.Compiler/Ir/**",
+      "src/HlaX64.Backend.Nasm/**",
+      "tests/HlaX64.Compiler.Tests/**"
+    ],
+    "forbidden_paths": [
+      "**/integrations/hlax64/cases/**/task.vaa.toml",
+      "**/integrations/hlax64/cases/**/contract.sem.toml",
+      "**/integrations/hlax64/cases/**/vectors.json",
+      "**/integrations/hlax64/stack.lock.toml"
+    ]
+  },
+  "failure": {
+    "classification": "generator_candidate_violated",
+    "diagnostic_code": "BEHAVIOR_VECTOR_MISMATCH_001",
+    "message": "SemASM behavior_failed: signed min_i64 returned max (LessThanSigned lowered to jg)"
+  },
+  "generated_artifact": {
+    "path": "candidate.asm",
+    "digest": "sha256:576f70f3f890a0b37e29098c13983adf92da98dfe1b111b60d0b64a5efd86594"
+  },
+  "source_mapping": {
+    "generator_input": "integrations/hlax64/cases/min_i64_sysv/input.hla64:18",
+    "ir_node": "CompareKind.LessThanSigned",
+    "generator_source": "src/HlaX64.Compiler/Abi/SysVAbiLowerer.cs:477"
+  },
+  "commands": {
+    "build": "dotnet build src/HlaX64.Cli/HlaX64.Cli.csproj -c Release --nologo",
+    "regenerate": "bash scripts/run-hlax64-suite.sh --gate --suite integrations/hlax64/suites/scalar-i64-sysv.vaa-suite.toml --repo ../hlax64-live-repair-sysv-signed",
+    "verify": "dotnet test tests/HlaX64.Compiler.Tests/HlaX64.Compiler.Tests.csproj --filter FullyQualifiedName~Emit_SysVSignedLessThan_UsesLessBranch"
+  },
+  "constraints": [
+    "Do not edit generated assembly manually",
+    "Do not edit contracts, vectors, task files, or stack.lock.toml",
+    "Regenerate all candidates after generator changes",
+    "Run the required regression suite before completion"
+  ]
+}

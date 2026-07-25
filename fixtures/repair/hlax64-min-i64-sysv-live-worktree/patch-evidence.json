@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "base_revision": "git:0f0dee7",
+  "patched_revision": "git:f1e56b1",
+  "patch_digest": "sha256:13f8c8b91a05fdf3dab27e63a0dcc0d93bb13abf55b563a6a9059ad3b65aff84",
+  "changed_files": [
+    "src/HlaX64.Compiler/Abi/SysVAbiLowerer.cs",
+    "tests/HlaX64.Compiler.Tests/NasmEmitterTests.cs"
+  ],
+  "forbidden_paths_changed": [],
+  "generator_binary_digest": "sha256:a4bc9f612e468776ee7478512b72c430440fded50eaa46de5716f769d86533e2",
+  "stack_lock_digest": "sha256:da7e608d29e2de2b4997b21dbe70b58b66a1e17fbdad9060096265d06b69ce90",
+  "suite_id": "hlax64.backend.scalar-i64.sysv.v0",
+  "suite_digest": "sha256:40cc6900b1ffbad8f0994dfd06ad87dd989b786503b2ea643cecdf666cbbd349",
+  "suite_status": "accepted",
+  "status": "accepted"
+}
