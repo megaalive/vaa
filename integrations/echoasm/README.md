@@ -34,7 +34,8 @@
 | `cases/memcmp_echo/` | Locked memcmp asm — Gate VerifiedUnderPreconditions (Phase C) |
 | `cases/replace_byte_echo/` | Locked replace_byte asm — Gate VerifiedUnderPreconditions (Phase D) |
 | `cases/memset_echo/` | Locked memset asm — Gate VerifiedUnderPreconditions (Phase D) |
-| `cases/memcpy_echo/` | Locked memcpy asm — Gate VerifiedUnderPreconditions (Phase D) || `suites/smoke.vaa-suite.toml` | Suite smoke |
+| `cases/memcpy_echo/` | Locked memcpy asm — Gate VerifiedUnderPreconditions (Phase D) |
+| `suites/smoke.vaa-suite.toml` | Suite smoke |
 | `suites/gate-load-byte0-win64.vaa-suite.toml` | Second-generator Gate (load only) |
 | `suites/gate-concrete-win64.vaa-suite.toml` | Second-generator Gate (load + store) |
 | `suites/gate-scalar-i64-win64.vaa-suite.toml` | Second-generator Gate (return_i64 + add_i64) |
