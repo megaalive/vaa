@@ -539,6 +539,28 @@ jobs:
           }
           Write-Host "Gate EchoAsm scalar-i64 Accepted (2 Verified)"
 
+      - name: Gate EchoAsm Phase B loops (second-generator Verified)
+        shell: pwsh
+        run: |
+          # Phase B: sum_range + countdown_loop via copy-generator.
+          if (-not $env:VAA_SEAL_SIGNING_KEY) {
+            ./scripts/ci-gate-sign-setup.ps1
+          }
+          New-Item -ItemType Directory -Force -Path target/echoasm-suite-runs/phase-b-gate | Out-Null
+          cargo run -q -- suite run integrations/echoasm/suites/gate-phase-b-loops-win64.vaa-suite.toml `
+            --repo . `
+            --run-dir target/echoasm-suite-runs/phase-b-gate `
+            --output target/echoasm-suite-runs/phase-b-gate-evidence.json `
+            --skip-repo-guard `
+            --allow-execution
+          $ev = Get-Content -Raw target/echoasm-suite-runs/phase-b-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm Phase B Gate status=$($ev.status)" }
+          if (@($ev.cases).Count -ne 2) { throw "EchoAsm Phase B Gate expected 2 cases" }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'Verified') { throw "EchoAsm $($c.case_id)=$($c.status)" }
+          }
+          Write-Host "Gate EchoAsm Phase B loops Accepted (2 Verified)"
+
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh
         env:
