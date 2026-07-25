@@ -1,4 +1,4 @@
-# EchoAsm Gate — Phase E call/data leaves (subset).
+# EchoAsm Gate — Phase E call/data leaves (full five).
 # Second-generator Verified via locked asm copies; SemASM supplies evidence.
 # Honesty: EchoAsm ≠ CryptOpt; practice seal ≠ trust root.
 schema_version = "0.1"
@@ -9,6 +9,9 @@ stack_lock = "../stack.lock.toml"
 required_cases = [
   "../cases/internal_function_call_echo",
   "../cases/global_rodata_echo",
+  "../cases/nested_call_echo",
+  "../cases/multiple_exports_echo",
+  "../cases/small_struct_return_echo",
 ]
 
 [generator]

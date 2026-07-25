@@ -597,11 +597,11 @@ jobs:
             --allow-execution
           $ev = Get-Content -Raw target/echoasm-suite-runs/phase-e-gate-evidence.json | ConvertFrom-Json
           if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm Phase E Gate status=$($ev.status)" }
-          if (@($ev.cases).Count -ne 2) { throw "EchoAsm Phase E Gate expected 2 cases" }
+          if (@($ev.cases).Count -ne 5) { throw "EchoAsm Phase E Gate expected 5 cases" }
           foreach ($c in $ev.cases) {
             if ([string]$c.status -ne 'Verified') { throw "EchoAsm $($c.case_id)=$($c.status)" }
           }
-          Write-Host "Gate EchoAsm Phase E calls/data Accepted (2 Verified)"
+          Write-Host "Gate EchoAsm Phase E calls/data Accepted (5 Verified)"
 
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh

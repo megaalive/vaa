@@ -1,0 +1,23 @@
+contract_version = "0.1"
+
+[function]
+name = "inc"
+summary = "Return x + 1; primary export in a multi-export translation unit"
+
+[[function.parameters]]
+name = "x"
+type = "i64"
+role = "input"
+
+[[function.returns]]
+name = "result"
+type = "i64"
+
+[[function.ensures]]
+expression = "result == x + 1"
+reason = "Wrapping increment; proven by behavioral vectors."
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 64

@@ -1,0 +1,28 @@
+contract_version = "0.1"
+
+[function]
+name = "point_sum"
+summary = "Populate a 2-field aggregate and return the sum of its fields"
+
+[[function.parameters]]
+name = "a"
+type = "i64"
+role = "input"
+
+[[function.parameters]]
+name = "b"
+type = "i64"
+role = "input"
+
+[[function.returns]]
+name = "result"
+type = "i64"
+
+[[function.ensures]]
+expression = "result == a + b"
+reason = "Fields x=a, y=b summed; proven by behavioral vectors."
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 64

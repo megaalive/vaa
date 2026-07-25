@@ -1,0 +1,28 @@
+contract_version = "0.1"
+
+[function]
+name = "add_then_double"
+summary = "Return 2*(a+b) through nested internal calls"
+
+[[function.parameters]]
+name = "a"
+type = "i64"
+role = "input"
+
+[[function.parameters]]
+name = "b"
+type = "i64"
+role = "input"
+
+[[function.returns]]
+name = "result"
+type = "i64"
+
+[[function.ensures]]
+expression = "result == (a + b) + (a + b)"
+reason = "Wrapping add-then-double; proven by behavioral vectors."
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 96
