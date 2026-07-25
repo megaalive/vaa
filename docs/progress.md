@@ -102,9 +102,13 @@ NASM opcode lines via `; ir:N` annotations (CI asserts ≥2 distinct
 **SysV named i64 + loop-stack done:** `scalar-i64-sysv` (6) +
 `loop-stack-sysv` (4) generate on Windows; Gate claimed on Linux CI
 `hlax64-pack-sysv-gate` (SemASM `ecde423`+, HlaX64 `62c9f22`).
-**Next:** deepen memory-leaf evidence toward unconditional Verified where
-honest; tighten `compiler_source` join in maps; or widen corpus /
-other generators.
+**Memory-leaf depth (concrete cells) done:** `load_byte0` / `store_byte0`
++ suite `memory-concrete-win64` + profile `memory-leaf-concrete-v1`
+(reject caller obligations). SemASM `28fb22f` literal-length cells →
+unconditional **Verified** (region_access `passed`). Symbolic-length
+Phase C/D remain `VerifiedUnderPreconditions` (honest; not promoted).
+**Next:** map `compiler_source` join quality in repair packets; or Fb4
+index-bounded `AccessAddr`; or widen corpus / other generators.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

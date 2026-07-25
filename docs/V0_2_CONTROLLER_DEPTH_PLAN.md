@@ -29,9 +29,11 @@ Forbidden: claiming Horizon cliffs (HSM, live model, CryptOpt) as Done.
 | **Vd13** | Wire `memory-leaf-affine-v1` on Gate `replace_byte` + pin SemASM `8924564` | **done** |
 | **Vd14** | Wire `memory-leaf-affine-v1` on Gate `memcmp` + pin SemASM `d2ce02d` | **done** |
 | **Vd15** | Wire `memory-leaf-affine-v1` on Gate `find_first`/`find_last` + pin SemASM `928bd66` | **done** |
+| **Vd16** | Concrete cell depth: `memory-leaf-concrete-v1` + `load_byte0`/`store_byte0` Gate Verified + pin SemASM `28fb22f` | **done** |
 
 ## Non-goals
 
-- New leaf families / formal ensures
+- Promoting symbolic-length `verified_under_preconditions` → `verified`
+- New leaf families beyond concrete cells / formal ensures
 - Production trust root / hardware HSM / operated remote log
 - Gate-2 run Verified for write-shape (search-ingest Gate-2 already covers allow-exec)

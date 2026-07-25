@@ -85,6 +85,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   `loop-stack-sysv` + Linux CI Gate steps. **Source-map line quality:**
   pin HlaX64 `62c9f22` (distinct IR→NASM lines); CI asserts ≥2 distinct
   `assembly_line` values after Phase B Gate.
+  **Memory-leaf depth (concrete cells):** `load_byte0` / `store_byte0` +
+  `memory-leaf-concrete-v1` (no caller obligations) + suite
+  `memory-concrete-win64`. SemASM `28fb22f`. Gate expects unconditional
+  **Verified**; does not promote symbolic-length Phase C/D.
 
 ### Changed
 

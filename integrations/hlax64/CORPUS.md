@@ -16,6 +16,7 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 | A — scalar leaf | `return_i64`, `add_i64`, `sub_i64`, `min_i64`, `max_i64`, `abs_i64` | **done** (named i64 pack wired; Win64 Gate Accepted, 6 Verified via SemASM `builtin.pure_int.binary_i64` / `unary_i64`, SemASM 566ca8e+). `min_usize` / `max_usize` retained as the usize-oracle pair. |
 | B — loops / stack | `sum_range`, `countdown_loop`, `stack_local_i64`, `forced_register_spill` | **done** (named pack wired; Win64 Gate Accepted, 4 Verified via SemASM unary i64 v2 — `sum_range` / `countdown` / identity aliases). `sum_i64` retained as buffer-sum oracle proxy. |
 | C — memory reads | `count_byte`, `find_first_byte`, `find_last_byte`, `memcmp` | **done** (pack wired; Win64 Gate Accepted with VerifiedUnderPreconditions — honesty: under_preconditions ≠ unconditional verified). |
+| C/D depth — concrete cells | `load_byte0`, `store_byte0` | **done** (literal region length; Win64 Gate Accepted, 2 Verified via SemASM `28fb22f` + profile `memory-leaf-concrete-v1`). Does not promote symbolic-length C/D. |
 | D — memory writes | `replace_byte`, `memset`, `memcpy` | **done** (pack wired; Win64 Gate Accepted with VerifiedUnderPreconditions). |
 | E — calls / data | `internal_function_call`, `nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return` | **done** (pack wired; Win64 Gate Accepted, 5 Verified via SemASM Phase-E pure-int oracles, SemASM ecde423+). |
 
@@ -34,6 +35,7 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 | `suites/negative-reject-win64.vaa-suite.toml` | Locked wrong `min_i64` (must Reject / Violated) |
 | `suites/memory-read-win64.vaa-suite.toml` | Phase C |
 | `suites/memory-write-win64.vaa-suite.toml` | Phase D |
+| `suites/memory-concrete-win64.vaa-suite.toml` | Concrete cells (`load_byte0`/`store_byte0`) — Gate needs SemASM 28fb22f+ |
 | `suites/calls-data-win64.vaa-suite.toml` | Phase E (calls / data) |
 | `suites/backend-win64.vaa-suite.toml` | A–D pack union |
 

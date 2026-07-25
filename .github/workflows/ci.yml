@@ -248,7 +248,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: ecde42339b290fcce0cc84b71dd1c74833d0c41f
+          ref: 28fb22f07d654dcdd0c9dc1ddfea47ff460ccd4f
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -467,6 +467,28 @@ jobs:
           $ev = Get-Content -Raw target/hlax64-suite-runs/memory-write-gate-evidence.json | ConvertFrom-Json
           if ([string]$ev.status -notin @('accepted','Accepted')) { throw "Phase D status=$($ev.status)" }
           Write-Host "Gate pack Phase D Accepted (VerifiedUnderPreconditions)"
+
+      - name: Gate HlaX64 pack memory-concrete cells (unconditional Verified)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          # Literal region length ⇒ SemASM verified (≠ under_preconditions).
+          # Requires SemASM 28fb22f+ (load_byte0 / store_byte0 oracles).
+          ./scripts/run-hlax64-suite.ps1 -Gate `
+            -Suite integrations/hlax64/suites/memory-concrete-win64.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -RunDir target/hlax64-suite-runs/memory-concrete-gate `
+            -Output target/hlax64-suite-runs/memory-concrete-gate-evidence.json
+          $ev = Get-Content -Raw target/hlax64-suite-runs/memory-concrete-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "memory-concrete status=$($ev.status)" }
+          if (@($ev.cases).Count -ne 2) { throw "memory-concrete expected 2 cases" }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'Verified') {
+              throw "memory-concrete $($c.case_id)=$($c.status) (expected Verified, not under_preconditions)"
+            }
+          }
+          Write-Host "Gate pack memory-concrete Accepted (2 Verified)"
 
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh
@@ -759,7 +781,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: ecde42339b290fcce0cc84b71dd1c74833d0c41f
+          ref: 28fb22f07d654dcdd0c9dc1ddfea47ff460ccd4f
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6

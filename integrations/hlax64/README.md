@@ -89,6 +89,9 @@ $env:HLAX64_ROOT = "<path-to-hlax64>"
   -Suite integrations/hlax64/suites/memory-read-win64.vaa-suite.toml
 ./scripts/run-hlax64-suite.ps1 -Gate `
   -Suite integrations/hlax64/suites/memory-write-win64.vaa-suite.toml
+# Concrete cells Gate (2 Verified) — requires SemASM 28fb22f+
+./scripts/run-hlax64-suite.ps1 -Gate `
+  -Suite integrations/hlax64/suites/memory-concrete-win64.vaa-suite.toml
 # Phase E calls/data Gate (5 Verified) — requires SemASM ecde423+
 ./scripts/run-hlax64-suite.ps1 -Gate `
   -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
@@ -97,7 +100,8 @@ $env:HLAX64_ROOT = "<path-to-hlax64>"
 ```
 
 Expect suite status **Accepted** with cases **Verified** (or
-`VerifiedUnderPreconditions` for memory leaves). Practice seal ≠
+`VerifiedUnderPreconditions` for symbolic-length memory leaves;
+`memory-concrete-win64` must be unconditional **Verified**). Practice seal ≠
 trust root. Generator emit also writes `candidate.map.json` (join with
 `vaa generator map-join <map> --line N`; HlaX64 `62c9f22+` maps IR to
 distinct NASM opcode lines).
