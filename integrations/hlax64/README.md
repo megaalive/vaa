@@ -140,3 +140,8 @@ untouched. Post-repair `scalar-sysv` was Accepted (2/2 Verified).
 Win64 unsigned worktree twin: `fixtures/repair/hlax64-min-usize-win64-live-worktree/`
 (`evidence/vaa-live-repair-unsigned-win64`, broken `64d5344` → repaired
 `9a41cb2`; main regression `f75d710`).
+
+SysV signed worktree twin:
+`fixtures/repair/hlax64-min-i64-sysv-live-worktree/`
+(`evidence/vaa-live-repair-signed-sysv`, broken `0f0dee7` → repaired
+`f1e56b1`; main regression `cdee173`).

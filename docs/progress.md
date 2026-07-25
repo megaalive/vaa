@@ -118,15 +118,17 @@ literal regions (SemASM `ebd5114`).
 **Fb7 post-test induction done (SemASM `53f8999`):**
 `xor; access; inc; cmp; jb` → `index_max_exclusive`.
 **Fb8 countdown induction done (SemASM `2351ce0`):**
-`mov N; dec; access; jnz` → `index_max_exclusive`. CFG-sound arbitrary
-induction (Fb9) locked.
-**EchoAsm Gate done:** concrete + scalar + Phase B loops
-(`sum_range` + `countdown_loop`) — second generator **Verified**.
+`mov N; dec; access; jnz` → `index_max_exclusive`.
+**Fb9a structured CFG induction done (SemASM `3218d2a`):**
+physical targets confirm pre-test header/exit/back-edge before
+`index_max_exclusive`; arbitrary invariants remain Fb9b locked.
+**EchoAsm Gate done:** concrete + scalar + all four Phase B leaves
+(loops + stack-local + spill-pressure) — second generator **Verified**.
 **Repair depth done:** SysV unsigned + Win64 map-line + Win64 signed +
-Win64 unsigned worktree (`evidence/vaa-live-repair-unsigned-win64`,
-broken `64d5344` → repaired `9a41cb2`; main regression `f75d710`).
-**Next:** Fb9 CFG-sound induction; more EchoAsm leaves; or SysV signed
-live repair after Linux SemASM rebuild.
+Win64 unsigned + SysV signed worktree
+(`evidence/vaa-live-repair-signed-sysv`, `0f0dee7` → `f1e56b1`;
+main regression `cdee173`).
+**Next:** Fb9b invariant depth; EchoAsm Phase E; or another repair surface.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

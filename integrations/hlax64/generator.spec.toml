@@ -8,7 +8,7 @@ kind = "compiler"
 [repository]
 # Relative to this pack: CI checks out hlax64 at $GITHUB_WORKSPACE/hlax64.
 path = "../../hlax64"
-expected_revision = "git:f75d710ff51eb9a40bc2e31fb215377e9fea768b"
+expected_revision = "git:cdee173552eb57b499f90e5810bf8fbf00cd561a"
 require_clean_worktree = true
 allow_untracked_files = false
 

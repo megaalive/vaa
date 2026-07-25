@@ -100,11 +100,13 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   **Fb7 post-test induction (SemASM `53f8999`):**
   `xor; access; inc; cmp; jb`.
   **Fb8 countdown induction (SemASM `2351ce0`):**
-  `mov N; dec; access; jnz`; Fb9 CFG-sound locked.
-  **EchoAsm Gate depth:** concrete + scalar + Phase B loops
-  (`sum_range` / `countdown_loop`) second-generator **Verified**.
+  `mov N; dec; access; jnz`.
+  **Fb9a structured CFG induction (SemASM `3218d2a`):**
+  physical header/exit/back-edge confirmation; arbitrary invariants Fb9b locked.
+  **EchoAsm Gate depth:** concrete + scalar + all four Phase B leaves
+  (loops + stack local + spill pressure) second-generator **Verified**.
   **Repair join depth:** offset map-join + Win64 `--map-line` + Win64
-  signed + Win64 unsigned worktree live repair (`64d5344`→`9a41cb2`).
+  signed/unsigned + SysV signed worktree repair (`0f0dee7`→`f1e56b1`).
 ### Changed
 
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate
