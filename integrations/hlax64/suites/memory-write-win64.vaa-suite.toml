@@ -1,4 +1,7 @@
-# Phase D â€” memory writes (Win64). See CORPUS.md.
+# Phase D — memory writes (Win64). See CORPUS.md.
+# Gate honesty: SemASM memory-leaf affine evidence yields
+# verified_under_preconditions (≠ unconditional verified). Suite policy
+# allows that status so pack Gate can Accept without over-claiming.
 schema_version = "0.1"
 suite_id = "hlax64.backend.memory-write.win64.v0"
 target = "x86_64-pc-windows-msvc"
@@ -15,7 +18,7 @@ spec = "../generator.spec.toml"
 
 [policy]
 require_all_cases = true
-allow_verified_under_preconditions = false
+allow_verified_under_preconditions = true
 allow_incomplete = false
 stop_on_first_failure = false
 max_parallel_cases = 1

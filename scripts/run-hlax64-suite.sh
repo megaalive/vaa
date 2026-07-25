@@ -142,7 +142,16 @@ PY
       echo "Gate suite expected Accepted, got status=$STATUS" >&2
       exit 1
     fi
-    echo "Gate pack suite Accepted (Verified cases; practice seal is not a trust root)"
+    python3 - "$OUTPUT" <<'PY'
+import json, sys
+ev = json.load(open(sys.argv[1], encoding="utf-8"))
+ok = {"Verified", "verified", "VerifiedUnderPreconditions", "verified_under_preconditions"}
+for c in ev.get("cases", []):
+    st = str(c.get("status", ""))
+    if st not in ok:
+        raise SystemExit(f"Gate case {c.get('case_id')} status={st} (expected Verified or VerifiedUnderPreconditions)")
+print("Gate pack suite Accepted (Verified / VerifiedUnderPreconditions; practice seal is not a trust root)")
+PY
   fi
   head -n 40 "$OUTPUT"
 fi

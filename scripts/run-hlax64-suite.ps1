@@ -114,7 +114,16 @@ if (Test-Path $Output) {
         if ($st -ne "accepted" -and $st -ne "Accepted") {
             throw ("Gate suite expected Accepted, got status={0}" -f $st)
         }
-        Write-Host "Gate pack suite Accepted (Verified cases; practice seal is not a trust root)"
+        # Memory-leaf suites may land VerifiedUnderPreconditions (honest;
+        # under_preconditions ≠ unconditional verified). Scalar/loop suites
+        # still expect Verified.
+        foreach ($c in $evidence.cases) {
+            $cs = [string]$c.status
+            if ($cs -notin @('Verified','verified','VerifiedUnderPreconditions','verified_under_preconditions')) {
+                throw ("Gate case {0} status={1} (expected Verified or VerifiedUnderPreconditions)" -f $c.case_id, $cs)
+            }
+        }
+        Write-Host "Gate pack suite Accepted (Verified / VerifiedUnderPreconditions; practice seal is not a trust root)"
     }
     Get-Content $Output | Select-Object -First 40
 }

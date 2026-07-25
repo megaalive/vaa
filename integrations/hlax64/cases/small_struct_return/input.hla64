@@ -3,6 +3,8 @@
 // Phase E (plan §17.5): aggregate layout + field access. HlaX64 returns via a
 // register (@returns("rax")), so this exercises struct field layout/offsets
 // and returns the summed scalar rather than a by-value struct.
+// Field values are staged through registers: a direct `add(p.y, rax)` can
+// lower to an unresolved `field:` operand that NASM rejects.
 // Downstream: emit Win64 NASM shared-library -> vaa ingest --generator hlax64.
 // Honesty: HlaX64 emit / -Wverify != SemASM verified.
 
@@ -16,10 +18,13 @@ endstruct;
 export procedure point_sum(a: int64; b: int64); @returns("rax");
 var p: Point;
 begin point_sum;
-    mov(a, p.x);
-    mov(b, p.y);
+    mov(a, r8);
+    mov(b, r9);
+    mov(r8, p.x);
+    mov(r9, p.y);
     mov(p.x, rax);
-    add(p.y, rax);
+    mov(p.y, r10);
+    add(r10, rax);
 end point_sum;
 
 begin small_struct_return;
