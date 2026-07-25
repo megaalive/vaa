@@ -8,7 +8,7 @@ kind = "compiler"
 [repository]
 # Relative to this pack: CI checks out hlax64 at $GITHUB_WORKSPACE/hlax64.
 path = "../../hlax64"
-expected_revision = "git:53797298833a367d7fa1737fdf24bb1229a026e2"
+expected_revision = "git:22ef2417192c16238ab1ca92ef1ae88d9139063f"
 require_clean_worktree = true
 allow_untracked_files = false
 
@@ -41,6 +41,7 @@ command = [
   "windows-x64-msabi",
   "--output-kind",
   "shared-library",
+  "--source-map",
   "-o",
   "{output}",
 ]
