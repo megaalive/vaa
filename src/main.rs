@@ -2696,7 +2696,10 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
                     println!("  - {axis}");
                 }
             } else {
-                println!("live_probe: unavailable (semasm not on PATH or status JSON failed)");
+                println!(
+                    "live_probe: unavailable (semasm not found via SEMASM_BIN/PATH \
+                     or status JSON failed)"
+                );
             }
         }
         OutputFormat::Json => {

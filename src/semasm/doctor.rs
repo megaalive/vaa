@@ -88,6 +88,11 @@ pub enum DoctorError {
     VersionCheck(String),
 }
 
+/// Env var overriding SemASM binary discovery. Accepts either the binary
+/// path itself or a directory containing `semasm`/`semasm.exe`. When set but
+/// invalid, discovery fails closed (no silent fallback to PATH).
+pub const ENV_SEMASM_BIN: &str = "SEMASM_BIN";
+
 pub struct SemasmDoctor;
 
 impl SemasmDoctor {
@@ -98,7 +103,9 @@ impl SemasmDoctor {
                 status: DoctorStatus::Unavailable,
                 binary_path: None,
                 version: None,
-                details: vec!["semasm binary not found on PATH".to_owned()],
+                details: vec![format!(
+                    "semasm binary not found ({ENV_SEMASM_BIN} override checked first, then PATH)"
+                )],
                 live_probe: None,
             };
         };
@@ -177,6 +184,23 @@ impl SemasmDoctor {
 
     #[must_use]
     pub fn find_binary() -> Option<PathBuf> {
+        if let Some(hint) = std::env::var_os(ENV_SEMASM_BIN) {
+            let hint = PathBuf::from(hint);
+            if hint.is_file() {
+                return Some(hint);
+            }
+            if hint.is_dir() {
+                for name in ["semasm", "semasm.exe"] {
+                    let candidate = hint.join(name);
+                    if candidate.is_file() {
+                        return Some(candidate);
+                    }
+                }
+            }
+            // Explicit override that does not resolve: fail closed instead of
+            // silently scanning PATH, so misconfiguration stays visible.
+            return None;
+        }
         let paths = std::env::var_os("PATH")?;
         for dir in std::env::split_paths(&paths) {
             let candidate = dir.join("semasm");
@@ -353,8 +377,12 @@ pub fn probe_live_for_target(target: &str) -> Option<(SemasmStatusDocument, Live
 mod tests {
     use super::*;
 
+    /// Serializes env-mutating tests (PATH / SEMASM_BIN are process-global).
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     #[test]
     fn find_binary_returns_none_when_not_on_path() {
+        let _guard = ENV_LOCK.lock().unwrap();
         let original_path = std::env::var_os("PATH");
         std::env::set_var("PATH", "");
         let result = SemasmDoctor::find_binary();
@@ -366,6 +394,7 @@ mod tests {
 
     #[test]
     fn doctor_report_is_unavailable_without_binary() {
+        let _guard = ENV_LOCK.lock().unwrap();
         let original_path = std::env::var_os("PATH");
         std::env::set_var("PATH", "");
         let report = SemasmDoctor::run();
@@ -376,6 +405,43 @@ mod tests {
         assert!(report.binary_path.is_none());
         assert!(report.version.is_none());
         assert!(report.live_probe.is_none());
+        assert!(
+            report.details[0].contains("SEMASM_BIN"),
+            "unavailable detail should mention the override: {:?}",
+            report.details
+        );
+    }
+
+    #[test]
+    fn find_binary_honors_semasm_bin_file_dir_and_fails_closed() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let dir = std::env::temp_dir().join(format!(
+            "vaa_semasm_bin_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let exe_name = if cfg!(windows) { "semasm.exe" } else { "semasm" };
+        let fake = dir.join(exe_name);
+        std::fs::write(&fake, b"fake").unwrap();
+
+        // Direct file path.
+        std::env::set_var(ENV_SEMASM_BIN, &fake);
+        assert_eq!(SemasmDoctor::find_binary(), Some(fake.clone()));
+
+        // Directory containing the binary.
+        std::env::set_var(ENV_SEMASM_BIN, &dir);
+        assert_eq!(SemasmDoctor::find_binary(), Some(fake.clone()));
+
+        // Set but invalid: fail closed, no PATH fallback.
+        std::env::set_var(ENV_SEMASM_BIN, dir.join("missing-subdir"));
+        assert_eq!(SemasmDoctor::find_binary(), None);
+
+        std::env::remove_var(ENV_SEMASM_BIN);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

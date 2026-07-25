@@ -9,7 +9,7 @@ pub use capabilities::{
 };
 pub use doctor::{
     probe_live_for_target, semasm_subprocess_allowed_env, DoctorReport, DoctorStatus,
-    EvidencePolicy, LiveProbeSummary, SemasmDoctor,
+    EvidencePolicy, LiveProbeSummary, SemasmDoctor, ENV_SEMASM_BIN,
 };
 pub use semantic_evidence::{
     project_semantic_evidence, AliasEvidenceSummary, ContractExpressionSummary,

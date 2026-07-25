@@ -27,6 +27,7 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa sandbox status` | Available via `vaa status` |
 | Model generation / repair | **Fixture adapter** + opt-in **`--live`** (`live-model` feature) |
 | Assemble / link / sandbox execute | **Via toolchain on PATH** |
+| SemASM discovery | `SEMASM_BIN` (file or dir; fail-closed if invalid), else PATH scan |
 
 This project does **not** claim safety, formal proof, zero overhead, or production readiness.
 HSM scaffold ≠ hardware HSM; `search --ingest` ≠ CryptOpt; local transparency
