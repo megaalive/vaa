@@ -199,14 +199,6 @@ pub fn doctor_and_capabilities(locked: &LockedTask) -> (DoctorReport, Capability
     (SemasmDoctor::run(), cm)
 }
 
-fn nasm_format_for_target(target: &str) -> &'static str {
-    if target.contains("windows") {
-        "win64"
-    } else {
-        "elf64"
-    }
-}
-
 /// Assemble candidate to `.o` and run [`ArtifactInspector`] (I0).
 #[must_use]
 pub fn assemble_and_inspect(
@@ -215,7 +207,7 @@ pub fn assemble_and_inspect(
     target: &str,
 ) -> ObjectInspectionOutcome {
     let object_path = out_dir.join("candidate.o");
-    let fmt = nasm_format_for_target(target);
+    let fmt = crate::nasm_format_for_target(target);
     let cfg = ProcessConfig {
         program: PathBuf::from("nasm"),
         args: vec![

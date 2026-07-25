@@ -86,6 +86,29 @@ impl Default for PipelineConfig {
 
 pub struct BuildPipeline;
 
+/// Map a VAA/SemASM target label to a NASM `-f` output format.
+///
+/// Accepts raw NASM formats (`win64`, `elf64`, …) and common LLVM-style
+/// triples (`x86_64-pc-windows-msvc` → `win64`, `x86_64-unknown-linux-gnu` →
+/// `elf64`). Unknown labels are returned unchanged so NASM can reject them.
+#[must_use]
+pub fn nasm_format_for_target(target: &str) -> &str {
+    let t = target.trim();
+    match t {
+        "win64" | "win32" | "elf64" | "elf32" | "macho64" | "macho32" | "bin" => t,
+        _ if t.contains("windows") => "win64",
+        _ if t.contains("darwin") || t.contains("apple") || t.contains("macos") => "macho64",
+        _ if t.contains("linux")
+            || t.contains("gnu")
+            || t.contains("musl")
+            || t.contains("unknown") =>
+        {
+            "elf64"
+        }
+        _ => t,
+    }
+}
+
 impl BuildPipeline {
     #[must_use]
     pub fn build(config: &PipelineConfig) -> BuildOutcome {
@@ -108,9 +131,10 @@ impl BuildPipeline {
         let object_path = config.output_dir.join(&object_name);
         let binary_path = config.output_dir.join(&binary_name);
 
+        let nasm_fmt = nasm_format_for_target(&config.target);
         let mut as_args = vec![
             "-f".to_owned(),
-            config.target.clone(),
+            nasm_fmt.to_owned(),
             "-o".to_owned(),
             object_path.to_string_lossy().to_string(),
             config.source_path.to_string_lossy().to_string(),
@@ -344,6 +368,16 @@ pub fn probe_container_runtime() -> Option<String> {
 mod tests {
     use super::*;
     use std::io::Write;
+
+    #[test]
+    fn nasm_format_maps_llvm_triples_and_passthroughs() {
+        assert_eq!(nasm_format_for_target("x86_64-pc-windows-msvc"), "win64");
+        assert_eq!(nasm_format_for_target("x86_64-unknown-linux-gnu"), "elf64");
+        assert_eq!(nasm_format_for_target("aarch64-apple-darwin"), "macho64");
+        assert_eq!(nasm_format_for_target("win64"), "win64");
+        assert_eq!(nasm_format_for_target("elf64"), "elf64");
+        assert_eq!(nasm_format_for_target("not-a-real-format"), "not-a-real-format");
+    }
 
     #[test]
     fn build_nonexistent_source_fails() {

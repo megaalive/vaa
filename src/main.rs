@@ -205,7 +205,7 @@ enum Commands {
         /// Output directory.
         #[arg(long, default_value = ".")]
         output_dir: PathBuf,
-        /// Target format.
+        /// Target: NASM `-f` (`win64`/`elf64`) or LLVM triple (`x86_64-pc-windows-msvc`).
         #[arg(long, default_value = "elf64")]
         target: String,
         /// Sandbox backend: `local` (default) or `container` (Docker/Podman Scaffold).
@@ -3898,7 +3898,7 @@ fn build_command(
                 linker_digest: ld_digest,
                 assembler_args_fingerprint: vaa::args_fingerprint(&[
                     "-f".into(),
-                    target.to_owned(),
+                    vaa::nasm_format_for_target(target).to_owned(),
                 ]),
                 linker_args_fingerprint: vaa::args_fingerprint(&[]),
                 container_image_digest: container_image_digest.unwrap_or("").to_owned(),
@@ -3956,7 +3956,7 @@ fn build_command(
                 linker_digest: outcome.manifest.linker_digest.clone().unwrap_or_default(),
                 assembler_args_fingerprint: vaa::args_fingerprint(&[
                     "-f".into(),
-                    target.to_owned(),
+                    vaa::nasm_format_for_target(target).to_owned(),
                 ]),
                 linker_args_fingerprint: vaa::args_fingerprint(&[]),
                 container_image_digest: container_image_digest.unwrap_or("").to_owned(),

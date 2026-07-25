@@ -219,7 +219,7 @@ pub fn reproducible_build_check(source_path: &Path, target: &str) -> (bool, Stri
     if std::fs::create_dir_all(&dir_a).is_err() || std::fs::create_dir_all(&dir_b).is_err() {
         return (false, "repro temp dirs failed".into());
     }
-    let fmt = nasm_format(target);
+    let fmt = crate::nasm_format_for_target(target);
     let obj_a = dir_a.join("c.o");
     let obj_b = dir_b.join("c.o");
     let run = |out: &Path| {
@@ -273,14 +273,6 @@ pub fn reproducible_build_check(source_path: &Path, target: &str) -> (bool, Stri
     };
     let _ = std::fs::remove_dir_all(&tmp);
     result
-}
-
-fn nasm_format(target: &str) -> &str {
-    if target.contains("windows") {
-        "win64"
-    } else {
-        "elf64"
-    }
 }
 
 /// Helper for unit tests: synthesize views without invoking NASM.
