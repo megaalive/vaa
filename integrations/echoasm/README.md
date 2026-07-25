@@ -24,12 +24,15 @@
 | `cases/countdown_loop_echo/` | Locked `countdown_loop` asm — Gate Verified (Phase B) |
 | `cases/stack_local_i64_echo/` | Locked stack-local asm — Gate Verified (Phase B) |
 | `cases/forced_register_spill_echo/` | Locked spill-pressure asm — Gate Verified (Phase B) |
+| `cases/internal_function_call_echo/` | Locked call helper asm — Gate Verified (Phase E) |
+| `cases/global_rodata_echo/` | Locked global constant asm — Gate Verified (Phase E) |
 | `suites/smoke.vaa-suite.toml` | Suite smoke |
 | `suites/gate-load-byte0-win64.vaa-suite.toml` | Second-generator Gate (load only) |
 | `suites/gate-concrete-win64.vaa-suite.toml` | Second-generator Gate (load + store) |
 | `suites/gate-scalar-i64-win64.vaa-suite.toml` | Second-generator Gate (return_i64 + add_i64) |
 | `suites/gate-phase-b-loops-win64.vaa-suite.toml` | Second-generator Gate (sum_range + countdown) |
 | `suites/gate-phase-b-stack-win64.vaa-suite.toml` | Second-generator Gate (stack local + spill) |
+| `suites/gate-phase-e-calls-win64.vaa-suite.toml` | Second-generator Gate (call + rodata) |
 
 ## Commands
 

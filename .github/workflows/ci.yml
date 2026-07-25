@@ -582,6 +582,27 @@ jobs:
           }
           Write-Host "Gate EchoAsm Phase B stack Accepted (2 Verified)"
 
+      - name: Gate EchoAsm Phase E calls/data (second-generator Verified)
+        shell: pwsh
+        run: |
+          if (-not $env:VAA_SEAL_SIGNING_KEY) {
+            ./scripts/ci-gate-sign-setup.ps1
+          }
+          New-Item -ItemType Directory -Force -Path target/echoasm-suite-runs/phase-e-gate | Out-Null
+          cargo run -q -- suite run integrations/echoasm/suites/gate-phase-e-calls-win64.vaa-suite.toml `
+            --repo . `
+            --run-dir target/echoasm-suite-runs/phase-e-gate `
+            --output target/echoasm-suite-runs/phase-e-gate-evidence.json `
+            --skip-repo-guard `
+            --allow-execution
+          $ev = Get-Content -Raw target/echoasm-suite-runs/phase-e-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm Phase E Gate status=$($ev.status)" }
+          if (@($ev.cases).Count -ne 2) { throw "EchoAsm Phase E Gate expected 2 cases" }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'Verified') { throw "EchoAsm $($c.case_id)=$($c.status)" }
+          }
+          Write-Host "Gate EchoAsm Phase E calls/data Accepted (2 Verified)"
+
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh
         env:

@@ -1,0 +1,23 @@
+contract_version = "0.1"
+
+[function]
+name = "add_base"
+summary = "Return x + 100, where the constant lives in a global data section"
+
+[[function.parameters]]
+name = "x"
+type = "i64"
+role = "input"
+
+[[function.returns]]
+name = "result"
+type = "i64"
+
+[[function.ensures]]
+expression = "result == x + 100"
+reason = "Wrapping add of a read-only global; proven by behavioral vectors."
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 64

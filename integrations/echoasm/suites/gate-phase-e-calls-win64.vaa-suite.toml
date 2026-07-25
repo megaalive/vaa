@@ -1,0 +1,22 @@
+# EchoAsm Gate — Phase E call/data leaves (subset).
+# Second-generator Verified via locked asm copies; SemASM supplies evidence.
+# Honesty: EchoAsm ≠ CryptOpt; practice seal ≠ trust root.
+schema_version = "0.1"
+suite_id = "echoasm.gate.phase-e-calls.win64.v0"
+target = "x86_64-pc-windows-msvc"
+abi = "win64"
+stack_lock = "../stack.lock.toml"
+required_cases = [
+  "../cases/internal_function_call_echo",
+  "../cases/global_rodata_echo",
+]
+
+[generator]
+spec = "../generator.spec.toml"
+
+[policy]
+require_all_cases = true
+allow_verified_under_preconditions = false
+allow_incomplete = false
+stop_on_first_failure = false
+max_parallel_cases = 1
