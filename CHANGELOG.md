@@ -105,10 +105,10 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   physical header/exit/back-edge confirmation.
   **Fb9b CFG post-test induction (SemASM `6018502`):**
   physical back-edge to access; arbitrary invariants Fb9c locked.
-  **EchoAsm Gate depth:** concrete + scalar + Phase B + Phase E subset
-  (call helper + global rodata) second-generator **Verified**.
-  **Repair join depth:** prior less-than surfaces + Win64 unsigned
-  greater-than worktree repair (`e68aac7`→`ee3b1b2`).
+  **EchoAsm Gate depth:** concrete + scalar + Phase B + full Phase E
+  (5/5) second-generator **Verified**.
+  **Repair join depth:** prior surfaces + Win64 signed greater-than
+  worktree repair (`a9bf2ea`→`bd85039`).
 ### Changed
 
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate

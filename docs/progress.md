@@ -124,14 +124,15 @@ physical targets confirm pre-test header/exit/back-edge before
 `index_max_exclusive`.
 **Fb9b CFG post-test induction done (SemASM `6018502`):**
 physical `jb`/`jl` back-edge to the access site; arbitrary invariants
-remain Fb9c locked.
-**EchoAsm Gate done:** concrete + scalar + Phase B + Phase E subset
-(`internal_function_call` + `global_rodata`) — second generator **Verified**.
-**Repair depth done:** less-than surfaces + Win64 unsigned greater-than
-(`evidence/vaa-live-repair-max-unsigned-win64`, `e68aac7` → `ee3b1b2`;
-main regression `3f63c1b`).
-**Next:** Fb9c only if a narrow honest path appears; remaining EchoAsm
-Phase E leaves; or SysV/Win64 signed greater-than repair.
+remain Fb9c locked (no narrow honest path this wave).
+**EchoAsm Gate done:** concrete + scalar + Phase B + full Phase E
+(5/5 leaves) — second generator **Verified**.
+**Repair depth done:** less/greater-than Win64 and SysV surfaces including
+Win64 signed greater-than (`evidence/vaa-live-repair-max-signed-win64`,
+`a9bf2ea` → `bd85039`; main regression `1500d22`).
+**Next:** SysV signed greater-than live; or a new SemASM chip beyond Fb
+(only if a narrow claim appears); EchoAsm corpus otherwise complete for
+HlaX64 Phase A/B/E copies.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

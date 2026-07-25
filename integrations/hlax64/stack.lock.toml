@@ -15,4 +15,4 @@ rust = "1.85"
 
 [generators.hlax64]
 repository = "https://github.com/megaalive/hlax64"
-revision = "git:3f63c1b5a42b5d288821363fd7e37c95e18290f5"
+revision = "git:1500d2284715eedbb217a0c94cdfa85f757e7418"
