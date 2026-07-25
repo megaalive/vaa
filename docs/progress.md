@@ -116,15 +116,17 @@ literal regions (SemASM `ebd5114`).
 **Fb6 range-guard done (SemASM `5d81be5`):** `cmp`+`jae`/`jge` fall-through
 → `index_max_exclusive` → `proven_inside` on literal regions.
 **Fb7 post-test induction done (SemASM `53f8999`):**
-`xor; access; inc; cmp; jb` → `index_max_exclusive`. CFG-sound loops
-(Fb8) locked.
-**EchoAsm Gate done:** concrete cells + `gate-scalar-i64-win64`
-(`return_i64` + `add_i64`) — second generator **Verified**.
-**Repair depth done:** SysV unsigned live + Win64 map-line + Win64
-signed worktree (`evidence/vaa-live-repair-signed-win64`, broken
-`6bd1489` → repaired `83af744`; main regression `9850b92`).
-**Next:** Fb8 CFG-sound induction; more Phase B EchoAsm leaves; or
-another live repair ABI surface.
+`xor; access; inc; cmp; jb` → `index_max_exclusive`.
+**Fb8 countdown induction done (SemASM `2351ce0`):**
+`mov N; dec; access; jnz` → `index_max_exclusive`. CFG-sound arbitrary
+induction (Fb9) locked.
+**EchoAsm Gate done:** concrete + scalar + Phase B loops
+(`sum_range` + `countdown_loop`) — second generator **Verified**.
+**Repair depth done:** SysV unsigned + Win64 map-line + Win64 signed +
+Win64 unsigned worktree (`evidence/vaa-live-repair-unsigned-win64`,
+broken `64d5344` → repaired `9a41cb2`; main regression `f75d710`).
+**Next:** Fb9 CFG-sound induction; more EchoAsm leaves; or SysV signed
+live repair after Linux SemASM rebuild.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

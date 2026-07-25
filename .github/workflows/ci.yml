@@ -248,7 +248,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: 53f89998b4a885e9b3ac932398f0e71dcd91f459
+          ref: 2351ce0be04ba2fa2625091e01e31660aaa02221
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -256,7 +256,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
-          ref: 485fca874727763376a67204b243d63aec73dbee
+          ref: f75d710ff51eb9a40bc2e31fb215377e9fea768b
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -852,7 +852,7 @@ jobs:
           repository: megaalive/semasm
           path: semasm
           # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: 53f89998b4a885e9b3ac932398f0e71dcd91f459
+          ref: 2351ce0be04ba2fa2625091e01e31660aaa02221
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -860,7 +860,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
-          ref: 485fca874727763376a67204b243d63aec73dbee
+          ref: f75d710ff51eb9a40bc2e31fb215377e9fea768b
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
