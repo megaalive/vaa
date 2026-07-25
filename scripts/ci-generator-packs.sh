@@ -31,7 +31,8 @@ for s in \
   integrations/hlax64/suites/backend-win64.vaa-suite.toml \
   integrations/echoasm/suites/smoke.vaa-suite.toml \
   integrations/echoasm/suites/gate-load-byte0-win64.vaa-suite.toml \
-  integrations/echoasm/suites/gate-concrete-win64.vaa-suite.toml
+  integrations/echoasm/suites/gate-concrete-win64.vaa-suite.toml \
+  integrations/echoasm/suites/gate-scalar-i64-win64.vaa-suite.toml
 do
   vaa suite validate "$s"
 done

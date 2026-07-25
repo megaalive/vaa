@@ -517,6 +517,28 @@ jobs:
           }
           Write-Host "Gate EchoAsm concrete cells Accepted (2 Verified)"
 
+      - name: Gate EchoAsm return_i64 (second-generator scalar Verified)
+        shell: pwsh
+        run: |
+          # Beyond concrete cells: pure-int identity via copy-generator.
+          if (-not $env:VAA_SEAL_SIGNING_KEY) {
+            ./scripts/ci-gate-sign-setup.ps1
+          }
+          New-Item -ItemType Directory -Force -Path target/echoasm-suite-runs/scalar-i64-gate | Out-Null
+          cargo run -q -- suite run integrations/echoasm/suites/gate-scalar-i64-win64.vaa-suite.toml `
+            --repo . `
+            --run-dir target/echoasm-suite-runs/scalar-i64-gate `
+            --output target/echoasm-suite-runs/scalar-i64-gate-evidence.json `
+            --skip-repo-guard `
+            --allow-execution
+          $ev = Get-Content -Raw target/echoasm-suite-runs/scalar-i64-gate-evidence.json | ConvertFrom-Json
+          if ([string]$ev.status -notin @('accepted','Accepted')) { throw "EchoAsm scalar Gate status=$($ev.status)" }
+          if (@($ev.cases).Count -ne 1) { throw "EchoAsm scalar Gate expected 1 case" }
+          foreach ($c in $ev.cases) {
+            if ([string]$c.status -ne 'Verified') { throw "EchoAsm $($c.case_id)=$($c.status)" }
+          }
+          Write-Host "Gate EchoAsm return_i64 Accepted (Verified)"
+
       - name: Gate HlaX64 pack Phase E calls/data (SemASM Verified)
         shell: pwsh
         env:

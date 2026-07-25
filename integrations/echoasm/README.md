@@ -18,9 +18,11 @@
 | `cases/passthrough/` | Universality smoke case (not Gate) |
 | `cases/load_byte0_echo/` | Locked `load_byte0` asm — Gate Verified via SemASM |
 | `cases/store_byte0_echo/` | Locked `store_byte0` asm — Gate Verified via SemASM |
+| `cases/return_i64_echo/` | Locked `return_i64` asm — Gate Verified (scalar depth) |
 | `suites/smoke.vaa-suite.toml` | Suite smoke |
 | `suites/gate-load-byte0-win64.vaa-suite.toml` | Second-generator Gate (load only) |
 | `suites/gate-concrete-win64.vaa-suite.toml` | Second-generator Gate (load + store) |
+| `suites/gate-scalar-i64-win64.vaa-suite.toml` | Second-generator Gate (return_i64) |
 
 ## Commands
 
