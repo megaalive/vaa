@@ -1,0 +1,20 @@
+// stack_local_i64.hla64 — store parameter to a stack local, reload, return.
+//
+// Phase B (plan §17.2): stack frame / spill-reload. Contract shape: (i64) -> i64
+// (builtin.pure_int.unary_i64, claim "identity" via stack_local name alias).
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Load into a register before the local store: a direct param→local move can
+// lower to illegal mem-mem `mov` when the ABI spills the parameter.
+
+program stack_local_i64;
+
+export procedure stack_local_i64(x: int64); @returns("rax");
+var local: int64;
+begin stack_local_i64;
+    mov(x, r8);
+    mov(r8, local);
+    mov(local, rax);
+end stack_local_i64;
+
+begin stack_local_i64;
+end stack_local_i64;

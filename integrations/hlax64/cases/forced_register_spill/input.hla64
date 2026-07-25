@@ -1,0 +1,45 @@
+// forced_register_spill.hla64 — many stack locals force spill pressure,
+// then return the original parameter (identity through spills).
+//
+// Phase B (plan §17.2): spill/reload + stack frame. Contract shape: (i64) -> i64
+// (builtin.pure_int.unary_i64, claim "identity" via spill name alias).
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Locals are live across the final return so the backend must allocate frame
+// slots (register pressure / spill), not just elide them.
+// Parameter is copied through a register first to avoid illegal mem-mem mov.
+
+program forced_register_spill;
+
+export procedure forced_register_spill(x: int64); @returns("rax");
+var
+    v0: int64;
+    v1: int64;
+    v2: int64;
+    v3: int64;
+    v4: int64;
+    v5: int64;
+    v6: int64;
+    v7: int64;
+begin forced_register_spill;
+    mov(x, r8);
+    mov(r8, v0);
+    mov(1, v1);
+    mov(2, v2);
+    mov(3, v3);
+    mov(4, v4);
+    mov(5, v5);
+    mov(6, v6);
+    mov(7, v7);
+    // Keep locals live: fold constants into a scratch then discard; return x.
+    mov(v1, r9);
+    add(v2, r9);
+    add(v3, r9);
+    add(v4, r9);
+    add(v5, r9);
+    add(v6, r9);
+    add(v7, r9);
+    mov(v0, rax);
+end forced_register_spill;
+
+begin forced_register_spill;
+end forced_register_spill;
