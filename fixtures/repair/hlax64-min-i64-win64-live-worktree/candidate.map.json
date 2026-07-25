@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "compiler_revision": "git:6bd14899db865c923bb6fd88f906250c9a60efbd",
+  "entries": [
+    {
+      "assembly_line": 19,
+      "instruction_offset": "0x2c",
+      "hla_source": "integrations/hlax64/cases/min_i64/input.hla64:18",
+      "ir_node": "CompareKind.LessThanSigned",
+      "compiler_source": "src/HlaX64.Compiler/Abi/WindowsMsAbiLowerer.cs:438"
+    }
+  ]
+}
