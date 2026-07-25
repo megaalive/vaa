@@ -22,7 +22,9 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   P3.15: HlaX64 pack corpus expansion — 10 cases + phase Win64 suites +
   `CORPUS.md` (A/B proxy; C/D wired; E open). P3.16: suite `abi` +
   `vaa suite check-parity`; Win64 suites annotated; SysV scalar scaffold
-  (`*_sysv` cases). Honesty locks unchanged.
+  (`*_sysv` cases). P3.17: `integrations/echoasm/` second-pack smoke
+  (cmd echo generator; schema/CLI universality; ≠ Gate Verified).
+  Honesty locks unchanged.
 
 ### Changed
 

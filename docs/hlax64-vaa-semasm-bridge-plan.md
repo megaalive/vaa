@@ -1257,7 +1257,7 @@ P2
 P3
 15. backend feature corpus expansion (HlaX64 pack) — **done**
 16. target/ABI parity — **done**
-17. second generator pack smoke (proves universality)
+17. second generator pack smoke (proves universality) — **done**
 18. stronger isolation for shared execution
 ```
 

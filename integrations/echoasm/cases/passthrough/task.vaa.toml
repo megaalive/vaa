@@ -1,0 +1,12 @@
+# Universality smoke task — not Gate evidence.
+schema_version = "0.1"
+task_id = "echoasm.passthrough"
+target = "x86_64-pc-windows-msvc"
+artifact_kind = "object"
+
+[entry]
+symbol = "passthrough"
+abi = "win64"
+
+[budgets]
+max_candidates = 1

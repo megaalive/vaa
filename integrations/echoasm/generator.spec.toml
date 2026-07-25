@@ -1,0 +1,44 @@
+# ExternalGeneratorSpec — EchoAsm universality smoke (not a production generator).
+schema_version = "0.1"
+generator_id = "echoasm"
+kind = "template"
+
+[repository]
+# Pack is hosted inside the VAA tree; resolve `.git` via the VAA root.
+path = "../.."
+expected_revision = "git:079cefd42f5314cbed0eee720c5f0738d709bd9b"
+require_clean_worktree = false
+allow_untracked_files = true
+
+[build]
+# No compile step — identity hashes the echo script itself.
+command = ["cmd", "/C", "if not exist integrations\\echoasm\\tools\\echoasm.cmd exit /b 1"]
+working_directory = "../.."
+generator_binary = "integrations/echoasm/tools/echoasm.cmd"
+timeout_seconds = 60
+
+[generation]
+command = [
+  "{generator}",
+  "{input}",
+  "{output}",
+]
+working_directory = "../.."
+clean_output_directory = true
+timeout_seconds = 30
+output_relative = "candidate.asm"
+
+[identity]
+require_generator_digest = true
+require_build_log_digest = false
+require_toolchain_identity = false
+
+[patch_policy]
+allowed_paths = [
+  "integrations/echoasm/tools/**",
+]
+forbidden_paths = [
+  "**/integrations/echoasm/cases/**/task.vaa.toml",
+  "**/integrations/echoasm/cases/**/contract.sem.toml",
+  "**/integrations/echoasm/stack.lock.toml",
+]

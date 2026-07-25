@@ -1,0 +1,17 @@
+# EchoAsm pack — stack lock (exact pins only).
+schema_version = "0.1"
+
+[vaa]
+repository = "https://github.com/megaalive/vaa"
+revision = "git:079cefd42f5314cbed0eee720c5f0738d709bd9b"
+
+[semasm]
+repository = "https://github.com/megaalive/semasm"
+revision = "git:37fd46031ab1ef2be4300422bcba7565676ebc99"
+
+[toolchain]
+rust = "1.85"
+
+[generators.echoasm]
+repository = "local:integrations/echoasm"
+revision = "git:079cefd42f5314cbed0eee720c5f0738d709bd9b"
