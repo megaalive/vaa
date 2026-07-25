@@ -1,7 +1,8 @@
-# Phase C — memory reads (Win64). See CORPUS.md.
+# Phase C â€” memory reads (Win64). See CORPUS.md.
 schema_version = "0.1"
 suite_id = "hlax64.backend.memory-read.win64.v0"
 target = "x86_64-pc-windows-msvc"
+abi = "win64"
 stack_lock = "../stack.lock.toml"
 required_cases = [
   "../cases/count_byte",

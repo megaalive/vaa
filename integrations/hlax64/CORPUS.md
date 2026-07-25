@@ -24,11 +24,25 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 | Suite | Cases |
 |---|---|
 | `suites/smoke.vaa-suite.toml` | `_placeholder` (wiring only) |
-| `suites/scalar-win64.vaa-suite.toml` | Phase A proxy |
+| `suites/scalar-win64.vaa-suite.toml` | Phase A proxy (Win64) |
+| `suites/scalar-sysv.vaa-suite.toml` | Phase A SysV scaffold (`*_sysv`) |
 | `suites/loop-win64.vaa-suite.toml` | Phase B proxy |
 | `suites/memory-read-win64.vaa-suite.toml` | Phase C |
 | `suites/memory-write-win64.vaa-suite.toml` | Phase D |
 | `suites/backend-win64.vaa-suite.toml` | A–D pack union |
+
+## Target / ABI parity
+
+Suites declare `target` + optional `abi`. Check with:
+
+```text
+vaa suite check-parity integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+vaa suite check-parity integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
+```
+
+Known first-cut profiles: `x86_64-pc-windows-msvc`/`win64`,
+`x86_64-unknown-linux-gnu`/`sysv`. SysV cases are scaffolds — packing ≠
+live SysV Gate evidence.
 
 ## Case layout
 

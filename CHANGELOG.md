@@ -20,7 +20,9 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   triage` (Incomplete / verified_under_preconditions ≠ generator defect).
   P2.11–14: repair packet, diagnostics, source-map join, agent rules.
   P3.15: HlaX64 pack corpus expansion — 10 cases + phase Win64 suites +
-  `CORPUS.md` (A/B proxy; C/D wired; E open). Honesty locks unchanged.
+  `CORPUS.md` (A/B proxy; C/D wired; E open). P3.16: suite `abi` +
+  `vaa suite check-parity`; Win64 suites annotated; SysV scalar scaffold
+  (`*_sysv` cases). Honesty locks unchanged.
 
 ### Changed
 

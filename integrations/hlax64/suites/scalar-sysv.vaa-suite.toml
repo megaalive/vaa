@@ -1,0 +1,21 @@
+# Phase A SysV parity scaffold (plan §17 target/ABI parity).
+# Cases declare linux-gnu + sysv; live SysV generation/Gate evidence open.
+schema_version = "0.1"
+suite_id = "hlax64.backend.scalar.sysv.v0"
+target = "x86_64-unknown-linux-gnu"
+abi = "sysv"
+stack_lock = "../stack.lock.toml"
+required_cases = [
+  "../cases/min_usize_sysv",
+  "../cases/max_usize_sysv",
+]
+
+[generator]
+spec = "../generator.spec.toml"
+
+[policy]
+require_all_cases = true
+allow_verified_under_preconditions = false
+allow_incomplete = false
+stop_on_first_failure = false
+max_parallel_cases = 1

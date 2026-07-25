@@ -71,6 +71,11 @@ pub struct SuiteManifest {
     pub schema_version: String,
     pub suite_id: String,
     pub target: String,
+    /// Calling convention / ABI label (`win64`, `sysv`, …). Optional for
+    /// backward compatibility with early manifests; when set, case tasks
+    /// must match (plan §17 / P3.16 target/ABI parity).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abi: Option<String>,
     pub generator: SuiteGeneratorRef,
     #[serde(default)]
     pub policy: SuitePolicy,
@@ -164,6 +169,11 @@ pub fn validate_suite_manifest(suite: &SuiteManifest) -> Vec<String> {
     }
     if suite.target.trim().is_empty() {
         diagnostics.push("target must not be empty".to_owned());
+    }
+    if let Some(abi) = &suite.abi {
+        if abi.trim().is_empty() {
+            diagnostics.push("abi must not be empty when present".to_owned());
+        }
     }
     if suite.generator.spec.trim().is_empty() {
         diagnostics.push("generator.spec must not be empty".to_owned());
@@ -274,6 +284,144 @@ fn find_default_input(case_dir: &Path) -> Option<PathBuf> {
         }
     }
     None
+}
+
+/// Minimal task fields needed for target/ABI parity checks.
+#[derive(Debug, Deserialize)]
+struct TaskParitySlice {
+    #[serde(default)]
+    target: Option<String>,
+    #[serde(default)]
+    entry: Option<TaskEntrySlice>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TaskEntrySlice {
+    #[serde(default)]
+    abi: Option<String>,
+}
+
+/// One case parity observation (suite vs task).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CaseParityReport {
+    pub case_id: String,
+    pub case_dir: PathBuf,
+    pub task_target: Option<String>,
+    pub task_abi: Option<String>,
+    pub ok: bool,
+    pub diagnostics: Vec<String>,
+}
+
+/// Full suite parity report.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SuiteParityReport {
+    pub suite_id: String,
+    pub suite_target: String,
+    pub suite_abi: Option<String>,
+    pub cases: Vec<CaseParityReport>,
+    pub ok: bool,
+}
+
+/// Known first-cut target/ABI profiles for pack docs and validation hints.
+#[must_use]
+pub fn known_target_abi_profiles() -> &'static [(&'static str, &'static str)] {
+    &[
+        ("x86_64-pc-windows-msvc", "win64"),
+        ("x86_64-unknown-linux-gnu", "sysv"),
+    ]
+}
+
+/// Check that every required case task matches the suite `target` / `abi`.
+///
+/// When suite `abi` is unset, only target is checked (when the task declares
+/// one). Missing task files surface as diagnostics — never silently skipped.
+pub fn check_suite_target_abi_parity(
+    suite: &SuiteManifest,
+    suite_dir: &Path,
+) -> Result<SuiteParityReport, GeneratorError> {
+    let mut cases = Vec::with_capacity(suite.required_cases.len());
+    for rel in &suite.required_cases {
+        let case_dir = suite_dir.join(rel);
+        let case_id = case_id_from_path(rel);
+        let paths = match resolve_case_paths(&case_dir) {
+            Ok(p) => p,
+            Err(error) => {
+                cases.push(CaseParityReport {
+                    case_id,
+                    case_dir,
+                    task_target: None,
+                    task_abi: None,
+                    ok: false,
+                    diagnostics: vec![error.to_string()],
+                });
+                continue;
+            }
+        };
+        let text = std::fs::read_to_string(&paths.task).map_err(|source| GeneratorError::Io {
+            path: paths.task.clone(),
+            source,
+        })?;
+        let task: TaskParitySlice =
+            toml::from_str(&text).map_err(|error| GeneratorError::Parse {
+                path: paths.task.clone(),
+                message: error.to_string(),
+            })?;
+        let task_target = task.target.filter(|t| !t.trim().is_empty());
+        let task_abi = task
+            .entry
+            .and_then(|e| e.abi)
+            .filter(|a| !a.trim().is_empty());
+        let mut diagnostics = Vec::new();
+        if let Some(ref tt) = task_target {
+            if tt != &suite.target {
+                diagnostics.push(format!(
+                    "task target `{tt}` != suite target `{}`",
+                    suite.target
+                ));
+            }
+        } else {
+            diagnostics.push("task does not declare `target`".to_owned());
+        }
+        match (&suite.abi, &task_abi) {
+            (Some(suite_abi), Some(ta)) if ta != suite_abi => {
+                diagnostics.push(format!("task entry.abi `{ta}` != suite abi `{suite_abi}`"));
+            }
+            (Some(suite_abi), None) => {
+                diagnostics.push(format!(
+                    "suite declares abi `{suite_abi}` but task has no `[entry].abi`"
+                ));
+            }
+            _ => {}
+        }
+        cases.push(CaseParityReport {
+            case_id,
+            case_dir,
+            task_target,
+            task_abi,
+            ok: diagnostics.is_empty(),
+            diagnostics,
+        });
+    }
+    let ok = cases.iter().all(|c| c.ok);
+    Ok(SuiteParityReport {
+        suite_id: suite.suite_id.clone(),
+        suite_target: suite.target.clone(),
+        suite_abi: suite.abi.clone(),
+        cases,
+        ok,
+    })
+}
+
+/// Load suite + check target/ABI parity against resolved case tasks.
+pub fn check_suite_parity_file(
+    suite_path: impl AsRef<Path>,
+) -> Result<SuiteParityReport, GeneratorError> {
+    let suite_path = suite_path.as_ref();
+    let suite = load_suite_manifest(suite_path)?;
+    let suite_dir = suite_path
+        .parent()
+        .map_or_else(|| PathBuf::from("."), Path::to_path_buf);
+    check_suite_target_abi_parity(&suite, &suite_dir)
 }
 
 /// Aggregate case results into a suite status (pure; unit-tested).
@@ -622,6 +770,7 @@ mod tests {
             schema_version: SUITE_SCHEMA_VERSION.into(),
             suite_id: "t".into(),
             target: "x86_64".into(),
+            abi: None,
             generator: SuiteGeneratorRef {
                 spec: "g.toml".into(),
             },
@@ -630,5 +779,105 @@ mod tests {
             stack_lock: None,
         };
         assert!(!validate_suite_manifest(&suite).is_empty());
+    }
+
+    #[test]
+    fn parity_detects_target_and_abi_mismatch() {
+        let dir = std::env::temp_dir().join(format!(
+            "vaa-parity-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let case = dir.join("case_a");
+        std::fs::create_dir_all(&case).unwrap();
+        std::fs::write(
+            case.join("task.vaa.toml"),
+            r#"
+schema_version = "0.1"
+task_id = "t"
+target = "x86_64-pc-windows-msvc"
+[entry]
+symbol = "f"
+abi = "win64"
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            case.join("contract.sem.toml"),
+            "contract_version = \"0.1\"\n",
+        )
+        .unwrap();
+        std::fs::write(case.join("input.hla64"), "program f;\n").unwrap();
+
+        let suite = SuiteManifest {
+            schema_version: SUITE_SCHEMA_VERSION.into(),
+            suite_id: "parity.test".into(),
+            target: "x86_64-unknown-linux-gnu".into(),
+            abi: Some("sysv".into()),
+            generator: SuiteGeneratorRef {
+                spec: "g.toml".into(),
+            },
+            policy: SuitePolicy::default(),
+            required_cases: vec!["case_a".into()],
+            stack_lock: None,
+        };
+        let report = check_suite_target_abi_parity(&suite, &dir).unwrap();
+        assert!(!report.ok);
+        let joined = report.cases[0].diagnostics.join("; ");
+        assert!(joined.contains("task target"), "{joined}");
+        assert!(joined.contains("entry.abi"), "{joined}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn parity_accepts_matching_win64() {
+        let dir = std::env::temp_dir().join(format!(
+            "vaa-parity-ok-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let case = dir.join("case_a");
+        std::fs::create_dir_all(&case).unwrap();
+        std::fs::write(
+            case.join("task.vaa.toml"),
+            r#"
+schema_version = "0.1"
+task_id = "t"
+target = "x86_64-pc-windows-msvc"
+[entry]
+symbol = "f"
+abi = "win64"
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            case.join("contract.sem.toml"),
+            "contract_version = \"0.1\"\n",
+        )
+        .unwrap();
+        std::fs::write(case.join("input.hla64"), "program f;\n").unwrap();
+
+        let suite = SuiteManifest {
+            schema_version: SUITE_SCHEMA_VERSION.into(),
+            suite_id: "parity.ok".into(),
+            target: "x86_64-pc-windows-msvc".into(),
+            abi: Some("win64".into()),
+            generator: SuiteGeneratorRef {
+                spec: "g.toml".into(),
+            },
+            policy: SuitePolicy::default(),
+            required_cases: vec!["case_a".into()],
+            stack_lock: None,
+        };
+        let report = check_suite_target_abi_parity(&suite, &dir).unwrap();
+        assert!(report.ok, "{:?}", report.cases);
+        assert_eq!(known_target_abi_profiles()[0].1, "win64");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

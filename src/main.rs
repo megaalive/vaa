@@ -475,6 +475,15 @@ enum SuiteCommands {
         #[arg(long, default_value_t = true)]
         show_digest: bool,
     },
+    /// Check suite target/ABI against each case task (plan §17 parity).
+    #[command(name = "check-parity")]
+    CheckParity {
+        /// Path to `*.vaa-suite.toml`.
+        suite: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
     /// Run all required cases and emit suite evidence JSON summary.
     Run {
         /// Path to `*.vaa-suite.toml`.
@@ -1137,6 +1146,9 @@ fn run_cli() -> ExitCode {
                 format,
                 show_digest,
             } => suite_validate_command(&suite, format, show_digest),
+            SuiteCommands::CheckParity { suite, format } => {
+                suite_check_parity_command(&suite, format)
+            }
             SuiteCommands::Run {
                 suite,
                 repo,
@@ -1742,6 +1754,9 @@ fn suite_validate_command(path: &Path, format: OutputFormat, show_digest: bool) 
                     println!("ok: suite `{}` is valid", suite.suite_id);
                     println!("  schema_version: {}", suite.schema_version);
                     println!("  target: {}", suite.target);
+                    if let Some(abi) = &suite.abi {
+                        println!("  abi: {abi}");
+                    }
                     println!("  generator.spec: {}", suite.generator.spec);
                     println!("  required_cases: {}", suite.required_cases.len());
                     if show_digest {
@@ -1754,6 +1769,7 @@ fn suite_validate_command(path: &Path, format: OutputFormat, show_digest: bool) 
                         "suite_id": suite.suite_id,
                         "schema_version": suite.schema_version,
                         "target": suite.target,
+                        "abi": suite.abi,
                         "required_cases": suite.required_cases,
                         "digest": if show_digest { Some(digest) } else { None },
                     });
@@ -1761,6 +1777,62 @@ fn suite_validate_command(path: &Path, format: OutputFormat, show_digest: bool) 
                 }
             }
             VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            emit_generator_error(path, format, &error);
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn suite_check_parity_command(path: &Path, format: OutputFormat) -> ExitCode {
+    use vaa::generator::check_suite_parity_file;
+
+    match check_suite_parity_file(path) {
+        Ok(report) => {
+            match format {
+                OutputFormat::Terminal => {
+                    if report.ok {
+                        println!("ok: suite `{}` target/ABI parity holds", report.suite_id);
+                    } else {
+                        println!(
+                            "error: suite `{}` target/ABI parity failed",
+                            report.suite_id
+                        );
+                    }
+                    println!("  suite_target: {}", report.suite_target);
+                    if let Some(abi) = &report.suite_abi {
+                        println!("  suite_abi: {abi}");
+                    } else {
+                        println!("  suite_abi: (unset)");
+                    }
+                    for case in &report.cases {
+                        if case.ok {
+                            println!(
+                                "  {}: ok (target={:?}, abi={:?})",
+                                case.case_id, case.task_target, case.task_abi
+                            );
+                        } else {
+                            println!("  {}: FAIL", case.case_id);
+                            for d in &case.diagnostics {
+                                println!("    - {d}");
+                            }
+                        }
+                    }
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": report.ok,
+                        "report": report,
+                    });
+                    println!("{body}");
+                }
+            }
+            if report.ok {
+                VaaExitCode::Success.as_std()
+            } else {
+                VaaExitCode::InvalidInput.as_std()
+            }
         }
         Err(error) => {
             emit_generator_error(path, format, &error);

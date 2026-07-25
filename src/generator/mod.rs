@@ -64,9 +64,10 @@ pub use stack_lock::{
     GeneratorPin, StackLock, StackLockDigest, ToolchainPin, STACK_LOCK_SCHEMA_VERSION,
 };
 pub use suite::{
-    aggregate_suite_status, load_suite_manifest, parse_suite_manifest, resolve_case_paths,
-    run_suite, suite_manifest_digest, validate_suite_manifest, CasePaths, SuiteCaseResult,
-    SuiteEvidence, SuiteGeneratorRef, SuiteManifest, SuitePolicy, SuiteRunConfig, SuiteRunReport,
-    SuiteStatus, SUITE_SCHEMA_VERSION,
+    aggregate_suite_status, check_suite_parity_file, check_suite_target_abi_parity,
+    known_target_abi_profiles, load_suite_manifest, parse_suite_manifest, resolve_case_paths,
+    run_suite, suite_manifest_digest, validate_suite_manifest, CaseParityReport, CasePaths,
+    SuiteCaseResult, SuiteEvidence, SuiteGeneratorRef, SuiteManifest, SuiteParityReport,
+    SuitePolicy, SuiteRunConfig, SuiteRunReport, SuiteStatus, SUITE_SCHEMA_VERSION,
 };
 pub use triage::{should_export_repair_packet, triage_status, TriageClass, TriageDecision};

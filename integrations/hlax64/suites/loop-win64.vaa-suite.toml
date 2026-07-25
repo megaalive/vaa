@@ -1,7 +1,8 @@
-# Phase B proxy — loop/aggregation (Win64). See CORPUS.md.
+# Phase B proxy â€” loop/aggregation (Win64). See CORPUS.md.
 schema_version = "0.1"
 suite_id = "hlax64.backend.loop.win64.v0"
 target = "x86_64-pc-windows-msvc"
+abi = "win64"
 stack_lock = "../stack.lock.toml"
 required_cases = [
   "../cases/sum_i64",

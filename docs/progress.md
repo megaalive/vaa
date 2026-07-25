@@ -39,9 +39,11 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 **P0 + P1 + P2 done (unit-tested).** **P3.15 done:** HlaX64 pack corpus —
 10 interop cases (`min_usize`…`memcpy`) + phase suites
 (scalar/loop/memory-read/memory-write/backend-win64) + `CORPUS.md`
-(Phase A/B proxies; C/D wired; E open). Next: P3.16 target/ABI parity.
-Placeholder pack ≠ live HlaX64 Gate; live agent-repair exercise open.
-Incomplete ≠ Verified; under_preconditions ≠ verified.
+(Phase A/B proxies; C/D wired; E open). **P3.16 done:** suite `abi` field +
+`vaa suite check-parity` (Win64 suites annotated; SysV scalar scaffold).
+Next: P3.17 second generator pack smoke. Placeholder pack ≠ live HlaX64
+Gate; SysV scaffold ≠ live SysV Gate. Incomplete ≠ Verified;
+under_preconditions ≠ verified.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

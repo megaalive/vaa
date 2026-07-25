@@ -1,0 +1,4 @@
+﻿# SysV parity scaffold — generation/Gate evidence not yet claimed.
+task = "task.vaa.toml"
+contract = "contract.sem.toml"
+input = "input.hla64"
