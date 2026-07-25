@@ -1,0 +1,15 @@
+// store_byte0.hla64 — store value at buffer+0; return the stored value.
+//
+// Concrete bounds leaf (literal region length 1). Honesty: emit ≠ verified.
+
+program store_byte0;
+
+export procedure store_byte0(buffer: ptr; value: int64); @returns("rax");
+begin store_byte0;
+    mov(buffer, r10);
+    mov(value, [r10].byte);
+    mov(value, rax);
+end store_byte0;
+
+begin store_byte0;
+end store_byte0;

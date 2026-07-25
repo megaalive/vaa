@@ -1,0 +1,16 @@
+// load_byte0.hla64 — load byte at buffer+0 from a fixed 1-byte cell.
+//
+// Concrete bounds leaf: contract region length is literal 1 → SemASM can
+// report unconditional verified (≠ symbolic-length under_preconditions).
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+
+program load_byte0;
+
+export procedure load_byte0(buffer: ptr); @returns("rax");
+begin load_byte0;
+    mov(buffer, r10);
+    mov([r10].byte, rax);
+end load_byte0;
+
+begin load_byte0;
+end load_byte0;

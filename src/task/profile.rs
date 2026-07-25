@@ -20,6 +20,9 @@ pub const CONTRACT_EXPR_MODEL_V1: &str = "contract-expr-v1";
 pub const PROFILE_LEAF_PURE_V1: &str = "leaf-pure-v1";
 /// Built-in profile for affine memory leaves (memcpy-class).
 pub const PROFILE_MEMORY_LEAF_AFFINE_V1: &str = "memory-leaf-affine-v1";
+/// Built-in profile for concrete-bounds memory cells (literal region length).
+/// Rejects caller-obligation demotion — overall status must be Verified.
+pub const PROFILE_MEMORY_LEAF_CONCRETE_V1: &str = "memory-leaf-concrete-v1";
 
 /// Expand `verification.profile` into frozen `semantic_evidence` requirements.
 ///
@@ -32,7 +35,7 @@ pub fn expand_verification_profile(task: &mut Task) -> Vec<String> {
 
     let Some(expanded) = builtin_semantic_evidence(&name) else {
         return vec![format!(
-            "unknown verification.profile.name `{name}` (known: {PROFILE_LEAF_PURE_V1}, {PROFILE_MEMORY_LEAF_AFFINE_V1})"
+            "unknown verification.profile.name `{name}` (known: {PROFILE_LEAF_PURE_V1}, {PROFILE_MEMORY_LEAF_AFFINE_V1}, {PROFILE_MEMORY_LEAF_CONCRETE_V1})"
         )];
     };
 
@@ -56,6 +59,7 @@ pub fn builtin_semantic_evidence(name: &str) -> Option<SemanticEvidenceRequireme
     match name {
         PROFILE_LEAF_PURE_V1 => Some(leaf_pure_v1()),
         PROFILE_MEMORY_LEAF_AFFINE_V1 => Some(memory_leaf_affine_v1()),
+        PROFILE_MEMORY_LEAF_CONCRETE_V1 => Some(memory_leaf_concrete_v1()),
         _ => None,
     }
 }
@@ -105,6 +109,39 @@ fn memory_leaf_affine_v1() -> SemanticEvidenceRequirements {
             model: Some(CONTRACT_EXPR_MODEL_V1.to_owned()),
             allow_incomplete: false,
             allow_caller_obligations: true,
+            allow_unknown_accesses: false,
+            allow_not_evaluated: false,
+        },
+    }
+}
+
+fn memory_leaf_concrete_v1() -> SemanticEvidenceRequirements {
+    // Concrete-bounds cell: alias + region_access must be `passed` (no caller
+    // obligations). Contract-expr is optional — many cells omit requires.
+    // Honesty: does not promote symbolic-length leaves; those stay on
+    // memory-leaf-affine-v1.
+    SemanticEvidenceRequirements {
+        alias: SemanticEvidenceSliceReq {
+            required: true,
+            model: Some(ALIAS_MODEL_REGION_AFFINE_V1.to_owned()),
+            allow_incomplete: false,
+            allow_caller_obligations: false,
+            allow_unknown_accesses: false,
+            allow_not_evaluated: false,
+        },
+        region_access: SemanticEvidenceSliceReq {
+            required: true,
+            model: Some(REGION_ACCESS_MODEL_AFFINE_V1.to_owned()),
+            allow_incomplete: false,
+            allow_caller_obligations: false,
+            allow_unknown_accesses: false,
+            allow_not_evaluated: false,
+        },
+        contract_expressions: SemanticEvidenceSliceReq {
+            required: false,
+            model: Some(CONTRACT_EXPR_MODEL_V1.to_owned()),
+            allow_incomplete: false,
+            allow_caller_obligations: false,
             allow_unknown_accesses: false,
             allow_not_evaluated: false,
         },
@@ -206,6 +243,20 @@ mod tests {
                 .contract_expressions
                 .required
         );
+    }
+
+    #[test]
+    fn expands_memory_leaf_concrete_rejects_obligations() {
+        let mut task = minimal();
+        task.verification.profile = Some(VerificationProfile {
+            name: PROFILE_MEMORY_LEAF_CONCRETE_V1.to_owned(),
+        });
+        assert!(expand_verification_profile(&mut task).is_empty());
+        let se = &task.verification.semantic_evidence;
+        assert!(se.region_access.required);
+        assert!(!se.region_access.allow_caller_obligations);
+        assert!(!se.alias.allow_caller_obligations);
+        assert!(!se.contract_expressions.required);
     }
 
     #[test]

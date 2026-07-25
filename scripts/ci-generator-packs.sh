@@ -25,6 +25,7 @@ for s in \
   integrations/hlax64/suites/loop-stack-sysv.vaa-suite.toml \
   integrations/hlax64/suites/memory-read-win64.vaa-suite.toml \
   integrations/hlax64/suites/memory-write-win64.vaa-suite.toml \
+  integrations/hlax64/suites/memory-concrete-win64.vaa-suite.toml \
   integrations/hlax64/suites/calls-data-win64.vaa-suite.toml \
   integrations/hlax64/suites/negative-reject-win64.vaa-suite.toml \
   integrations/hlax64/suites/backend-win64.vaa-suite.toml \
@@ -40,6 +41,7 @@ vaa suite check-parity integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
 vaa suite check-parity integrations/hlax64/suites/loop-stack-win64.vaa-suite.toml
 vaa suite check-parity integrations/hlax64/suites/scalar-i64-sysv.vaa-suite.toml
 vaa suite check-parity integrations/hlax64/suites/loop-stack-sysv.vaa-suite.toml
+vaa suite check-parity integrations/hlax64/suites/memory-concrete-win64.vaa-suite.toml
 vaa suite check-parity integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
 vaa suite check-parity integrations/hlax64/suites/negative-reject-win64.vaa-suite.toml
 vaa suite check-parity integrations/hlax64/suites/backend-win64.vaa-suite.toml
