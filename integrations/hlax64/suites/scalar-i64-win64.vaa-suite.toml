@@ -1,0 +1,28 @@
+# HlaX64 backend corpus — Phase A named i64 scalar leaves (Win64).
+# Replaces the min_usize/max_usize proxy coverage with the plan's named
+# i64 cases. Gate: SemASM pure-int i64 oracles (binary_i64 / unary_i64,
+# SemASM 566ca8e+). Live path is emit/generate; SemASM Gate evidence is
+# claimed only by a full `vaa suite run` (no --skip-verify).
+schema_version = "0.1"
+suite_id = "hlax64.backend.scalar-i64.win64.v0"
+target = "x86_64-pc-windows-msvc"
+abi = "win64"
+stack_lock = "../stack.lock.toml"
+required_cases = [
+  "../cases/return_i64",
+  "../cases/add_i64",
+  "../cases/sub_i64",
+  "../cases/min_i64",
+  "../cases/max_i64",
+  "../cases/abs_i64",
+]
+
+[generator]
+spec = "../generator.spec.toml"
+
+[policy]
+require_all_cases = true
+allow_verified_under_preconditions = false
+allow_incomplete = false
+stop_on_first_failure = false
+max_parallel_cases = 1

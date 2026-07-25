@@ -1,0 +1,24 @@
+// max_i64.hla64 — return the larger of two signed 64-bit integers (SemASM/VAA bridge).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (i64, i64) -> i64  (builtin.pure_int.binary_i64, claim "max")
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Win64: only volatile regs (rax/rcx/rdx/r8/r9) — a=rcx, b=rdx.
+// Signed compare (`>`) matches the `i64` contract type; the unsigned `>?`
+// would misorder negative values (contrast with max_usize).
+
+program max_i64;
+
+export procedure max_i64(a: int64; b: int64); @returns("rax");
+begin max_i64;
+    mov(a, r8);
+    mov(b, r9);
+    if(r8 > r9) then
+        mov(r8, rax);
+    else
+        mov(r9, rax);
+    endif;
+end max_i64;
+
+begin max_i64;
+end max_i64;

@@ -1,0 +1,18 @@
+// sub_i64.hla64 — wrapping difference of two signed 64-bit integers (SemASM/VAA bridge).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (i64, i64) -> i64  (builtin.pure_int.binary_i64, claim "wrapping_sub")
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Win64: a=rcx, b=rdx; only volatile regs used. x86 `sub` is wrapping
+// two's-complement, matching the contract's wrapping_sub claim.
+
+program sub_i64;
+
+export procedure sub_i64(a: int64; b: int64); @returns("rax");
+begin sub_i64;
+    mov(a, rax);
+    sub(b, rax);
+end sub_i64;
+
+begin sub_i64;
+end sub_i64;

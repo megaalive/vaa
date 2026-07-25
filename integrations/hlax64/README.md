@@ -46,8 +46,10 @@ vaa suite validate integrations/hlax64/suites/backend-win64.vaa-suite.toml
 
 ```powershell
 $env:HLAX64_ROOT = "<path-to-hlax64>"
-# Phase A scalar (Win64)
+# Phase A scalar usize pair (Win64)
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+# Phase A named i64 (Win64): return/add/sub/min/max/abs_i64
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-i64-win64.vaa-suite.toml
 # Phase E calls / data (Win64)
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
 # SysV live (System V AMD64 — emits rdi/rsi arg registers)
@@ -69,6 +71,10 @@ $env:HLAX64_ROOT = "<path-to-hlax64>"
 # Requires `semasm` on PATH. Auto-provisions a practice seal key if unset.
 ./scripts/run-hlax64-suite.ps1 -Gate `
   -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+# Phase A named i64 Gate (6 Verified) — requires SemASM 566ca8e+
+# (builtin.pure_int.binary_i64 / unary_i64 oracles).
+./scripts/run-hlax64-suite.ps1 -Gate `
+  -Suite integrations/hlax64/suites/scalar-i64-win64.vaa-suite.toml
 ```
 
 Expect suite status **Accepted** with cases **Verified**. Practice seal ≠

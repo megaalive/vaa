@@ -1,0 +1,16 @@
+// return_i64.hla64 — return the signed 64-bit input unchanged (SemASM/VAA bridge).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (i64) -> i64  (builtin.pure_int.unary_i64, claim "identity")
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Win64: x arrives in rcx; only volatile regs (rax/rcx/rdx/r8/r9) used.
+
+program return_i64;
+
+export procedure return_i64(x: int64); @returns("rax");
+begin return_i64;
+    mov(x, rax);
+end return_i64;
+
+begin return_i64;
+end return_i64;

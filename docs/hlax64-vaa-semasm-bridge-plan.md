@@ -851,6 +851,15 @@ Choose the one HlaX64 currently handles most reliably.
 
 ### 17.1 Phase A — scalar leaf routines
 
+**Status: Done (named i64).** All six cases are packed under
+`integrations/hlax64/cases/` with suite
+`suites/scalar-i64-win64.vaa-suite.toml`; Win64 pack Gate ran **Accepted**
+with 6 **Verified** via the SemASM pure-int i64 oracles
+(`builtin.pure_int.binary_i64` / `builtin.pure_int.unary_i64`, SemASM
+`566ca8e`+). `abs_i64` uses `0 - x` (HlaX64 has no `neg`) and the
+wrapping-abs claim (`abs(i64::MIN) == i64::MIN`). The earlier
+`min_usize` / `max_usize` pair remains as the usize-oracle coverage.
+
 ```text
 return_i64
 add_i64

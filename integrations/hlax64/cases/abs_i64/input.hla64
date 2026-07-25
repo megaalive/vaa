@@ -1,0 +1,25 @@
+// abs_i64.hla64 — wrapping absolute value of a signed 64-bit integer (SemASM/VAA bridge).
+//
+// Downstream: emit Win64 NASM → vaa ingest --generator hlax64
+// Contract shape: (i64) -> i64  (builtin.pure_int.unary_i64, claim "wrapping_abs")
+// Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
+// Win64: x arrives in rcx; only volatile regs (rax/rcx/rdx/r8/r9) used.
+// HlaX64 has no `neg` — negation is expressed as `0 - x`, which is the same
+// wrapping two's-complement operation (abs(i64::MIN) == i64::MIN, matching
+// the contract's wrapping_abs claim).
+
+program abs_i64;
+
+export procedure abs_i64(x: int64); @returns("rax");
+begin abs_i64;
+    mov(x, r8);
+    if(r8 < 0) then
+        mov(0, rax);
+        sub(r8, rax);
+    else
+        mov(r8, rax);
+    endif;
+end abs_i64;
+
+begin abs_i64;
+end abs_i64;

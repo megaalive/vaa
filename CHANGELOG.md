@@ -53,6 +53,18 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   verifies both. HlaX64 main `5379729` carries regression coverage.
   Controlled exercise ≠ naturally occurring incident; practice seal ≠ trust
   root. Honesty locks unchanged.
+  **Phase A named i64:** 6 cases (`return_i64`, `add_i64`, `sub_i64`,
+  `min_i64`, `max_i64`, `abs_i64`) + `suites/scalar-i64-win64.vaa-suite.toml`
+  replace the usize proxy claim. SemASM `566ca8e` adds
+  `builtin.pure_int.binary_i64` v1 (wrapping add/sub, signed min/max) and
+  `builtin.pure_int.unary_i64` v1 (identity, wrapping-abs;
+  `abs(i64::MIN) == i64::MIN`) with a single-register `PureIntUnary`
+  harness on SysV/Win64/AAPCS64/RISC-V and signed two's-complement vector
+  marshalling. Win64 pack Gate: suite **Accepted**, 6/6 **Verified** (real
+  execution). CI: `hlax64-bridge` gates the i64 suite; pack-matrix
+  validates/parity-checks it; SemASM pins for pack-gate jobs bumped to
+  `566ca8e` (stack lock updated). `abs_i64` expresses negation as `0 - x`
+  (HlaX64 has no `neg`).
 
 ### Changed
 

@@ -76,8 +76,16 @@ authority files were untouched. Deterministic regeneration produced
 Accepted. Regression coverage landed on HlaX64 main `5379729`. Fixture:
 `fixtures/repair/hlax64-min-usize-sysv-live/`. Controlled exercise ≠
 naturally occurring production incident; practice seal ≠ trust root.
-**Next:** fill the named Phase A i64 corpus (`return_i64`, `add_i64`,
-`sub_i64`, `min_i64`, `max_i64`, `abs_i64`).
+**Phase A named i64 done:** 6 cases (`return_i64`, `add_i64`, `sub_i64`,
+`min_i64`, `max_i64`, `abs_i64`) + `suites/scalar-i64-win64.vaa-suite.toml`;
+SemASM grew pure-int i64 oracles (`builtin.pure_int.binary_i64` v1 wrapping
+add/sub + min/max, `builtin.pure_int.unary_i64` v1 identity/wrapping-abs,
+new single-register `PureIntUnary` harness on 4 ABIs; SemASM `566ca8e`).
+Win64 pack Gate: suite **Accepted**, 6/6 **Verified** (real execution,
+signed/wrapping vectors). CI gates the i64 suite on `hlax64-bridge`.
+**Next:** Phase B named stack/spill cases (`stack_local_i64`,
+`forced_register_spill`, `sum_range`, `countdown_loop`) or HlaX64
+source-map emission (`candidate.map.json`, Milestone 5 pack-side).
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

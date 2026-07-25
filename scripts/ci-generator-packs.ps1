@@ -29,6 +29,7 @@ Write-Host "== Gate 1b: validate suites =="
 $suites = @(
     "integrations/hlax64/suites/smoke.vaa-suite.toml",
     "integrations/hlax64/suites/scalar-win64.vaa-suite.toml",
+    "integrations/hlax64/suites/scalar-i64-win64.vaa-suite.toml",
     "integrations/hlax64/suites/scalar-sysv.vaa-suite.toml",
     "integrations/hlax64/suites/loop-win64.vaa-suite.toml",
     "integrations/hlax64/suites/memory-read-win64.vaa-suite.toml",
@@ -43,6 +44,7 @@ foreach ($s in $suites) {
 
 Write-Host "== Gate 1c: target/ABI parity =="
 Invoke-Vaa suite check-parity integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+Invoke-Vaa suite check-parity integrations/hlax64/suites/scalar-i64-win64.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/hlax64/suites/backend-win64.vaa-suite.toml
