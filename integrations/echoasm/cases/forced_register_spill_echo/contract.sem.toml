@@ -1,0 +1,19 @@
+contract_version = "0.1"
+
+[function]
+name = "forced_register_spill"
+summary = "Force stack spills via many locals, then return x"
+
+[[function.parameters]]
+name = "x"
+type = "i64"
+role = "input"
+
+[[function.returns]]
+name = "result"
+type = "i64"
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 256

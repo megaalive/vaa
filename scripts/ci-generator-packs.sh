@@ -33,7 +33,8 @@ for s in \
   integrations/echoasm/suites/gate-load-byte0-win64.vaa-suite.toml \
   integrations/echoasm/suites/gate-concrete-win64.vaa-suite.toml \
   integrations/echoasm/suites/gate-scalar-i64-win64.vaa-suite.toml \
-  integrations/echoasm/suites/gate-phase-b-loops-win64.vaa-suite.toml
+  integrations/echoasm/suites/gate-phase-b-loops-win64.vaa-suite.toml \
+  integrations/echoasm/suites/gate-phase-b-stack-win64.vaa-suite.toml
 do
   vaa suite validate "$s"
 done
@@ -54,6 +55,7 @@ vaa suite check-parity integrations/echoasm/suites/gate-load-byte0-win64.vaa-sui
 vaa suite check-parity integrations/echoasm/suites/gate-concrete-win64.vaa-suite.toml
 vaa suite check-parity integrations/echoasm/suites/gate-scalar-i64-win64.vaa-suite.toml
 vaa suite check-parity integrations/echoasm/suites/gate-phase-b-loops-win64.vaa-suite.toml
+vaa suite check-parity integrations/echoasm/suites/gate-phase-b-stack-win64.vaa-suite.toml
 
 echo "== Gate 3: EchoAsm deterministic generation =="
 mkdir -p target/ci-echoasm

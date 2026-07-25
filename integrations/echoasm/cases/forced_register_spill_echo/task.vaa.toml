@@ -1,0 +1,75 @@
+schema_version = "0.1"
+task_id = "echoasm-forced-register-spill-win64-v1"
+artifact_kind = "callable-function"
+target = "x86_64-pc-windows-msvc"
+
+[entry]
+symbol = "forced_register_spill"
+abi = "win64"
+
+[inputs.x]
+kind = "i64"
+
+[output]
+kind = "i64"
+
+[behavior]
+summary = "EchoAsm copy of forced_register_spill — Phase B spill Gate depth."
+
+[capabilities]
+syscalls = []
+imports = []
+heap = false
+filesystem = false
+network = false
+environment = false
+clock = false
+random = false
+
+[memory]
+max_stack_bytes = 256
+allow_global_writable = false
+allow_self_modifying_code = false
+
+[instructions]
+required_features = ["x86-64-baseline"]
+forbidden_mnemonics = []
+allow_unknown_semantics = false
+
+[verification]
+require_complete_lowering = true
+require_abi_check = true
+require_object_inspection = true
+require_behavioral_tests = true
+require_reproducible_build = true
+
+[budgets]
+max_candidates = 2
+max_repairs_per_candidate = 1
+max_wall_time_seconds = 300
+max_model_tokens = 8000
+max_no_progress_iterations = 1
+
+[delivery]
+include_source = true
+include_object = true
+include_binary = false
+include_evidence = true
+
+[[tests]]
+name = "zero"
+expected = 0
+[tests.input]
+x = 0
+
+[[tests]]
+name = "positive"
+expected = 11
+[tests.input]
+x = 11
+
+[[tests]]
+name = "negative"
+expected = -4
+[tests.input]
+x = -4

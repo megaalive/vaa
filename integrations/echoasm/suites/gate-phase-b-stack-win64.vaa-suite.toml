@@ -1,0 +1,22 @@
+# EchoAsm Gate — Phase B stack/spill leaves.
+# Second-generator Verified via locked asm copies; SemASM supplies evidence.
+# Honesty: EchoAsm ≠ CryptOpt; practice seal ≠ trust root.
+schema_version = "0.1"
+suite_id = "echoasm.gate.phase-b-stack.win64.v0"
+target = "x86_64-pc-windows-msvc"
+abi = "win64"
+stack_lock = "../stack.lock.toml"
+required_cases = [
+  "../cases/stack_local_i64_echo",
+  "../cases/forced_register_spill_echo",
+]
+
+[generator]
+spec = "../generator.spec.toml"
+
+[policy]
+require_all_cases = true
+allow_verified_under_preconditions = false
+allow_incomplete = false
+stop_on_first_failure = false
+max_parallel_cases = 1
