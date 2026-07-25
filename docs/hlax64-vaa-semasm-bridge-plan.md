@@ -1072,6 +1072,11 @@ deliberately broken backend case remains open.
 
 ## Milestone 6 — Verified backend slice v1
 
+**Status:** Partial — pack corpus (A–D proxies) + Win64/SysV parity
+scaffolds + EchoAsm universality smoke + isolation audit are in tree.
+Live HlaX64 Gate suite run, sealed patch evidence from a real repair, and
+CI Gate matrix for packs remain open.
+
 **Deliverables**
 
 - scalar, loop, read, and write corpus;
