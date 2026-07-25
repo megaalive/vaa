@@ -98,6 +98,7 @@ pub fn build_generator(spec: &GeneratorSpec, repository_root: &Path) -> Result<(
         program: PathBuf::from(program),
         args,
         working_dir: Some(cwd),
+        allowed_env: crate::generator::isolation::generator_subprocess_allowed_env(),
         timeout: Duration::from_secs(spec.build.timeout_seconds.max(1)),
         max_output_bytes: 8 * 1024 * 1024,
         ..ProcessConfig::default()

@@ -682,6 +682,13 @@ enum GeneratorCommands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Audit generator subprocess isolation (credential scrub / allowlist).
+    #[command(name = "isolation-check")]
+    IsolationCheck {
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -1101,6 +1108,9 @@ fn run_cli() -> ExitCode {
                 category,
                 format,
             } => generator_diagnostics_command(code.as_deref(), category.as_deref(), format),
+            GeneratorCommands::IsolationCheck { format } => {
+                generator_isolation_check_command(format)
+            }
         },
         Commands::GeneratorRun {
             spec,
@@ -2057,6 +2067,44 @@ fn generator_map_join_command(
             let body = serde_json::json!({
                 "ok": true,
                 "joined": false,
+            });
+            println!("{body}");
+        }
+    }
+    VaaExitCode::Success.as_std()
+}
+
+fn generator_isolation_check_command(format: OutputFormat) -> ExitCode {
+    use vaa::generator::audit_current_environment;
+
+    let audit = audit_current_environment();
+    match format {
+        OutputFormat::Terminal => {
+            println!("ok: generator isolation audit");
+            println!("  allowlist entries: {}", audit.allowed_for_generator.len());
+            println!(
+                "  present allowed (would pass): {}",
+                audit.present_allowed.len()
+            );
+            println!(
+                "  present credential denied: {}",
+                audit.present_credential_denied.len()
+            );
+            for name in &audit.present_credential_denied {
+                println!("    - {name}");
+            }
+            println!(
+                "  present other stripped: {}",
+                audit.present_other_stripped.len()
+            );
+            println!(
+                "  note: generator build/generate use env_clear + allowlist; credentials never inherit"
+            );
+        }
+        OutputFormat::Json => {
+            let body = serde_json::json!({
+                "ok": true,
+                "audit": audit,
             });
             println!("{body}");
         }

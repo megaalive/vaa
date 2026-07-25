@@ -7,6 +7,7 @@ mod diagnostics;
 mod error;
 mod generate;
 mod identity;
+mod isolation;
 mod patch;
 mod path_policy;
 mod repair;
@@ -30,6 +31,11 @@ pub use generate::{
 pub use identity::{
     build_and_identify, build_generator, establish_binary_identity, resolve_generator_binary,
     GeneratorBinaryIdentity,
+};
+pub use isolation::{
+    audit_current_environment, generator_subprocess_allowed_env, is_credential_env_name,
+    reject_credential_extra_env, IsolationAudit, CREDENTIAL_ENV_EXACT, CREDENTIAL_ENV_PREFIXES,
+    CREDENTIAL_ENV_SUFFIXES,
 };
 pub use patch::{
     build_patch_evidence, git_changed_files, load_patch_evidence, patch_evidence_digest,

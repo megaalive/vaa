@@ -191,6 +191,7 @@ fn run_generation_argv(
         program: PathBuf::from(program),
         args,
         working_dir: cwd.map(Path::to_path_buf),
+        allowed_env: crate::generator::isolation::generator_subprocess_allowed_env(),
         timeout: Duration::from_secs(timeout_seconds.max(1)),
         max_output_bytes: 4 * 1024 * 1024,
         ..ProcessConfig::default()

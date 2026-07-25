@@ -42,9 +42,12 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 (Phase A/B proxies; C/D wired; E open). **P3.16 done:** suite `abi` field +
 `vaa suite check-parity` (Win64 suites annotated; SysV scalar scaffold).
 **P3.17 done:** `integrations/echoasm/` second pack smoke (copy-generator
-proves schema/CLI universality; smoke ≠ Gate Verified). Next: P3.18
-isolation. Placeholder/HlaX64 pack ≠ live Gate; SysV scaffold ≠ live
-SysV Gate. Incomplete ≠ Verified; under_preconditions ≠ verified.
+proves schema/CLI universality; smoke ≠ Gate Verified). **P3.18 done:**
+generator subprocess isolation (`env_clear` + allowlist, credential deny
+registry, `vaa generator isolation-check`; see
+`docs/generator-isolation.md`). **P3 complete.** Local isolation ≠
+multi-tenant sandbox. Placeholder/HlaX64 pack ≠ live Gate; SysV scaffold
+≠ live SysV Gate. Incomplete ≠ Verified; under_preconditions ≠ verified.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

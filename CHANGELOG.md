@@ -15,7 +15,7 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
 
 ### Added
 
-- **External generator bridge (P0 + P1 + P2 complete; P3 in progress)** — suite
+- **External generator bridge (P0 + P1 + P2 + P3 complete)** — suite
   runner, patch evidence, `vaa generator check-paths`, and `vaa generator
   triage` (Incomplete / verified_under_preconditions ≠ generator defect).
   P2.11–14: repair packet, diagnostics, source-map join, agent rules.
@@ -24,6 +24,8 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   `vaa suite check-parity`; Win64 suites annotated; SysV scalar scaffold
   (`*_sysv` cases). P3.17: `integrations/echoasm/` second-pack smoke
   (cmd echo generator; schema/CLI universality; ≠ Gate Verified).
+  P3.18: generator subprocess isolation (`docs/generator-isolation.md`,
+  `vaa generator isolation-check`; credential env never inherits).
   Honesty locks unchanged.
 
 ### Changed

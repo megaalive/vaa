@@ -1258,7 +1258,7 @@ P3
 15. backend feature corpus expansion (HlaX64 pack) — **done**
 16. target/ABI parity — **done**
 17. second generator pack smoke (proves universality) — **done**
-18. stronger isolation for shared execution
+18. stronger isolation for shared execution — **done**
 ```
 
 The bridge should be built in this order. Do not begin with model integration. Establish deterministic generation and patch acceptance first; coding agents and humans can initially remain external repository editors. Prove universality early with schema/CLI design — optionally a tiny second pack stub in P3, not a second production generator.
