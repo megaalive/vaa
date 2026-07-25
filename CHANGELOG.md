@@ -108,7 +108,8 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   **EchoAsm Gate depth:** concrete + scalar + Phase B + full Phase E
   (5/5) second-generator **Verified**.
   **Repair join depth:** prior surfaces + Win64/SysV signed greater-than
-  worktree repairs (`a9bf2ea`→`bd85039`, `94a01b2`→`938f6bb`).
+  worktree repairs (`a9bf2ea`→`bd85039`, `94a01b2`→`938f6bb`) + SysV
+  unsigned greater-than (`6b4d96a`→`8045551`; main `0df45a5`).
 ### Changed
 
 - **Vd15 / find_* memory-leaf** — SemASM pin `928bd66`. Gate

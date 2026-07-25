@@ -129,9 +129,12 @@ remain Fb9c locked (no narrow honest path this wave).
 (5/5 leaves) — second generator **Verified**.
 **Repair depth done:** less/greater-than Win64 and SysV surfaces including
 SysV signed greater-than (`evidence/vaa-live-repair-max-signed-sysv`,
-`94a01b2` → `938f6bb`; main regression `dcdd33b`).
-**Next:** SysV unsigned greater-than (`max_usize`) if desired; Fb9c stays
-locked without a new narrow claim; EchoAsm A/B/E copies otherwise complete.
+`94a01b2` → `938f6bb`; main `dcdd33b`) and SysV unsigned greater-than
+(`evidence/vaa-live-repair-max-unsigned-sysv`, `6b4d96a` → `8045551`;
+main regression `0df45a5`).
+**Next:** Fb9c stays locked without a new narrow claim; compare-repair
+surfaces closed. Further waves need a new SemASM chip, EchoAsm C/D
+honesty-bound leaves, or non-compare repair diagnostics.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

@@ -3,7 +3,7 @@ schema_version = "0.1"
 
 [vaa]
 repository = "https://github.com/megaalive/vaa"
-revision = "git:d27d59b7dfd25a11a0643892220d7847f021b367"
+revision = "git:8add4caafd549932b82d4705a8bf8f9c10744435"
 
 [semasm]
 repository = "https://github.com/megaalive/semasm"
@@ -14,4 +14,4 @@ rust = "1.85"
 
 [generators.echoasm]
 repository = "local:integrations/echoasm"
-revision = "git:d27d59b7dfd25a11a0643892220d7847f021b367"
+revision = "git:8add4caafd549932b82d4705a8bf8f9c10744435"
