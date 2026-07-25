@@ -1,0 +1,4 @@
+# Case metadata for suite runner path resolution.
+task = "task.vaa.toml"
+contract = "contract.sem.toml"
+input = "input.asm"

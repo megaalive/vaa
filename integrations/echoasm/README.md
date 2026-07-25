@@ -9,14 +9,16 @@
 
 ## Layout
 
-| Path | Role |
+| File | Role |
 |---|---|
 | `stack.lock.toml` | Pins VAA/SemASM + `generators.echoasm` (this pack tree) |
 | `generator.spec.toml` | Build/generation/path policy for the echo tool |
 | `tools/echoasm.ps1` | Windows generator (copy input → output) |
 | `tools/echoasm.sh` | POSIX twin |
-| `cases/passthrough/` | One locked case |
+| `cases/passthrough/` | Universality smoke case (not Gate) |
+| `cases/load_byte0_echo/` | Locked `load_byte0` asm — Gate Verified via SemASM |
 | `suites/smoke.vaa-suite.toml` | Suite smoke |
+| `suites/gate-load-byte0-win64.vaa-suite.toml` | Second-generator Gate (Verified) |
 
 ## Commands
 
@@ -33,8 +35,13 @@ vaa generator generate integrations/echoasm/generator.spec.toml \
   --input <abs>/integrations/echoasm/cases/passthrough/input.asm \
   --output <abs>/target/echoasm-out/candidate.asm \
   --check-deterministic
+
+# Gate (SemASM Verified) — concrete cell via copy-generator.
+vaa suite run integrations/echoasm/suites/gate-load-byte0-win64.vaa-suite.toml \
+  --repo . --allow-execution --skip-repo-guard
 ```
 
 `tools/echoasm.ps1` / `echoasm.sh` are human/agent conveniences; the locked
 Windows generator identity is `tools/echoasm.cmd`. Smoke wiring ≠ Gate
-Verified.
+Verified; Gate suite claims Verified only with SemASM evidence.
+Practice seal ≠ trust root. EchoAsm ≠ CryptOpt.

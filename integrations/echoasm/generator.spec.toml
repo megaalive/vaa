@@ -6,14 +6,14 @@ kind = "template"
 [repository]
 # Pack is hosted inside the VAA tree; resolve `.git` via the VAA root.
 path = "../.."
-expected_revision = "git:079cefd42f5314cbed0eee720c5f0738d709bd9b"
+expected_revision = "git:153d7a3f82d0babd830c2431e51cb9660ba9bfd7"
 require_clean_worktree = false
 allow_untracked_files = true
 
 [build]
 # No compile step — identity hashes the echo script itself.
 command = ["cmd", "/C", "if not exist integrations\\echoasm\\tools\\echoasm.cmd exit /b 1"]
-working_directory = "../.."
+working_directory = "."
 generator_binary = "integrations/echoasm/tools/echoasm.cmd"
 timeout_seconds = 60
 
@@ -23,7 +23,7 @@ command = [
   "{input}",
   "{output}",
 ]
-working_directory = "../.."
+working_directory = "."
 clean_output_directory = true
 timeout_seconds = 30
 output_relative = "candidate.asm"
