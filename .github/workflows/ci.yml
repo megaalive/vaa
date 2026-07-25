@@ -343,6 +343,51 @@ jobs:
           }
           Get-Content target/hlax64-suite-runs/scalar-win64-evidence.json | Select-Object -First 30
 
+      - name: Live HlaX64 Phase E calls/data suite (generate-only)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          # Plan §17.5 Phase E: call ABI, sections, aggregate layout.
+          # --skip-verify ⇒ Incomplete ≠ Verified.
+          ./scripts/run-hlax64-suite.ps1 `
+            -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -SkipVerify `
+            -RunDir target/hlax64-suite-runs/calls-data `
+            -Output target/hlax64-suite-runs/calls-data-evidence.json
+          if (-not (Test-Path target/hlax64-suite-runs/calls-data-evidence.json)) {
+            throw "calls-data suite evidence missing"
+          }
+          Get-Content target/hlax64-suite-runs/calls-data-evidence.json | Select-Object -First 30
+
+      - name: Live HlaX64 SysV scalar suite (generate-only, System V ABI)
+        shell: pwsh
+        env:
+          HLAX64_ROOT: ${{ github.workspace }}/hlax64
+        run: |
+          # SysV live: emit-nasm --target linux-x64-sysv via generator.sysv.spec.
+          # Emitting from any host is fine (text-only); --skip-verify ⇒ Incomplete.
+          ./scripts/run-hlax64-suite.ps1 `
+            -Suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml `
+            -Repo $env:HLAX64_ROOT `
+            -SkipVerify `
+            -RunDir target/hlax64-suite-runs/scalar-sysv `
+            -Output target/hlax64-suite-runs/scalar-sysv-evidence.json
+          if (-not (Test-Path target/hlax64-suite-runs/scalar-sysv-evidence.json)) {
+            throw "SysV suite evidence missing"
+          }
+          # Assert the emitted candidate actually uses System V argument registers.
+          $cand = Get-ChildItem target/hlax64-suite-runs/scalar-sysv -Recurse -Filter candidate.asm |
+            Select-Object -First 1
+          if (-not $cand) { throw "SysV candidate.asm missing" }
+          $asm = Get-Content -Raw $cand.FullName
+          if ($asm -notmatch 'rdi' -or $asm -notmatch 'rsi') {
+            throw "SysV candidate does not use rdi/rsi argument registers"
+          }
+          Write-Host "SysV candidate uses System V argument registers (rdi/rsi)"
+          Get-Content target/hlax64-suite-runs/scalar-sysv-evidence.json | Select-Object -First 30
+
       - name: Upload HlaX64 pack suite evidence
         uses: actions/upload-artifact@v6
         with:

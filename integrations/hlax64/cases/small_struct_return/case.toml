@@ -1,0 +1,4 @@
+# Phase E leaf (plan §17.5) — aggregate layout / field access, scalar return.
+task = "task.vaa.toml"
+contract = "contract.sem.toml"
+input = "input.hla64"

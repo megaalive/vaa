@@ -1,0 +1,23 @@
+contract_version = "0.1"
+
+[function]
+name = "scale_by_two"
+summary = "Return 2*x, computed via an internal helper call"
+
+[[function.parameters]]
+name = "x"
+type = "i64"
+role = "input"
+
+[[function.returns]]
+name = "result"
+type = "i64"
+
+[[function.ensures]]
+expression = "result == x + x"
+reason = "Wrapping doubling; proven by behavioral vectors."
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 64

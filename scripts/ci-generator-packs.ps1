@@ -21,6 +21,7 @@ function Invoke-Vaa {
 Write-Host "== Gate 1: validate pack locks + specs =="
 Invoke-Vaa generator validate-lock integrations/hlax64/stack.lock.toml
 Invoke-Vaa generator validate-spec integrations/hlax64/generator.spec.toml
+Invoke-Vaa generator validate-spec integrations/hlax64/generator.sysv.spec.toml
 Invoke-Vaa generator validate-lock integrations/echoasm/stack.lock.toml
 Invoke-Vaa generator validate-spec integrations/echoasm/generator.spec.toml
 
@@ -32,6 +33,7 @@ $suites = @(
     "integrations/hlax64/suites/loop-win64.vaa-suite.toml",
     "integrations/hlax64/suites/memory-read-win64.vaa-suite.toml",
     "integrations/hlax64/suites/memory-write-win64.vaa-suite.toml",
+    "integrations/hlax64/suites/calls-data-win64.vaa-suite.toml",
     "integrations/hlax64/suites/backend-win64.vaa-suite.toml",
     "integrations/echoasm/suites/smoke.vaa-suite.toml"
 )
@@ -42,6 +44,7 @@ foreach ($s in $suites) {
 Write-Host "== Gate 1c: target/ABI parity =="
 Invoke-Vaa suite check-parity integrations/hlax64/suites/scalar-win64.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
+Invoke-Vaa suite check-parity integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/hlax64/suites/backend-win64.vaa-suite.toml
 Invoke-Vaa suite check-parity integrations/echoasm/suites/smoke.vaa-suite.toml
 

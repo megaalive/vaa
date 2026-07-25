@@ -1,0 +1,26 @@
+# Phase E — calls and data (plan §17.5). Win64 shared-library leaves.
+# Covers call ABI, stack preservation, private/public symbols, sections,
+# and aggregate field layout. Live path is emit/generate; SemASM Gate
+# evidence is claimed only by a full `vaa suite run` (no --skip-verify).
+schema_version = "0.1"
+suite_id = "hlax64.backend.calls-data.win64.v0"
+target = "x86_64-pc-windows-msvc"
+abi = "win64"
+stack_lock = "../stack.lock.toml"
+required_cases = [
+  "../cases/internal_function_call",
+  "../cases/nested_call",
+  "../cases/global_rodata",
+  "../cases/multiple_exports",
+  "../cases/small_struct_return",
+]
+
+[generator]
+spec = "../generator.spec.toml"
+
+[policy]
+require_all_cases = true
+allow_verified_under_preconditions = false
+allow_incomplete = false
+stop_on_first_failure = false
+max_parallel_cases = 1

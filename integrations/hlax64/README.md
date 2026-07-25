@@ -11,11 +11,12 @@ spec, cases, suites, and agent rules. Adding another generator means a new pack 
 | File | Role |
 |---|---|
 | `stack.lock.toml` | Exact VAA / SemASM / HlaX64 revision pins |
-| `generator.spec.toml` | `ExternalGeneratorSpec` for build + generation |
+| `generator.spec.toml` | `ExternalGeneratorSpec` — Win64 emit (build + generation) |
+| `generator.sysv.spec.toml` | `ExternalGeneratorSpec` — SysV emit (`--target linux-x64-sysv`) |
 | `agent-rules.md` | Agent/editor repair rules (regenerate via `vaa repair rules`) |
 | `CORPUS.md` | Phase A–E corpus map (plan §17) |
 | `cases/<id>/` | Locked generator input + task + contract per leaf |
-| `suites/*.vaa-suite.toml` | Smoke + phase suites (Win64) |
+| `suites/*.vaa-suite.toml` | Smoke + phase suites (Win64) + `scalar-sysv` (SysV live) |
 
 `repository.path` is relative to this pack directory. For sibling checkouts
 use `../../../hlax64` from `integrations/hlax64/` or pass `--repo <path>`.
@@ -45,8 +46,16 @@ vaa suite validate integrations/hlax64/suites/backend-win64.vaa-suite.toml
 
 ```powershell
 $env:HLAX64_ROOT = "<path-to-hlax64>"
+# Phase A scalar (Win64)
 ./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml
+# Phase E calls / data (Win64)
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
+# SysV live (System V AMD64 — emits rdi/rsi arg registers)
+./scripts/run-hlax64-suite.ps1 -Suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
 ```
 
 `--skip-verify` (default) ⇒ suite status Incomplete ≠ Verified. Emit ≠
-SemASM verified. Pack CI also runs this generate path on `hlax64-bridge`.
+SemASM verified. The SysV suite generates real System V assembly via
+`generator.sysv.spec.toml`, but SysV **Gate** evidence on Linux (a run
+without `--skip-verify`) is not yet claimed. Pack CI also runs the scalar,
+Phase E, and SysV generate paths on `hlax64-bridge`.

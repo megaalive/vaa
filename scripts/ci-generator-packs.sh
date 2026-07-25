@@ -9,6 +9,7 @@ vaa() { cargo run -q -- "$@"; }
 echo "== Gate 1: validate pack locks + specs =="
 vaa generator validate-lock integrations/hlax64/stack.lock.toml
 vaa generator validate-spec integrations/hlax64/generator.spec.toml
+vaa generator validate-spec integrations/hlax64/generator.sysv.spec.toml
 vaa generator validate-lock integrations/echoasm/stack.lock.toml
 vaa generator validate-spec integrations/echoasm/generator.spec.toml
 
@@ -20,6 +21,7 @@ for s in \
   integrations/hlax64/suites/loop-win64.vaa-suite.toml \
   integrations/hlax64/suites/memory-read-win64.vaa-suite.toml \
   integrations/hlax64/suites/memory-write-win64.vaa-suite.toml \
+  integrations/hlax64/suites/calls-data-win64.vaa-suite.toml \
   integrations/hlax64/suites/backend-win64.vaa-suite.toml \
   integrations/echoasm/suites/smoke.vaa-suite.toml
 do
@@ -29,6 +31,7 @@ done
 echo "== Gate 1c: target/ABI parity =="
 vaa suite check-parity integrations/hlax64/suites/scalar-win64.vaa-suite.toml
 vaa suite check-parity integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
+vaa suite check-parity integrations/hlax64/suites/calls-data-win64.vaa-suite.toml
 vaa suite check-parity integrations/hlax64/suites/backend-win64.vaa-suite.toml
 vaa suite check-parity integrations/echoasm/suites/smoke.vaa-suite.toml
 

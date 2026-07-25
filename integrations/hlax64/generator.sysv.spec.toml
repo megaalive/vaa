@@ -1,0 +1,71 @@
+# ExternalGeneratorSpec — HlaX64 SysV (System V AMD64) variant.
+# Identical build/identity/patch policy to generator.spec.toml; the only
+# difference is emit-nasm targets linux-x64-sysv so SysV suites generate
+# real System V assembly (rdi/rsi/... argument registers).
+# Emit ≠ SemASM verified.
+schema_version = "0.1"
+generator_id = "hlax64"
+kind = "compiler"
+
+[repository]
+# Relative to this pack: CI checks out hlax64 at $GITHUB_WORKSPACE/hlax64.
+path = "../../hlax64"
+expected_revision = "git:4546be1da3bac70e68e9027e9b323903e1800e71"
+require_clean_worktree = true
+allow_untracked_files = false
+
+[build]
+command = [
+  "dotnet",
+  "build",
+  "src/HlaX64.Cli/HlaX64.Cli.csproj",
+  "-c",
+  "Release",
+  "--nologo",
+]
+# Relative to repository root (the HlaX64 checkout).
+working_directory = "."
+generator_binary = "src/HlaX64.Cli/bin/Release/net10.0/HlaX64.Cli.dll"
+timeout_seconds = 600
+
+[generation]
+# `vaa suite run` / `generator-run` set cwd to the repository root.
+command = [
+  "dotnet",
+  "run",
+  "--project",
+  "src/HlaX64.Cli/HlaX64.Cli.csproj",
+  "--no-launch-profile",
+  "--",
+  "emit-nasm",
+  "{input}",
+  "--target",
+  "linux-x64-sysv",
+  "--output-kind",
+  "shared-library",
+  "-o",
+  "{output}",
+]
+working_directory = "."
+clean_output_directory = true
+timeout_seconds = 180
+output_relative = "candidate.asm"
+
+[identity]
+require_generator_digest = true
+require_build_log_digest = false
+require_toolchain_identity = false
+
+[patch_policy]
+allowed_paths = [
+  "src/backend/**",
+  "src/codegen/**",
+  "src/ir/**",
+  "tests/backend/**"
+]
+forbidden_paths = [
+  "**/integrations/hlax64/cases/**/task.vaa.toml",
+  "**/integrations/hlax64/cases/**/contract.sem.toml",
+  "**/integrations/hlax64/cases/**/vectors.json",
+  "**/integrations/hlax64/stack.lock.toml"
+]

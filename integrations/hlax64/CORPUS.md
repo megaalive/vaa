@@ -17,7 +17,7 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 | B — loops / stack | `sum_range`, `countdown_loop`, `stack_local_i64`, `forced_register_spill` | **proxy:** `sum_i64` (pointer+length loop). Stack spill cases open. |
 | C — memory reads | `count_byte`, `find_first_byte`, `find_last_byte`, `memcmp` | **done** (pack wired) |
 | D — memory writes | `replace_byte`, `memset`, `memcpy` | **done** (pack wired) |
-| E — calls / data | `internal_function_call`, `nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return` | **open** |
+| E — calls / data | `internal_function_call`, `nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return` | **done** (pack wired; live Win64 generate). `small_struct_return` exercises aggregate layout/field offsets and returns a scalar (HlaX64 returns via register). |
 
 ## Suites
 
@@ -25,10 +25,11 @@ still required. HlaX64 emit / `-Wverify` ≠ SemASM `verified`.
 |---|---|
 | `suites/smoke.vaa-suite.toml` | `_placeholder` (wiring only) |
 | `suites/scalar-win64.vaa-suite.toml` | Phase A proxy (Win64) |
-| `suites/scalar-sysv.vaa-suite.toml` | Phase A SysV scaffold (`*_sysv`) |
+| `suites/scalar-sysv.vaa-suite.toml` | Phase A SysV — **live** via `generator.sysv.spec.toml` |
 | `suites/loop-win64.vaa-suite.toml` | Phase B proxy |
 | `suites/memory-read-win64.vaa-suite.toml` | Phase C |
 | `suites/memory-write-win64.vaa-suite.toml` | Phase D |
+| `suites/calls-data-win64.vaa-suite.toml` | Phase E (calls / data) |
 | `suites/backend-win64.vaa-suite.toml` | A–D pack union |
 
 ## Target / ABI parity
@@ -41,8 +42,22 @@ vaa suite check-parity integrations/hlax64/suites/scalar-sysv.vaa-suite.toml
 ```
 
 Known first-cut profiles: `x86_64-pc-windows-msvc`/`win64`,
-`x86_64-unknown-linux-gnu`/`sysv`. SysV cases are scaffolds — packing ≠
-live SysV Gate evidence.
+`x86_64-unknown-linux-gnu`/`sysv`.
+
+## SysV live generation
+
+SysV suites now generate real System V AMD64 assembly via a dedicated
+spec that targets `linux-x64-sysv`:
+
+```text
+vaa suite run integrations/hlax64/suites/scalar-sysv.vaa-suite.toml \
+  --repo ../hlax64 --skip-verify   # emit-only; Incomplete ≠ Verified
+```
+
+The emitted `candidate.asm` uses System V argument registers (`rdi`,
+`rsi`, ...) — CI asserts this. Emitting SysV text works from any host;
+full SemASM **Gate** evidence on Linux still requires a non-`--skip-verify`
+`vaa suite run` with the SysV toolchain, which this pack does not yet claim.
 
 ## Case layout
 

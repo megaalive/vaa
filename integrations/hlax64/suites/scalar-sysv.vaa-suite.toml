@@ -1,5 +1,7 @@
-# Phase A SysV parity scaffold (plan §17 target/ABI parity).
-# Cases declare linux-gnu + sysv; live SysV generation/Gate evidence open.
+# Phase A SysV parity — scalar leaves (plan §17 target/ABI parity).
+# Cases declare linux-gnu + sysv and now generate live via the SysV spec
+# (emit-nasm --target linux-x64-sysv). SemASM Gate evidence on Linux is
+# claimed only by a full `vaa suite run` (no --skip-verify).
 schema_version = "0.1"
 suite_id = "hlax64.backend.scalar.sysv.v0"
 target = "x86_64-unknown-linux-gnu"
@@ -11,7 +13,7 @@ required_cases = [
 ]
 
 [generator]
-spec = "../generator.spec.toml"
+spec = "../generator.sysv.spec.toml"
 
 [policy]
 require_all_cases = true

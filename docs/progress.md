@@ -46,8 +46,17 @@ remain Horizon-locked. Authenticity ≠ semantic truth.
 generate path (`scripts/run-hlax64-suite.ps1`), EchoAsm repair patch-evidence
 fixtures + verify, CI `generator-packs` matrix + pack suite on
 `hlax64-bridge`. EchoAsm repair ≠ live HlaX64 agent backend fix; pack
-`--skip-verify` Incomplete ≠ Verified. Placeholder/SysV scaffold ≠ live
-SysV Gate. Incomplete ≠ Verified; under_preconditions ≠ verified.
+`--skip-verify` Incomplete ≠ Verified. Incomplete ≠ Verified;
+under_preconditions ≠ verified.
+**Phase E done (calls/data):** 5 cases (`internal_function_call`,
+`nested_call`, `global_rodata`, `multiple_exports`, `small_struct_return`) +
+`suites/calls-data-win64.vaa-suite.toml`; validated + parity + live Win64
+generate (5 candidate digests). `small_struct_return` covers aggregate
+layout/field offsets with a register-returned scalar (HlaX64 returns via
+register, not by-value struct). **SysV live:** `generator.sysv.spec.toml`
+(emit-nasm `--target linux-x64-sysv`); `scalar-sysv` now generates real
+System V asm (`rdi`/`rsi` argument registers, CI-asserted). SysV emit ≠ SysV
+SemASM Gate — full Linux `vaa suite run` without `--skip-verify` still owed.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|

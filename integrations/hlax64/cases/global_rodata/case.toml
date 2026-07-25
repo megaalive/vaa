@@ -1,0 +1,4 @@
+# Phase E leaf (plan §17.5) — global data section + symbol resolution.
+task = "task.vaa.toml"
+contract = "contract.sem.toml"
+input = "input.hla64"

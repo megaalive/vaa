@@ -1,0 +1,29 @@
+// nested_call.hla64 — exported entry drives a two-level internal call chain.
+//
+// Phase E (plan §17.5): call ABI + stack preservation across nested frames.
+// Downstream: emit Win64 NASM shared-library -> vaa ingest --generator hlax64.
+// Honesty: HlaX64 emit / -Wverify != SemASM verified.
+// Chain: add_then_double -> AddThenStore -> Double (each returns via rax).
+
+program nested_call;
+
+procedure Double(x: int64); @returns("rax");
+begin Double;
+    mov(x, rax);
+    add(rax, rax);
+end Double;
+
+procedure AddThenStore(a: int64; b: int64); @returns("rax");
+begin AddThenStore;
+    mov(a, rax);
+    add(b, rax);
+    call Double(rax);
+end AddThenStore;
+
+export procedure add_then_double(a: int64; b: int64); @returns("rax");
+begin add_then_double;
+    call AddThenStore(a, b);
+end add_then_double;
+
+begin nested_call;
+end nested_call;

@@ -1,0 +1,23 @@
+// multiple_exports.hla64 — one translation unit exposes two public symbols.
+//
+// Phase E (plan §17.5): multiple exported symbols in a single shared-library.
+// Downstream: emit Win64 NASM shared-library -> vaa ingest --generator hlax64.
+// Honesty: HlaX64 emit / -Wverify != SemASM verified.
+// Primary entry is `inc`; `dec` proves a second export coexists cleanly.
+
+program multiple_exports;
+
+export procedure inc(x: int64); @returns("rax");
+begin inc;
+    mov(x, rax);
+    add(1, rax);
+end inc;
+
+export procedure dec(x: int64); @returns("rax");
+begin dec;
+    mov(x, rax);
+    sub(1, rax);
+end dec;
+
+begin multiple_exports;
+end multiple_exports;

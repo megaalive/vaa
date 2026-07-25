@@ -1,0 +1,22 @@
+// global_rodata.hla64 — read a program-scope constant from a data section.
+//
+// Phase E (plan §17.5): sections + symbol resolution for global data.
+// Downstream: emit Win64 NASM shared-library -> vaa ingest --generator hlax64.
+// Honesty: HlaX64 emit / -Wverify != SemASM verified.
+// `base_value` is initialized once and only read (never written), modelling
+// read-only global data added to the caller-supplied input.
+
+program global_rodata;
+
+static
+    base_value: int64 := 100;
+endstatic;
+
+export procedure add_base(x: int64); @returns("rax");
+begin add_base;
+    mov(x, rax);
+    add(base_value, rax);
+end add_base;
+
+begin global_rodata;
+end global_rodata;

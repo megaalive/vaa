@@ -936,6 +936,20 @@ Covers:
 - sections;
 - aggregate layout.
 
+**Status:** **Done** (pack wired; live Win64 generate). Cases live under
+`integrations/hlax64/cases/{internal_function_call,nested_call,global_rodata,
+multiple_exports,small_struct_return}` with `suites/calls-data-win64.vaa-suite.toml`
+(validated + parity + 5 live candidate digests via `--skip-verify`).
+`small_struct_return` covers aggregate field layout/offsets and returns a
+scalar via register (HlaX64 has no by-value struct return). Incomplete ≠
+Verified; SemASM Gate for Phase E remains open.
+
+**SysV live:** `integrations/hlax64/generator.sysv.spec.toml` emits
+`--target linux-x64-sysv`. `suites/scalar-sysv.vaa-suite.toml` now generates
+real System V AMD64 assembly (`rdi`/`rsi` argument registers, CI-asserted).
+Emitting SysV text works from any host; full SemASM **Gate** on Linux (a
+non-`--skip-verify` `vaa suite run`) is still owed.
+
 ---
 
 ## 18. Milestones
@@ -1074,11 +1088,16 @@ deliberately broken backend case remains open.
 
 **Status:** **Done** (code surface + CI pack gates + live generate suite).
 
-- Pack corpus A–D + Win64/SysV parity scaffolds
-- Live `vaa suite run` for `scalar-win64` via `scripts/run-hlax64-suite.ps1`
+- Pack corpus A–E + Win64/SysV parity
+- Live `vaa suite run` for `scalar-win64`, `calls-data-win64` (Phase E), and
+  `scalar-sysv` via `scripts/run-hlax64-suite.ps1`
   (generate + identity; `--skip-verify` ⇒ Incomplete ≠ Verified)
+- SysV live generation via `generator.sysv.spec.toml`
+  (emit-nasm `--target linux-x64-sysv`; `rdi`/`rsi` argument registers,
+  CI-asserted)
 - Locked EchoAsm repair patch-evidence fixtures (Accepted + forbidden Failed)
-- CI: `generator-packs` matrix (ubuntu/windows) + HlaX64 bridge live pack suite
+- CI: `generator-packs` matrix (ubuntu/windows) + HlaX64 bridge live pack
+  suites (scalar / Phase E / SysV)
 
 **Honesty:** EchoAsm repair smoke ≠ a live HlaX64 backend defect fixed by an
 agent. SemASM Gate Verified remains the existing `hlax64-bridge` ingest

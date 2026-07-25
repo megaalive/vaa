@@ -20,15 +20,23 @@ Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log
   triage` (Incomplete / verified_under_preconditions ≠ generator defect).
   P2.11–14: repair packet, diagnostics, source-map join, agent rules.
   P3.15: HlaX64 pack corpus expansion — 10 cases + phase Win64 suites +
-  `CORPUS.md` (A/B proxy; C/D wired; E open). P3.16: suite `abi` +
-  `vaa suite check-parity`; Win64 suites annotated; SysV scalar scaffold
-  (`*_sysv` cases). P3.17: `integrations/echoasm/` second-pack smoke
+  `CORPUS.md`. P3.16: suite `abi` + `vaa suite check-parity`; Win64 suites
+  annotated. P3.17: `integrations/echoasm/` second-pack smoke
   (cmd echo generator; schema/CLI universality; ≠ Gate Verified).
   P3.18: generator subprocess isolation (`docs/generator-isolation.md`,
   `vaa generator isolation-check`; credential env never inherits).
   **Milestone 6:** live HlaX64 scalar suite generate path, EchoAsm repair
   patch-evidence fixtures, CI `generator-packs` matrix + pack suite step
-  on `hlax64-bridge`. Honesty locks unchanged.
+  on `hlax64-bridge`.
+  **Phase E (calls / data):** 5 cases (`internal_function_call`,
+  `nested_call`, `global_rodata`, `multiple_exports`,
+  `small_struct_return`) + `suites/calls-data-win64.vaa-suite.toml`
+  (validated, parity, live Win64 generate). `small_struct_return` covers
+  aggregate layout with a register-returned scalar.
+  **SysV live:** `integrations/hlax64/generator.sysv.spec.toml` emits
+  `--target linux-x64-sysv`; `scalar-sysv` generates real System V asm
+  (`rdi`/`rsi`, CI-asserted). Emit ≠ SysV SemASM Gate. Honesty locks
+  unchanged.
 
 ### Changed
 

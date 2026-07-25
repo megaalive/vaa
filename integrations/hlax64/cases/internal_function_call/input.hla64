@@ -1,0 +1,23 @@
+// internal_function_call.hla64 — exported entry calls an internal helper.
+//
+// Phase E (plan §17.5): call ABI + stack preservation + private symbols.
+// Downstream: emit Win64 NASM shared-library -> vaa ingest --generator hlax64.
+// Honesty: HlaX64 emit / -Wverify != SemASM verified.
+// Win64: exported `scale_by_two` receives x in rcx; the internal `Double`
+// helper is a normal call whose result returns in rax.
+
+program internal_function_call;
+
+procedure Double(x: int64); @returns("rax");
+begin Double;
+    mov(x, rax);
+    add(rax, rax);
+end Double;
+
+export procedure scale_by_two(x: int64); @returns("rax");
+begin scale_by_two;
+    call Double(x);
+end scale_by_two;
+
+begin internal_function_call;
+end internal_function_call;

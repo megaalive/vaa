@@ -1,0 +1,4 @@
+# Phase E leaf (plan §17.5) — two public symbols in one unit; entry = inc.
+task = "task.vaa.toml"
+contract = "contract.sem.toml"
+input = "input.hla64"
