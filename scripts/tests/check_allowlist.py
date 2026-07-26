@@ -7,8 +7,8 @@ Three hermetic invariants (no SemASM / toolchain needed):
      targets — the allowlist cannot invent a shape that does not exist on disk.
   2. Every allowlist leaf whose target matches the *host* OS appears in the
      host-filtered `corpus_sweep --list`.
-  3. Every allowlist leaf×target appears in the frozen SemASM admission
-     snapshot (`fixtures/semasm/capabilities-snapshot.json`) leaf_names — the
+  3. Every allowlist leaf x target appears in the frozen SemASM admission
+     snapshot (`fixtures/semasm/capabilities-snapshot.json`) leaf_names - the
      skill gate is admission; the allowlist is only a discovery/freeze mirror.
 
 Run from CI (adapter-reference job) and locally:
@@ -66,7 +66,7 @@ def main() -> int:
         if leaf["target"] in host and leaf["name"] not in host_discovered:
             errors.append(f"{leaf['name']}: host target {leaf['target']} not in host discovery")
 
-    # (3) allowlist ⊆ admission snapshot leaf_names×target.
+    # (3) allowlist subset of admission snapshot leaf_names x target.
     for leaf in leaves:
         pair = (leaf["name"], leaf["target"])
         if pair not in admitted:
