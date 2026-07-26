@@ -135,9 +135,15 @@ fn windows_link_hint(target: &str, linker: &Path, stderr: &str) -> Option<String
              Re-run with a Win64 triple so VAA selects `lld-link`, or pass an explicit linker.",
         );
     }
-    if stderr.to_ascii_lowercase().contains("kernel32")
-        || stderr.to_ascii_lowercase().contains("unresolved")
-    {
+    let stderr_l = stderr.to_ascii_lowercase();
+    if stderr_l.contains("subsystem must be defined") {
+        parts.push(
+            "PE link needs `/subsystem:console` (or windows) plus usually `/entry:…`. \
+             For a leaf object only, assemble with NASM and skip `vaa build`'s link step; \
+             full PE link belongs to a hosted main that provides the entry.",
+        );
+    }
+    if stderr_l.contains("kernel32") || stderr_l.contains("unresolved") {
         parts.push(
             "Hosted Win64 programs that call GetStdHandle/ReadFile need import libs \
              (e.g. extra linker args `/DEFAULTLIB:kernel32.lib`). Leaf routines without \
@@ -492,6 +498,26 @@ mod tests {
         );
         assert!(args.iter().any(|a| a.starts_with("/OUT:")));
         assert!(!args.iter().any(|a| a == "-o"));
+    }
+
+    #[test]
+    fn windows_link_hint_covers_subsystem_and_ld() {
+        let hint = windows_link_hint(
+            "x86_64-pc-windows-msvc",
+            Path::new("lld-link"),
+            "lld-link: error: subsystem must be defined\r\n",
+        )
+        .expect("subsystem hint");
+        assert!(hint.contains("/subsystem:console"));
+        assert!(hint.contains("leaf object"));
+
+        let ld_hint = windows_link_hint(
+            "x86_64-pc-windows-msvc",
+            Path::new("ld"),
+            "some unrelated failure",
+        )
+        .expect("ld hint");
+        assert!(ld_hint.contains("lld-link"));
     }
 
     #[test]

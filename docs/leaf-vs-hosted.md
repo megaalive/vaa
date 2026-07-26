@@ -31,7 +31,9 @@ does not get behavioral seals from the allowlisted admission snapshot.
 - Hosted programs that call Win32 APIs need extra linker args such as
   `/DEFAULTLIB:kernel32.lib` (pass via toolchain extras / manual link today).
 - Leaf object inspection for SemASM often only needs assemble + object; full
-  PE link is optional for verify.
+  PE link is optional for verify. Linking a leaf alone without `/subsystem:…`
+  fails under `lld-link` — use a thin hosted main for PE (see
+  [exercises/e02-hello-leaf-win64.md](exercises/e02-hello-leaf-win64.md)).
 
 ## 4. Task TOML trial-and-error
 

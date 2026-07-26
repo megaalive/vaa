@@ -149,5 +149,6 @@ response, and finish with sealed evidence.
 - [`author.md`](author.md) — draft → review → lock lifecycle
 - [`optimize.md`](optimize.md) — correctness-preserving selection
 - [`leaf-vs-hosted.md`](leaf-vs-hosted.md) — leaf verify vs REPL/hosted I/O
+- [`exercises/`](exercises/) — maturity ladder + friction logs (scratch under `.vaa-exercises/`)
 - [`agent-playbook.md`](agent-playbook.md) — happy / decline paths
 - SemASM: `docs/fluent-agent-surface.md` (controller-facing pointer)

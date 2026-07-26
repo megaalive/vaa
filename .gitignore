@@ -6,6 +6,9 @@ Cargo.lock.bak
 # VAA local state (never commit run evidence or caches by default)
 .vaa/
 
+# Local maturity exercises (scratch builds, objects, raw logs)
+.vaa-exercises/
+
 # Editors / OS
 .idea/
 .vscode/
