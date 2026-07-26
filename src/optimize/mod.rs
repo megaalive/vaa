@@ -354,8 +354,8 @@ pub fn metrics_for_candidate_dir(
 
     let (object_bytes, metric_basis) = resolve_object_bytes(candidate_dir)?;
     let report = load_report_json(candidate_dir);
-    let instruction_count = report.as_ref().and_then(|v| extract_instruction_count(v));
-    let stack_bytes = report.as_ref().and_then(|v| extract_stack_bytes(v));
+    let instruction_count = report.as_ref().and_then(extract_instruction_count);
+    let stack_bytes = report.as_ref().and_then(extract_stack_bytes);
 
     Ok(CandidateMetrics {
         index,

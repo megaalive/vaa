@@ -474,8 +474,8 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
     )?;
     let mut req = req.clone();
     req.allow_execution = policy.allow_execution;
-    req.run_dir = policy.run_dir.clone();
-    req.run_base = policy.run_base.clone();
+    req.run_dir.clone_from(&policy.run_dir);
+    req.run_base.clone_from(&policy.run_base);
     req.level = Some(policy.level);
 
     let locked = load_locked_task(&req.task).map_err(|e| HarnessError::Task(e.to_string()))?;

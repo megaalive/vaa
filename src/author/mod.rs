@@ -4,6 +4,7 @@
 //! Admission is checked before lock; experimental locks stay
 //! `authoring_only` and never claim `sealed_acceptance`.
 
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -303,16 +304,16 @@ experimental = {}\n",
         state.experimental
     );
     if let Some(v) = &state.acceptance {
-        text.push_str(&format!("acceptance = \"{v}\"\n"));
+        let _ = writeln!(text, "acceptance = \"{v}\"");
     }
     if let Some(v) = &state.task_digest {
-        text.push_str(&format!("task_digest = \"{v}\"\n"));
+        let _ = writeln!(text, "task_digest = \"{v}\"");
     }
     if let Some(v) = &state.contract_digest {
-        text.push_str(&format!("contract_digest = \"{v}\"\n"));
+        let _ = writeln!(text, "contract_digest = \"{v}\"");
     }
     if let Some(v) = &state.capability_snapshot_digest {
-        text.push_str(&format!("capability_snapshot_digest = \"{v}\"\n"));
+        let _ = writeln!(text, "capability_snapshot_digest = \"{v}\"");
     }
     write_text(&path, &text)
 }
@@ -356,9 +357,7 @@ pub fn author_init(
     let contract_src = template_contract_src(template)
         .ok_or_else(|| AuthorError::msg(format!("missing embedded contract for `{template}`")))?;
 
-    let base = out_dir
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".vaa/author"));
+    let base = out_dir.map_or_else(|| PathBuf::from(".vaa/author"), PathBuf::from);
     let case_dir = base.join(name);
 
     if case_dir.join(LOCKED_MARKER_FILE).is_file() {
@@ -496,13 +495,12 @@ pub fn author_review(case_dir: &Path) -> Result<ReviewResult, AuthorError> {
         }
     };
 
-    if case_dir.join(LOCKED_MARKER_FILE).is_file() {
-        if state
+    if case_dir.join(LOCKED_MARKER_FILE).is_file()
+        && state
             .as_ref()
             .is_none_or(|s| s.state != AuthorCaseState::Locked)
-        {
-            issues.push("LOCKED marker present but AUTHOR_STATE.state is not locked".into());
-        }
+    {
+        issues.push("LOCKED marker present but AUTHOR_STATE.state is not locked".into());
     }
 
     let leaf = task_name

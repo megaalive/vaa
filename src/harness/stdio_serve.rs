@@ -130,7 +130,7 @@ impl AgentServeSession {
             "candidate.submit" => self.candidate_submit(&incoming),
             "feedback.get" => self.feedback_get(),
             "session.status" => self.session_status(),
-            "session.finish" => self.session_finish(),
+            "session.finish" => Ok(self.session_finish()),
             other => Err((-32601, format!("unknown method: {other}"))),
         };
         let wrapped = match resp {
@@ -299,14 +299,14 @@ impl AgentServeSession {
         }))
     }
 
-    fn session_finish(&mut self) -> Result<Value, (i32, String)> {
+    fn session_finish(&mut self) -> Value {
         self.finished = true;
-        Ok(json!({
+        json!({
             "ok": true,
             "finished": true,
             "workspace": self.workspace.display().to_string(),
             "run_dir": self.run_dir.as_ref().map(|p| p.display().to_string()),
-        }))
+        })
     }
 }
 
@@ -322,7 +322,7 @@ fn find_latest_run_dir(base: &Path) -> Result<PathBuf, ServeError> {
         return Err(ServeError::Message("run base missing".into()));
     }
     let mut dirs: Vec<_> = std::fs::read_dir(base)?
-        .filter_map(|e| e.ok())
+        .filter_map(Result::ok)
         .map(|e| e.path())
         .filter(|p| p.is_dir() && p.join("events.jsonl").is_file())
         .collect();
