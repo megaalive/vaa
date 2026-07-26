@@ -1,0 +1,16 @@
+# Lint config for the reference agent-harness adapter and its dry-run helpers.
+# Rules are selected explicitly so a newer ruff cannot silently widen or narrow
+# the gate; the CI job pins the ruff version to match.
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = [
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "I",   # import order
+  "B",   # bugbear
+  "SIM", # simplify
+  "UP",  # pyupgrade
+  "RUF",
+]

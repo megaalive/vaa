@@ -16,12 +16,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
-
 
 TERMINAL_CLASSES = frozenset(
     {
@@ -33,8 +33,18 @@ TERMINAL_CLASSES = frozenset(
 )
 
 
+def vaa_command() -> list[str]:
+    """CLI to spawn: `VAA_BIN` if set, else `vaa` from PATH.
+
+    `VAA_BIN` is parsed shell-style, so paths containing spaces or backslashes
+    must be single-quoted (`VAA_BIN="'C:\\tools\\vaa.exe'"`).
+    """
+    raw = os.environ.get("VAA_BIN", "").strip()
+    return shlex.split(raw) if raw else ["vaa"]
+
+
 def run_vaa(args: list[str], timeout: float | None = None) -> dict[str, Any]:
-    cmd = ["vaa", *args]
+    cmd = [*vaa_command(), *args]
     env = os.environ.copy()
     proc = subprocess.run(
         cmd,
@@ -47,7 +57,8 @@ def run_vaa(args: list[str], timeout: float | None = None) -> dict[str, Any]:
     stdout = proc.stdout.strip()
     if not stdout:
         raise RuntimeError(
-            f"empty stdout from {' '.join(cmd)}; exit={proc.returncode}; stderr={proc.stderr[:500]!r}"
+            f"empty stdout from {' '.join(cmd)}; exit={proc.returncode}; "
+            f"stderr={proc.stderr[:500]!r}"
         )
     try:
         payload = json.loads(stdout)
@@ -146,10 +157,10 @@ def loop_direct(ns: argparse.Namespace) -> dict[str, Any]:
         cls = result.get("class")
         if cls == "accepted":
             break
+        # incomplete_coverage may continue with --allow-execution already set;
+        # violated_repairable is non-terminal by design (agent edits and retries).
         if cls in TERMINAL_CLASSES and cls != "incomplete_coverage":
-            # incomplete_coverage may continue with --allow-execution already set
-            if cls != "violated_repairable":
-                break
+            break
         if result.get("failure_code") == "BUDGET_EXHAUSTED":
             break
         if cls == "toolchain_retryable" and not result.get("may_auto_retry"):

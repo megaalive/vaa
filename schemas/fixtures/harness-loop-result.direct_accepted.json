@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1",
+  "kind": "agent_harness_loop",
+  "mode": "direct",
+  "envelope": {
+    "task_id": "count-byte-v1",
+    "target": "x86_64-pc-windows-msvc",
+    "assembler": "nasm",
+    "remaining_attempts": 4
+  },
+  "steps": [
+    {
+      "index": 0,
+      "source": "fixtures/run/count_byte/01_wrong.asm",
+      "class": "violated_repairable",
+      "next_action": "edit_candidate",
+      "failure_code": null,
+      "candidate_index": 0,
+      "exit_code": 5
+    },
+    {
+      "index": 1,
+      "source": "fixtures/run/count_byte/02_repaired.asm",
+      "class": "accepted",
+      "next_action": "done",
+      "failure_code": null,
+      "candidate_index": 1,
+      "exit_code": 0
+    }
+  ],
+  "final": {
+    "class": "accepted",
+    "next_action": "done",
+    "failure_code": null,
+    "run_dir": "/tmp/vaa-runs/20260101T000000Z-stub",
+    "seal_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "exit_code": 0
+  },
+  "status": {
+    "run_id": "20260101T000000Z-stub",
+    "next_candidate_index": 2,
+    "sealed_candidates": 2,
+    "_vaa_exit_code": 0
+  },
+  "_vaa_exit_code": 0
+}

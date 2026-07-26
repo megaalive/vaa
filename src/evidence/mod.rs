@@ -15,7 +15,7 @@ pub mod transparency;
 
 pub use bundle::{
     materialize_bundle_files, verify_bundle, BUNDLE_CONTRACT, BUNDLE_EVIDENCE, BUNDLE_REPORT,
-    BUNDLE_SEAL, BUNDLE_SOURCE, BUNDLE_TASK,
+    BUNDLE_SEAL, BUNDLE_SOURCE, BUNDLE_SOURCE_GAS, BUNDLE_TASK,
 };
 pub use chain::{verify_chain, ChainIdentity, VerifyChainReport};
 pub use durability::{

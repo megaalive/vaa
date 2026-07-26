@@ -126,11 +126,30 @@ python scripts/agent_harness_adapter.py loop-generator \
   --suite-evidence fixtures/repair/echoasm-passthrough/suite-evidence.accepted.json
 ```
 
+Both loops print a `agent_harness_loop` document (schema `0.1`) described by
+`schemas/harness-loop-result.schema.json`. `VAA_BIN` overrides the CLI to spawn
+(parsed shell-style; single-quote Windows paths), otherwise `vaa` from `PATH`.
+
+Hermetic check of the adapter contract — canned CLI responses, no SemASM,
+no assembler:
+
+```text
+python scripts/tests/harness_adapter_dryrun.py            # verify
+python scripts/tests/harness_adapter_dryrun.py --update   # re-record goldens
+```
+
+The stub in `scripts/tests/stub_vaa.py` fabricates CLI stdout for that check
+only. It performs no verification and must never be used to claim evidence.
+
 ## Protocol freeze
 
 - SemASM: `docs/CONTROLLER_PROTOCOL.md`, `docs/CLI_COMPATIBILITY.md`,
   VerificationReport `>=0.4,<0.6`, early `agent_failure` schema `0.1`.
 - VAA: `schemas/agent-envelope.schema.json`, `schemas/repair-packet.schema.json`,
-  `schemas/harness-submit-result.schema.json`, submit result schema `0.1`.
+  `schemas/harness-submit-result.schema.json`, submit result schema `0.1`,
+  `schemas/harness-loop-result.schema.json` (adapter stdout, schema `0.1`).
   Golden fixtures live under `schemas/fixtures/`; `tests/protocol_freeze_gates.rs`
-  fails on field/schema drift.
+  fails on field/schema drift, and the `class` / `next_action` vocabularies must
+  stay identical between the submit-result and loop-result schemas.
+- The reference adapter is linted and dry-run in the `adapter-reference` CI job
+  (`scripts/ruff.toml`, pinned ruff), so controller-facing drift fails in CI.

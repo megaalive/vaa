@@ -18,19 +18,29 @@ pub const BUNDLE_REPORT: &str = "semasm-report.json";
 pub const BUNDLE_EVIDENCE: &str = "evidence.json";
 pub const BUNDLE_SEAL: &str = "evidence.seal.json";
 
-/// Read candidate source from a bundle (`candidate.asm` or `candidate.S`).
+/// Read candidate source from a bundle (`candidate.asm` xor `candidate.S`).
+///
+/// Exactly one dialect may be present: with both on disk only one can match
+/// `acceptance.source_digest`, so picking by filename order would decide
+/// verification by layout instead of by evidence.
 fn read_bundle_source(bundle_dir: &Path) -> Result<Vec<u8>, SealError> {
     let asm = bundle_dir.join(BUNDLE_SOURCE);
-    if asm.is_file() {
-        return fs::read(&asm).map_err(|e| SealError::Bundle(format!("read candidate: {e}")));
-    }
     let gas = bundle_dir.join(BUNDLE_SOURCE_GAS);
-    if gas.is_file() {
-        return fs::read(&gas).map_err(|e| SealError::Bundle(format!("read candidate: {e}")));
-    }
-    Err(SealError::Bundle(format!(
-        "read candidate: neither {BUNDLE_SOURCE} nor {BUNDLE_SOURCE_GAS} present"
-    )))
+    let path = match (asm.is_file(), gas.is_file()) {
+        (true, false) => asm,
+        (false, true) => gas,
+        (true, true) => {
+            return Err(SealError::Bundle(format!(
+                "ambiguous candidate source: both {BUNDLE_SOURCE} and {BUNDLE_SOURCE_GAS} present"
+            )))
+        }
+        (false, false) => {
+            return Err(SealError::Bundle(format!(
+                "read candidate: neither {BUNDLE_SOURCE} nor {BUNDLE_SOURCE_GAS} present"
+            )))
+        }
+    };
+    fs::read(&path).map_err(|e| SealError::Bundle(format!("read candidate: {e}")))
 }
 
 /// Verify a candidate/final bundle directory against sealed digests.
@@ -292,6 +302,29 @@ mod tests {
         .unwrap();
 
         verify_bundle(&dir).expect("gas candidate.S bundle ok");
+
+        // Both dialects on disk: only one can match the sealed digest, so the
+        // bundle must be rejected instead of resolved by filename order.
+        fs::write(dir.join(BUNDLE_SOURCE), source_bytes).unwrap();
+        let err = verify_bundle(&dir).expect_err("ambiguous candidate source");
+        match err {
+            SealError::Bundle(msg) => assert!(msg.contains("ambiguous"), "{msg}"),
+            other => panic!("expected Bundle error, got {other:?}"),
+        }
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn verify_bundle_rejects_missing_candidate_source() {
+        let dir = std::env::temp_dir().join(format!("vaa_bundle_nosrc_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let err = read_bundle_source(&dir).expect_err("no candidate source");
+        match err {
+            SealError::Bundle(msg) => assert!(msg.contains("neither"), "{msg}"),
+            other => panic!("expected Bundle error, got {other:?}"),
+        }
         let _ = fs::remove_dir_all(&dir);
     }
 

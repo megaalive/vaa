@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HarnessLoopResult",
+  "description": "VAA agent harness loop result schema 0.1 — stdout contract of scripts/agent_harness_adapter.py loop-direct and loop-generator. Controllers parse stdout only; stderr is noise. Not emitted by the vaa binary itself.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "mode",
+    "envelope",
+    "steps",
+    "final",
+    "_vaa_exit_code"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "agent_harness_loop" },
+    "mode": {
+      "type": "string",
+      "enum": ["direct", "generator_repair"]
+    },
+    "envelope": {
+      "type": "object",
+      "description": "Projection of the prepare envelope. `assembler` and `remaining_attempts` are direct-mode only; `mode` echoes the envelope mode in generator-repair.",
+      "required": ["task_id", "target"],
+      "properties": {
+        "task_id": { "type": ["string", "null"] },
+        "target": { "type": ["string", "null"] },
+        "assembler": {
+          "type": ["string", "null"],
+          "enum": ["nasm", "gas", null]
+        },
+        "remaining_attempts": { "type": ["integer", "null"], "minimum": 0 },
+        "mode": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "steps": {
+      "type": "array",
+      "description": "One entry per submit attempt, in order. `source` is direct-mode only; `kind` and `changed_file` are generator-repair only.",
+      "items": {
+        "type": "object",
+        "required": ["index", "class", "exit_code"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "source": { "type": ["string", "null"] },
+          "kind": {
+            "type": ["string", "null"],
+            "enum": ["forbidden_path", "allowed_patch", null]
+          },
+          "changed_file": { "type": ["string", "null"] },
+          "class": { "$ref": "#/$defs/outcome_class" },
+          "next_action": { "$ref": "#/$defs/next_action" },
+          "failure_code": { "type": ["string", "null"] },
+          "candidate_index": { "type": ["integer", "null"], "minimum": 0 },
+          "patch_evidence_path": { "type": ["string", "null"] },
+          "exit_code": { "$ref": "#/$defs/exit_code" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "final": {
+      "type": "object",
+      "description": "Outcome of the last submit. Terminal classes are documented in docs/agent-harness.md.",
+      "required": ["class", "exit_code"],
+      "properties": {
+        "class": { "$ref": "#/$defs/outcome_class" },
+        "next_action": { "$ref": "#/$defs/next_action" },
+        "failure_code": { "type": ["string", "null"] },
+        "run_dir": { "type": ["string", "null"] },
+        "seal_digest": { "type": ["string", "null"] },
+        "patch_evidence_path": { "type": ["string", "null"] },
+        "exit_code": { "$ref": "#/$defs/exit_code" }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "type": ["object", "null"],
+      "description": "Raw `vaa harness status` payload when a run dir exists (direct mode).",
+      "additionalProperties": true
+    },
+    "_vaa_exit_code": { "$ref": "#/$defs/exit_code" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "outcome_class": {
+      "description": "Same vocabulary as harness-submit-result.schema.json `class`.",
+      "type": ["string", "null"],
+      "enum": [
+        "accepted",
+        "violated_repairable",
+        "incomplete_coverage",
+        "toolchain_retryable",
+        "policy_blocked",
+        "failed",
+        null
+      ]
+    },
+    "next_action": {
+      "description": "Same vocabulary as harness-submit-result.schema.json `next_action`.",
+      "type": ["string", "null"],
+      "enum": [
+        "done",
+        "edit_candidate",
+        "edit_generator",
+        "opt_in_execution",
+        "fix_toolchain",
+        "stop_policy",
+        "abort",
+        null
+      ]
+    },
+    "exit_code": { "type": "integer", "minimum": 0, "maximum": 255 }
+  }
+}

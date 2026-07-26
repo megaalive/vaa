@@ -1,0 +1,37 @@
+{
+  "schema_version": "0.1",
+  "kind": "agent_harness_loop",
+  "mode": "generator_repair",
+  "envelope": {
+    "task_id": "stack-local-i64-win64-stack-balance-v1",
+    "target": "x86_64-pc-windows-msvc",
+    "mode": "generator_repair"
+  },
+  "steps": [
+    {
+      "index": 0,
+      "kind": "forbidden_path",
+      "changed_file": "integrations/hlax64/cases/stack_local_i64/task.vaa.toml",
+      "class": "policy_blocked",
+      "failure_code": "FORBIDDEN_PATH",
+      "exit_code": 8
+    },
+    {
+      "index": 1,
+      "kind": "allowed_patch",
+      "changed_file": "src/HlaX64.Backend.Nasm/Emit.cs",
+      "class": "accepted",
+      "failure_code": null,
+      "patch_evidence_path": "/tmp/vaa-gen/patch-evidence.json",
+      "exit_code": 0
+    }
+  ],
+  "final": {
+    "class": "accepted",
+    "next_action": "done",
+    "failure_code": null,
+    "patch_evidence_path": "/tmp/vaa-gen/patch-evidence.json",
+    "exit_code": 0
+  },
+  "_vaa_exit_code": 0
+}
