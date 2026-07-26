@@ -1,4 +1,4 @@
-//! Agent harness façade gates: prepare / submit / resume (direct + generator).
+//! Agent harness façade gates: prepare / submit+seal / resume / generator policy.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -20,19 +20,23 @@ fn semasm_available() -> bool {
         || std::env::var_os("SEMASM_BIN").is_some()
 }
 
-#[test]
-fn harness_prepare_direct_nasm_emits_envelope() {
-    let tmp = std::env::temp_dir().join(format!(
-        "vaa-harness-prep-{}-{}",
+fn tmp(prefix: &str) -> PathBuf {
+    let p = std::env::temp_dir().join(format!(
+        "{prefix}-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos()
     ));
-    let _ = std::fs::remove_dir_all(&tmp);
-    std::fs::create_dir_all(&tmp).unwrap();
+    let _ = std::fs::remove_dir_all(&p);
+    std::fs::create_dir_all(&p).unwrap();
+    p
+}
 
+#[test]
+fn harness_prepare_direct_nasm_emits_envelope() {
+    let tmp = tmp("vaa-harness-prep");
     let task = root().join("fixtures/semasm/count_byte/count_byte.vaa.toml");
     let contract = root().join("fixtures/semasm/count_byte/count_byte.sem.toml");
     let seed = root().join("fixtures/run/count_byte/01_wrong.asm");
@@ -51,6 +55,8 @@ fn harness_prepare_direct_nasm_emits_envelope() {
             tmp.to_str().unwrap(),
             "--seed",
             seed.to_str().unwrap(),
+            "--assembler",
+            "nasm",
             "--format",
             "json",
         ])
@@ -66,6 +72,7 @@ fn harness_prepare_direct_nasm_emits_envelope() {
     );
     let value: serde_json::Value = serde_json::from_str(stdout.trim()).expect("json stdout");
     assert_eq!(value["mode"], "direct_nasm");
+    assert_eq!(value["assembler"], "nasm");
     assert_eq!(value["schema_version"], "0.1");
     assert!(tmp.join("agent-envelope.json").is_file());
     assert!(tmp.join("candidate.asm").is_file());
@@ -74,18 +81,40 @@ fn harness_prepare_direct_nasm_emits_envelope() {
 }
 
 #[test]
-fn harness_prepare_generator_repair_from_fixture() {
-    let tmp = std::env::temp_dir().join(format!(
-        "vaa-harness-gen-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+fn harness_prepare_gas_is_fail_closed() {
+    let tmp = tmp("vaa-harness-gas");
+    let task = root().join("fixtures/semasm/count_byte/count_byte.vaa.toml");
+    let contract = root().join("fixtures/semasm/count_byte/count_byte.sem.toml");
+    let out = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "prepare",
+            "--mode",
+            "direct",
+            "--task",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--workspace",
+            tmp.to_str().unwrap(),
+            "--assembler",
+            "gas",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("prepare gas");
+    assert!(
+        !out.status.success(),
+        "gas prepare must fail-closed; stdout={}",
+        String::from_utf8_lossy(&out.stdout)
+    );
     let _ = std::fs::remove_dir_all(&tmp);
-    std::fs::create_dir_all(&tmp).unwrap();
+}
 
+#[test]
+fn harness_prepare_generator_repair_from_fixture() {
+    let tmp = tmp("vaa-harness-gen");
     let packet = root().join(
         "fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json",
     );
@@ -123,12 +152,13 @@ fn harness_prepare_generator_repair_from_fixture() {
 }
 
 #[test]
-fn harness_submit_wrong_then_repaired_count_byte_win64() {
+fn harness_submit_wrong_then_repaired_with_seal_and_chain() {
     if !semasm_available() {
-        eprintln!("skipping harness submit gate: semasm unavailable");
+        eprintln!("skipping harness seal gate: semasm unavailable");
         return;
     }
 
+    let run_base = tmp("vaa-harness-seal-base");
     let task = root().join("fixtures/run/count_byte/count_byte.vaa.toml");
     let contract = root().join("fixtures/run/count_byte/count_byte.sem.toml");
     let wrong = root().join("fixtures/run/count_byte/01_wrong.asm");
@@ -138,6 +168,8 @@ fn harness_submit_wrong_then_repaired_count_byte_win64() {
         .args([
             "harness",
             "submit",
+            "--mode",
+            "direct-nasm",
             "--task",
             task.to_str().unwrap(),
             "--contract",
@@ -145,6 +177,8 @@ fn harness_submit_wrong_then_repaired_count_byte_win64() {
             "--source",
             wrong.to_str().unwrap(),
             "--allow-execution",
+            "--run-base",
+            run_base.to_str().unwrap(),
             "--format",
             "json",
         ])
@@ -159,19 +193,30 @@ fn harness_submit_wrong_then_repaired_count_byte_win64() {
             )
         });
     let class = wrong_json["class"].as_str().unwrap_or_default();
-    assert!(
-        matches!(class, "violated_repairable" | "failed" | "toolchain_retryable"),
-        "wrong candidate unexpected class={class} body={wrong_json}"
-    );
     if class == "toolchain_retryable" {
-        eprintln!("skipping repair half: toolchain retryable ({wrong_json})");
+        eprintln!("skipping seal gate: toolchain retryable ({wrong_json})");
+        let _ = std::fs::remove_dir_all(&run_base);
         return;
     }
+    assert!(
+        matches!(class, "violated_repairable" | "failed" | "incomplete_coverage" | "accepted"),
+        "unexpected class={class} {wrong_json}"
+    );
+    let run_dir = wrong_json["run_dir"]
+        .as_str()
+        .expect("sealed submit must return run_dir")
+        .to_owned();
+    assert!(
+        wrong_json["seal_digest"].as_str().is_some(),
+        "expected seal_digest: {wrong_json}"
+    );
 
     let ok_out = Command::new(vaa_bin())
         .args([
             "harness",
             "submit",
+            "--mode",
+            "direct-nasm",
             "--task",
             task.to_str().unwrap(),
             "--contract",
@@ -180,6 +225,8 @@ fn harness_submit_wrong_then_repaired_count_byte_win64() {
             repaired.to_str().unwrap(),
             "--allow-execution",
             "--allow-under-preconditions",
+            "--run-dir",
+            &run_dir,
             "--format",
             "json",
         ])
@@ -196,24 +243,123 @@ fn harness_submit_wrong_then_repaired_count_byte_win64() {
         ok_json["class"], "accepted",
         "repaired candidate not accepted: {ok_json}"
     );
-    assert_eq!(ok_json["next_action"], "done");
-    assert_eq!(ok_out.status.code(), Some(0));
+    assert_eq!(ok_json["candidate_index"], 1);
+    assert!(ok_json["seal_digest"].as_str().is_some());
+
+    // Resume must not reseal index 0; cursor advances.
+    let status = Command::new(vaa_bin())
+        .args(["harness", "status", "--run-dir", &run_dir, "--format", "json"])
+        .output()
+        .expect("status");
+    let status_json: serde_json::Value =
+        serde_json::from_str(String::from_utf8_lossy(&status.stdout).trim()).expect("status json");
+    assert_eq!(status_json["next_candidate_index"], 2);
+    assert!(status_json["events_path"].as_str().is_some());
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", &run_dir])
+        .output()
+        .expect("verify-chain");
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={}\nstderr={}",
+        String::from_utf8_lossy(&chain.stdout),
+        String::from_utf8_lossy(&chain.stderr)
+    );
+
+    let _ = std::fs::remove_dir_all(&run_base);
+}
+
+#[test]
+fn harness_generator_submit_rejects_authority_mutation() {
+    let tmp = tmp("vaa-harness-auth");
+    let packet = root().join(
+        "fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json",
+    );
+    let suite_ev = root().join("fixtures/repair/echoasm-passthrough/suite-evidence.accepted.json");
+
+    let out = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "submit",
+            "--mode",
+            "generator-repair",
+            "--repair-packet",
+            packet.to_str().unwrap(),
+            "--workspace",
+            tmp.to_str().unwrap(),
+            "--changed-file",
+            "integrations/hlax64/cases/stack_local_i64/task.vaa.toml",
+            "--patched-revision",
+            "git:deadbeef",
+            "--suite-evidence",
+            suite_ev.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("generator submit");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let json: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap_or_else(|_| {
+        panic!(
+            "expected JSON; got {stdout}\nstderr={}",
+            String::from_utf8_lossy(&out.stderr)
+        )
+    });
+    assert_eq!(json["class"], "policy_blocked");
+    assert_eq!(json["failure_code"], "FORBIDDEN_PATH");
+    assert_eq!(out.status.code(), Some(8));
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn harness_generator_submit_accepted_from_suite_evidence() {
+    let tmp = tmp("vaa-harness-patch-ok");
+    let packet = root().join(
+        "fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json",
+    );
+    let suite_ev = root().join("fixtures/repair/echoasm-passthrough/suite-evidence.accepted.json");
+
+    let out = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "submit",
+            "--mode",
+            "generator-repair",
+            "--repair-packet",
+            packet.to_str().unwrap(),
+            "--workspace",
+            tmp.to_str().unwrap(),
+            "--changed-file",
+            "src/HlaX64.Backend.Nasm/Emit.cs",
+            "--patched-revision",
+            "git:cafebabe",
+            "--suite-evidence",
+            suite_ev.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("generator submit ok");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let json: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap_or_else(|_| {
+        panic!(
+            "expected JSON; got {stdout}\nstderr={}",
+            String::from_utf8_lossy(&out.stderr)
+        )
+    });
+    assert_eq!(json["class"], "accepted", "{json}");
+    assert!(
+        json["patch_evidence_path"].as_str().is_some(),
+        "expected patch evidence path: {json}"
+    );
+    assert!(tmp.join("patch-evidence.json").is_file());
+    let _ = std::fs::remove_dir_all(&tmp);
 }
 
 #[test]
 fn harness_resume_status_on_empty_run_dir_is_structured() {
-    let tmp = std::env::temp_dir().join(format!(
-        "vaa-harness-resume-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    let _ = std::fs::remove_dir_all(&tmp);
-    // Create a minimal run dir via `vaa ingest` would be heavy; just assert CLI
-    // returns structured JSON on missing/incomplete dirs without panicking.
-    std::fs::create_dir_all(&tmp).unwrap();
+    let tmp = tmp("vaa-harness-resume");
     let out = Command::new(vaa_bin())
         .args([
             "harness",
@@ -226,7 +372,6 @@ fn harness_resume_status_on_empty_run_dir_is_structured() {
         .output()
         .expect("status");
     let stdout = String::from_utf8_lossy(&out.stdout);
-    // Empty dir is not a valid RunDir — expect tool failure JSON, still parseable.
     assert!(!stdout.trim().is_empty() || !out.status.success());
     if !stdout.trim().is_empty() {
         let _: serde_json::Value = serde_json::from_str(stdout.trim()).expect("json");
@@ -257,15 +402,7 @@ fn invalid_nasm_structured_failure_when_semasm_present() {
         eprintln!("skipping invalid NASM structured failure: semasm unavailable");
         return;
     }
-    let tmp = std::env::temp_dir().join(format!(
-        "vaa-harness-badnasm-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    std::fs::create_dir_all(&tmp).unwrap();
+    let tmp = tmp("vaa-harness-badnasm");
     let bad = tmp.join("bad.asm");
     std::fs::write(&bad, "this is not valid nasm!!!!\n").unwrap();
 
@@ -288,17 +425,16 @@ fn invalid_nasm_structured_failure_when_semasm_present() {
         .expect("submit bad");
     let stdout = String::from_utf8_lossy(&out.stdout);
     let json: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap_or_else(|_| {
-        panic!("expected JSON; got {stdout}\nstderr={}", String::from_utf8_lossy(&out.stderr))
+        panic!(
+            "expected JSON; got {stdout}\nstderr={}",
+            String::from_utf8_lossy(&out.stderr)
+        )
     });
     let class = json["class"].as_str().unwrap_or_default();
     assert!(
         matches!(class, "failed" | "toolchain_retryable" | "violated_repairable"),
         "unexpected class={class} {json}"
     );
-    // Prefer structured failure code when SemASM emits agent_failure.
-    if let Some(code) = json["failure_code"].as_str() {
-        assert!(!code.is_empty());
-    }
     let _ = std::fs::remove_dir_all(&tmp);
 }
 

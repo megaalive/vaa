@@ -1,6 +1,8 @@
-//! Shared agent envelope discriminating direct NASM vs generator repair.
+//! Shared agent envelope discriminating direct assembly vs generator repair.
 
 use serde::{Deserialize, Serialize};
+
+use crate::harness::assembler::AssemblerFlavor;
 
 /// Schema version for [`AgentEnvelope`].
 pub const AGENT_ENVELOPE_SCHEMA_VERSION: &str = "0.1";
@@ -9,7 +11,7 @@ pub const AGENT_ENVELOPE_SCHEMA_VERSION: &str = "0.1";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AgentMode {
-    /// Agent edits a candidate `.asm` file.
+    /// Agent edits a candidate assembly file (NASM today; GAS reserved).
     DirectNasm,
     /// Agent edits generator source; must regenerate assembly.
     GeneratorRepair,
@@ -78,6 +80,9 @@ pub struct AgentEnvelope {
     pub target: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub abi: Option<String>,
+    /// Assembler flavor the candidate must use (`nasm` today; `gas` reserved).
+    #[serde(default)]
+    pub assembler: AssemblerFlavor,
     pub task_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub run_id: Option<String>,
@@ -85,6 +90,12 @@ pub struct AgentEnvelope {
     pub forbidden_paths: Vec<String>,
     pub commands: AgentCommands,
     pub budget: AgentBudget,
+    /// Remaining candidate attempts when known (budget − sealed count).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remaining_attempts: Option<u32>,
+    /// Latest structured failure / submit class for the prompt payload.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latest_failure: Option<String>,
     #[serde(default)]
     pub digests: AgentDigests,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -95,10 +106,12 @@ pub struct AgentEnvelope {
     pub workspace_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub prompt_markdown_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub events_path: Option<String>,
 }
 
 impl AgentEnvelope {
-    /// Build a direct-NASM envelope.
+    /// Build a direct-assembly envelope (NASM by default).
     #[must_use]
     pub fn direct_nasm(
         target: impl Into<String>,
@@ -111,9 +124,10 @@ impl AgentEnvelope {
             mode: AgentMode::DirectNasm,
             target: target.into(),
             abi: None,
+            assembler: AssemblerFlavor::Nasm,
             task_id: task_id.into(),
             run_id: None,
-            writable_paths: vec!["candidate.asm".to_owned()],
+            writable_paths: vec![AssemblerFlavor::Nasm.candidate_filename().to_owned()],
             forbidden_paths: vec![
                 "**/*.vaa.toml".to_owned(),
                 "**/*.sem.toml".to_owned(),
@@ -122,11 +136,14 @@ impl AgentEnvelope {
             ],
             commands,
             budget,
+            remaining_attempts: None,
+            latest_failure: None,
             digests: AgentDigests::default(),
             semasm_packet_path: None,
             repair_packet_path: None,
             workspace_dir: None,
             prompt_markdown_path: None,
+            events_path: None,
         }
     }
 }
@@ -152,6 +169,7 @@ mod tests {
         let json = serde_json::to_string(&env).unwrap();
         let back: AgentEnvelope = serde_json::from_str(&json).unwrap();
         assert_eq!(back.mode, AgentMode::DirectNasm);
+        assert_eq!(back.assembler, AssemblerFlavor::Nasm);
         assert_eq!(back.schema_version, AGENT_ENVELOPE_SCHEMA_VERSION);
     }
 

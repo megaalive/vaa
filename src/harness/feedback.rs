@@ -80,6 +80,18 @@ pub struct HarnessSubmitResult {
     pub candidate_digest: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub run_dir: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_index: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_dir: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seal_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub patch_evidence_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assembler: Option<String>,
     pub may_auto_retry: bool,
 }
 
@@ -156,10 +168,16 @@ fn classify_failure_code(code: &str) -> (HarnessOutcomeClass, HarnessNextAction,
             ExitCode::ToolFailure,
         ),
         "UNSUPPORTED_SHAPE" | "HARNESS_MISMATCH" | "CONTRACT_INVALID" | "CONTRACT_ENCODING"
-        | "ASSEMBLE_FAILED" | "ASSEMBLE_HARNESS_FAILED" | "LINK_FAILED" | "INVALID_TARGET" => (
+        | "ASSEMBLE_FAILED" | "ASSEMBLE_HARNESS_FAILED" | "LINK_FAILED" | "INVALID_TARGET"
+        | "SEAL_FAILED" | "ALREADY_SEALED" | "SUITE_REQUIRED" => (
             HarnessOutcomeClass::Failed,
             HarnessNextAction::Abort,
             ExitCode::ToolFailure,
+        ),
+        "BUDGET_EXHAUSTED" => (
+            HarnessOutcomeClass::Failed,
+            HarnessNextAction::Abort,
+            ExitCode::BudgetExhausted,
         ),
         "POLICY_BLOCK" | "FORBIDDEN_PATH" => (
             HarnessOutcomeClass::PolicyBlocked,

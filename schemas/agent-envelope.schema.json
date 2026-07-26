@@ -21,6 +21,12 @@
     },
     "target": { "type": "string", "minLength": 1 },
     "abi": { "type": ["string", "null"] },
+    "assembler": {
+      "type": "string",
+      "enum": ["nasm", "gas"],
+      "default": "nasm",
+      "description": "nasm supported today; gas recognized but fail-closed until VAA dialect path lands"
+    },
     "task_id": { "type": "string" },
     "run_id": { "type": ["string", "null"] },
     "writable_paths": { "type": "array", "items": { "type": "string" } },
@@ -47,6 +53,8 @@
       },
       "additionalProperties": false
     },
+    "remaining_attempts": { "type": ["integer", "null"], "minimum": 0 },
+    "latest_failure": { "type": ["string", "null"] },
     "digests": {
       "type": "object",
       "properties": {
@@ -59,7 +67,8 @@
     "semasm_packet_path": { "type": ["string", "null"] },
     "repair_packet_path": { "type": ["string", "null"] },
     "workspace_dir": { "type": ["string", "null"] },
-    "prompt_markdown_path": { "type": ["string", "null"] }
+    "prompt_markdown_path": { "type": ["string", "null"] },
+    "events_path": { "type": ["string", "null"] }
   },
   "additionalProperties": false
 }

@@ -2,6 +2,7 @@
 """Minimal reference adapter: spawn `vaa harness` and parse stdout JSON only.
 
 This is intentionally not an SDK. Controllers should treat stderr as noise.
+Supports direct assembly (NASM today; GAS reserved/fail-closed) and generator repair.
 """
 
 from __future__ import annotations
@@ -49,6 +50,8 @@ def main() -> int:
     p_prep.add_argument("--contract", required=True)
     p_prep.add_argument("--workspace", required=True)
     p_prep.add_argument("--seed")
+    p_prep.add_argument("--assembler", default="nasm", choices=["nasm", "gas"])
+    p_prep.add_argument("--run-dir")
     p_prep.add_argument("--allow-execution", action="store_true")
 
     p_gen = sub.add_parser("prepare-generator")
@@ -60,11 +63,24 @@ def main() -> int:
     p_sub.add_argument("--task", required=True)
     p_sub.add_argument("--contract", required=True)
     p_sub.add_argument("--source", required=True)
+    p_sub.add_argument("--assembler", default="nasm", choices=["nasm", "gas"])
     p_sub.add_argument("--allow-execution", action="store_true")
     p_sub.add_argument("--allow-under-preconditions", action="store_true")
     p_sub.add_argument("--timeout", type=int, default=120)
     p_sub.add_argument("--run-dir")
+    p_sub.add_argument("--run-base")
     p_sub.add_argument("--idempotency-key")
+
+    p_gsub = sub.add_parser("submit-generator")
+    p_gsub.add_argument("--repair-packet", required=True)
+    p_gsub.add_argument("--workspace", required=True)
+    p_gsub.add_argument("--patched-revision", required=True)
+    p_gsub.add_argument("--changed-file", action="append", default=[])
+    p_gsub.add_argument("--suite")
+    p_gsub.add_argument("--suite-evidence")
+    p_gsub.add_argument("--base-revision")
+    p_gsub.add_argument("--run-base")
+    p_gsub.add_argument("--repo")
 
     p_st = sub.add_parser("status")
     p_st.add_argument("--run-dir", required=True)
@@ -82,11 +98,15 @@ def main() -> int:
             ns.contract,
             "--workspace",
             ns.workspace,
+            "--assembler",
+            ns.assembler,
             "--format",
             "json",
         ]
         if ns.seed:
             args.extend(["--seed", ns.seed])
+        if ns.run_dir:
+            args.extend(["--run-dir", ns.run_dir])
         if ns.allow_execution:
             args.append("--allow-execution")
         payload = run_vaa(args)
@@ -111,12 +131,16 @@ def main() -> int:
         args = [
             "harness",
             "submit",
+            "--mode",
+            "direct-nasm",
             "--task",
             ns.task,
             "--contract",
             ns.contract,
             "--source",
             ns.source,
+            "--assembler",
+            ns.assembler,
             "--timeout",
             str(ns.timeout),
             "--format",
@@ -128,9 +152,39 @@ def main() -> int:
             args.append("--allow-under-preconditions")
         if ns.run_dir:
             args.extend(["--run-dir", ns.run_dir])
+        if ns.run_base:
+            args.extend(["--run-base", ns.run_base])
         if ns.idempotency_key:
             args.extend(["--idempotency-key", ns.idempotency_key])
-        payload = run_vaa(args, timeout=float(ns.timeout) + 30.0)
+        payload = run_vaa(args, timeout=float(ns.timeout) + 60.0)
+    elif ns.cmd == "submit-generator":
+        args = [
+            "harness",
+            "submit",
+            "--mode",
+            "generator-repair",
+            "--repair-packet",
+            ns.repair_packet,
+            "--workspace",
+            ns.workspace,
+            "--patched-revision",
+            ns.patched_revision,
+            "--format",
+            "json",
+        ]
+        for path in ns.changed_file:
+            args.extend(["--changed-file", path])
+        if ns.suite:
+            args.extend(["--suite", ns.suite])
+        if ns.suite_evidence:
+            args.extend(["--suite-evidence", ns.suite_evidence])
+        if ns.base_revision:
+            args.extend(["--base-revision", ns.base_revision])
+        if ns.run_base:
+            args.extend(["--run-base", ns.run_base])
+        if ns.repo:
+            args.extend(["--repo", ns.repo])
+        payload = run_vaa(args)
     else:
         payload = run_vaa(
             ["harness", "status", "--run-dir", ns.run_dir, "--format", "json"]

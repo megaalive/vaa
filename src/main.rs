@@ -336,12 +336,29 @@ enum Commands {
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum HarnessModeArg {
-    /// Agent edits candidate `.asm` (SemASM TaskPacket path).
-    #[value(name = "direct-nasm")]
+    /// Agent edits candidate assembly (SemASM TaskPacket path). Alias: `direct`.
+    #[value(name = "direct-nasm", alias = "direct")]
     DirectNasm,
     /// Agent edits generator source; must regenerate (VAA RepairPacket path).
     #[value(name = "generator-repair")]
     GeneratorRepair,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum AssemblerArg {
+    /// NASM Intel (supported today).
+    Nasm,
+    /// GNU as (reserved — fail-closed until VAA dialect path lands).
+    Gas,
+}
+
+impl From<AssemblerArg> for vaa::AssemblerFlavor {
+    fn from(value: AssemblerArg) -> Self {
+        match value {
+            AssemblerArg::Nasm => vaa::AssemblerFlavor::Nasm,
+            AssemblerArg::Gas => vaa::AssemblerFlavor::Gas,
+        }
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -360,7 +377,7 @@ enum HarnessCommands {
         /// Workspace directory for envelope + candidate files.
         #[arg(long)]
         workspace: PathBuf,
-        /// Optional seed `.asm` copied to `candidate.asm` (direct mode).
+        /// Optional seed assembly copied to candidate (direct mode).
         #[arg(long)]
         seed: Option<PathBuf>,
         /// Existing repair packet JSON — required for `generator-repair`.
@@ -369,6 +386,12 @@ enum HarnessCommands {
         /// Target triple override for generator-repair prepare.
         #[arg(long)]
         target: Option<String>,
+        /// Assembler flavor (`nasm` supported; `gas` reserved/fail-closed).
+        #[arg(long, value_enum, default_value_t = AssemblerArg::Nasm)]
+        assembler: AssemblerArg,
+        /// Optional existing run dir (fills remaining_attempts / events path).
+        #[arg(long)]
+        run_dir: Option<PathBuf>,
         /// Prefer Gate-2 verify recipes in the prompt.
         #[arg(long, default_value_t = false)]
         allow_execution: bool,
@@ -376,30 +399,69 @@ enum HarnessCommands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
         format: OutputFormat,
     },
-    /// Submit a direct-NASM candidate through SemASM and classify the outcome.
+    /// Submit a candidate (direct) or generator repair (suite + patch evidence).
     Submit {
-        /// Locked task file.
+        /// Workflow mode (default: direct-nasm).
+        #[arg(long, value_enum, default_value_t = HarnessModeArg::DirectNasm)]
+        mode: HarnessModeArg,
+        /// Locked task file (direct mode).
         #[arg(long)]
-        task: PathBuf,
-        /// SemASM contract.
+        task: Option<PathBuf>,
+        /// SemASM contract (direct mode).
         #[arg(long)]
-        contract: PathBuf,
-        /// Candidate assembly source.
+        contract: Option<PathBuf>,
+        /// Candidate assembly source (direct mode).
         #[arg(long)]
-        source: PathBuf,
-        /// Forward `--allow-execution` to SemASM.
+        source: Option<PathBuf>,
+        /// Repair packet (generator-repair mode).
+        #[arg(long)]
+        repair_packet: Option<PathBuf>,
+        /// Workspace for patch-evidence output (generator-repair).
+        #[arg(long)]
+        workspace: Option<PathBuf>,
+        /// Changed generator source paths (repeatable; generator-repair).
+        #[arg(long = "changed-file")]
+        changed_files: Vec<String>,
+        /// Patched revision id (generator-repair).
+        #[arg(long)]
+        patched_revision: Option<String>,
+        /// Base revision override (default: repair packet base_revision).
+        #[arg(long)]
+        base_revision: Option<String>,
+        /// Suite manifest to run (generator-repair acceptance).
+        #[arg(long)]
+        suite: Option<PathBuf>,
+        /// Prior suite-evidence JSON (skip live suite).
+        #[arg(long)]
+        suite_evidence: Option<PathBuf>,
+        /// Generator repo override for suite run.
+        #[arg(long)]
+        repo: Option<PathBuf>,
+        /// Skip generator rebuild during suite.
+        #[arg(long, default_value_t = false)]
+        skip_build: bool,
+        /// Skip repo guard during suite.
+        #[arg(long, default_value_t = false)]
+        skip_repo_guard: bool,
+        /// Forward `--allow-execution` to SemASM / suite.
         #[arg(long, default_value_t = false)]
         allow_execution: bool,
-        /// Treat `verified_under_preconditions` as accepted.
+        /// Treat `verified_under_preconditions` as accepted (direct).
         #[arg(long, default_value_t = false)]
         allow_under_preconditions: bool,
-        /// Optional run directory for resume/status correlation.
+        /// Existing run directory to append/seal into (direct).
         #[arg(long)]
         run_dir: Option<PathBuf>,
-        /// SemASM subprocess timeout seconds.
+        /// Parent directory for creating a new sealed run (direct / suite).
+        #[arg(long)]
+        run_base: Option<PathBuf>,
+        /// SemASM subprocess timeout seconds (direct verify-only path).
         #[arg(long, default_value_t = 120)]
         timeout: u64,
-        /// Optional idempotency / run key (recorded in JSON only).
+        /// Assembler flavor (`nasm` supported; `gas` reserved).
+        #[arg(long, value_enum, default_value_t = AssemblerArg::Nasm)]
+        assembler: AssemblerArg,
+        /// Optional idempotency / run key.
         #[arg(long)]
         idempotency_key: Option<String>,
         /// Output format (default json).
@@ -1384,6 +1446,8 @@ fn run_cli() -> ExitCode {
                 seed,
                 repair_packet,
                 target,
+                assembler,
+                run_dir,
                 allow_execution,
                 format,
             } => harness_prepare_command(
@@ -1394,30 +1458,58 @@ fn run_cli() -> ExitCode {
                 seed.as_deref(),
                 repair_packet.as_deref(),
                 target.as_deref(),
+                assembler.into(),
+                run_dir.as_deref(),
                 allow_execution,
                 format,
             ),
             HarnessCommands::Submit {
+                mode,
                 task,
                 contract,
                 source,
+                repair_packet,
+                workspace,
+                changed_files,
+                patched_revision,
+                base_revision,
+                suite,
+                suite_evidence,
+                repo,
+                skip_build,
+                skip_repo_guard,
                 allow_execution,
                 allow_under_preconditions,
                 run_dir,
+                run_base,
                 timeout,
+                assembler,
                 idempotency_key,
                 format,
-            } => harness_submit_command(
-                &task,
-                &contract,
-                &source,
+            } => harness_submit_command(HarnessSubmitCli {
+                mode,
+                task: task.as_deref(),
+                contract: contract.as_deref(),
+                source: source.as_deref(),
+                repair_packet: repair_packet.as_deref(),
+                workspace: workspace.as_deref(),
+                changed_files,
+                patched_revision: patched_revision.as_deref(),
+                base_revision: base_revision.as_deref(),
+                suite: suite.as_deref(),
+                suite_evidence: suite_evidence.as_deref(),
+                repo: repo.as_deref(),
+                skip_build,
+                skip_repo_guard,
                 allow_execution,
                 allow_under_preconditions,
-                run_dir.as_deref(),
+                run_dir: run_dir.as_deref(),
+                run_base: run_base.as_deref(),
                 timeout,
-                idempotency_key.as_deref(),
+                assembler: assembler.into(),
+                idempotency_key: idempotency_key.as_deref(),
                 format,
-            ),
+            }),
             HarnessCommands::Resume { run_dir, format } | HarnessCommands::Status { run_dir, format } => {
                 harness_resume_command(&run_dir, format)
             }
@@ -2692,6 +2784,8 @@ fn harness_prepare_command(
     seed: Option<&Path>,
     repair_packet: Option<&Path>,
     target: Option<&str>,
+    assembler: vaa::AssemblerFlavor,
+    run_dir: Option<&Path>,
     allow_execution: bool,
     format: OutputFormat,
 ) -> ExitCode {
@@ -2709,6 +2803,8 @@ fn harness_prepare_command(
                 workspace: workspace.to_path_buf(),
                 seed_source: seed.map(Path::to_path_buf),
                 allow_execution_in_recipes: allow_execution,
+                assembler,
+                run_dir: run_dir.map(Path::to_path_buf),
             })
         }
         HarnessModeArg::GeneratorRepair => {
@@ -2731,6 +2827,7 @@ fn harness_prepare_command(
                     println!("ok: harness prepare ({})", envelope.mode.as_str());
                     println!("  task_id: {}", envelope.task_id);
                     println!("  target: {}", envelope.target);
+                    println!("  assembler: {}", envelope.assembler.as_str());
                     if let Some(path) = &envelope.workspace_dir {
                         println!("  workspace: {path}");
                     }
@@ -2762,34 +2859,95 @@ fn harness_prepare_command(
     }
 }
 
-fn harness_submit_command(
-    task: &Path,
-    contract: &Path,
-    source: &Path,
+struct HarnessSubmitCli<'a> {
+    mode: HarnessModeArg,
+    task: Option<&'a Path>,
+    contract: Option<&'a Path>,
+    source: Option<&'a Path>,
+    repair_packet: Option<&'a Path>,
+    workspace: Option<&'a Path>,
+    changed_files: Vec<String>,
+    patched_revision: Option<&'a str>,
+    base_revision: Option<&'a str>,
+    suite: Option<&'a Path>,
+    suite_evidence: Option<&'a Path>,
+    repo: Option<&'a Path>,
+    skip_build: bool,
+    skip_repo_guard: bool,
     allow_execution: bool,
     allow_under_preconditions: bool,
-    run_dir: Option<&Path>,
+    run_dir: Option<&'a Path>,
+    run_base: Option<&'a Path>,
     timeout: u64,
-    idempotency_key: Option<&str>,
+    assembler: vaa::AssemblerFlavor,
+    idempotency_key: Option<&'a str>,
     format: OutputFormat,
-) -> ExitCode {
-    use vaa::{submit_direct_nasm, SubmitDirectRequest};
+}
 
-    match submit_direct_nasm(&SubmitDirectRequest {
-        task: task.to_path_buf(),
-        contract: contract.to_path_buf(),
-        source: source.to_path_buf(),
-        allow_execution,
-        allow_under_preconditions,
-        run_dir: run_dir.map(Path::to_path_buf),
-        timeout_secs: timeout,
-    }) {
+fn harness_submit_command(cli: HarnessSubmitCli<'_>) -> ExitCode {
+    use vaa::{
+        submit_direct_nasm, submit_generator_repair, SubmitDirectRequest, SubmitGeneratorRequest,
+    };
+
+    let result = match cli.mode {
+        HarnessModeArg::DirectNasm => {
+            let (Some(task), Some(contract), Some(source)) = (cli.task, cli.contract, cli.source)
+            else {
+                eprintln!(
+                    "error: --task, --contract, and --source are required for --mode direct-nasm"
+                );
+                return VaaExitCode::InvalidInput.as_std();
+            };
+            submit_direct_nasm(&SubmitDirectRequest {
+                task: task.to_path_buf(),
+                contract: contract.to_path_buf(),
+                source: source.to_path_buf(),
+                allow_execution: cli.allow_execution,
+                allow_under_preconditions: cli.allow_under_preconditions,
+                run_dir: cli.run_dir.map(Path::to_path_buf),
+                run_base: cli.run_base.map(Path::to_path_buf),
+                timeout_secs: cli.timeout,
+                assembler: cli.assembler,
+                idempotency_key: cli.idempotency_key.map(str::to_owned),
+            })
+        }
+        HarnessModeArg::GeneratorRepair => {
+            let Some(repair_packet) = cli.repair_packet else {
+                eprintln!("error: --repair-packet is required for --mode generator-repair");
+                return VaaExitCode::InvalidInput.as_std();
+            };
+            let workspace = cli
+                .workspace
+                .map(Path::to_path_buf)
+                .unwrap_or_else(|| std::env::temp_dir().join("vaa-harness-generator"));
+            let Some(patched_revision) = cli.patched_revision else {
+                eprintln!("error: --patched-revision is required for --mode generator-repair");
+                return VaaExitCode::InvalidInput.as_std();
+            };
+            submit_generator_repair(&SubmitGeneratorRequest {
+                repair_packet: repair_packet.to_path_buf(),
+                workspace,
+                changed_files: cli.changed_files,
+                patched_revision: patched_revision.to_owned(),
+                base_revision: cli.base_revision.map(str::to_owned),
+                suite: cli.suite.map(Path::to_path_buf),
+                suite_evidence: cli.suite_evidence.map(Path::to_path_buf),
+                run_base: cli.run_base.map(Path::to_path_buf),
+                repo: cli.repo.map(Path::to_path_buf),
+                allow_execution: cli.allow_execution,
+                skip_build: cli.skip_build,
+                skip_repo_guard: cli.skip_repo_guard,
+                generator_binary_digest: None,
+            })
+        }
+    };
+
+    match result {
         Ok(mut result) => {
-            if let Some(key) = idempotency_key {
-                // Keep machine JSON pure: fold the key into the message for controllers.
+            if let Some(key) = cli.idempotency_key {
                 result.message = format!("[{key}] {}", result.message);
             }
-            match format {
+            match cli.format {
                 OutputFormat::Terminal => {
                     println!(
                         "harness submit: class={} next={:?} exit={}",
@@ -2809,7 +2967,7 @@ fn harness_submit_command(
         }
         Err(error) => {
             eprintln!("error: harness submit failed: {error}");
-            if matches!(format, OutputFormat::Json) {
+            if matches!(cli.format, OutputFormat::Json) {
                 println!(
                     "{}",
                     serde_json::json!({

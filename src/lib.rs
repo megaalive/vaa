@@ -79,9 +79,10 @@ pub use generator::{
 };
 pub use harness::{
     classify_outcome, prepare_direct_nasm, prepare_generator_repair, resume_status,
-    submit_direct_nasm, AgentBudget, AgentCommands, AgentDigests, AgentEnvelope, AgentMode,
-    HarnessConfig, HarnessError, HarnessNextAction, HarnessOutcomeClass, HarnessSubmitResult,
-    HarnessTemplate, PrepareDirectRequest, PrepareGeneratorRequest, SubmitDirectRequest,
+    submit_direct_nasm, submit_generator_repair, AgentBudget, AgentCommands, AgentDigests,
+    AgentEnvelope, AgentMode, AssemblerFlavor, HarnessConfig, HarnessError, HarnessNextAction,
+    HarnessOutcomeClass, HarnessSubmitResult, HarnessTemplate, PrepareDirectRequest,
+    PrepareGeneratorRequest, SubmitDirectRequest, SubmitGeneratorRequest,
     AGENT_ENVELOPE_SCHEMA_VERSION, HARNESS_SUBMIT_SCHEMA_VERSION,
 };
 pub use inspect::{ArtifactInfo, ArtifactInspector};
