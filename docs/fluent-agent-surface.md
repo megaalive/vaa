@@ -148,5 +148,6 @@ response, and finish with sealed evidence.
 - [`agent-harness.md`](agent-harness.md) — harness CLI
 - [`author.md`](author.md) — draft → review → lock lifecycle
 - [`optimize.md`](optimize.md) — correctness-preserving selection
+- [`leaf-vs-hosted.md`](leaf-vs-hosted.md) — leaf verify vs REPL/hosted I/O
 - [`agent-playbook.md`](agent-playbook.md) — happy / decline paths
 - SemASM: `docs/fluent-agent-surface.md` (controller-facing pointer)

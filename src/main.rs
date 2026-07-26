@@ -4850,6 +4850,7 @@ fn build_command(
             source_path: source.to_path_buf(),
             output_dir: output_dir.to_path_buf(),
             target: target.to_owned(),
+            linker_path: vaa::default_linker_for_target(target),
             ..PipelineConfig::default()
         };
         return match vaa::check_reproducible(&config) {
@@ -4935,6 +4936,7 @@ fn build_command(
         source_path: source.to_path_buf(),
         output_dir: output_dir.to_path_buf(),
         target: target.to_owned(),
+        linker_path: vaa::default_linker_for_target(target),
         container,
         ..PipelineConfig::default()
     };
@@ -4944,7 +4946,8 @@ fn build_command(
         if let Ok(source_bytes) = std::fs::read(source) {
             let source_digest = sha256_digest_prefixed(&source_bytes);
             let as_digest = vaa::tool_digest(Path::new("nasm")).unwrap_or_default();
-            let ld_digest = vaa::tool_digest(Path::new("ld")).unwrap_or_default();
+            let ld_digest =
+                vaa::tool_digest(&vaa::default_linker_for_target(target)).unwrap_or_default();
             let mat = vaa::BuildKeyMaterials {
                 source_digest,
                 target: target.to_owned(),

@@ -87,6 +87,70 @@ impl Default for PipelineConfig {
     }
 }
 
+/// Default linker binary for a VAA/SemASM target label.
+///
+/// Windows PE targets use `lld-link` (MSVC-compatible). ELF targets keep `ld`.
+/// Callers may still override `PipelineConfig.linker_path`.
+#[must_use]
+pub fn default_linker_for_target(target: &str) -> PathBuf {
+    match nasm_format_for_target(target) {
+        "win64" | "win32" => PathBuf::from("lld-link"),
+        _ => PathBuf::from("ld"),
+    }
+}
+
+/// Build linker argv for the selected target/object/binary.
+#[must_use]
+pub fn linker_args_for_target(
+    target: &str,
+    object_path: &Path,
+    binary_path: &Path,
+    extra: &[String],
+) -> Vec<String> {
+    let mut args = match nasm_format_for_target(target) {
+        "win64" | "win32" => vec![
+            format!("/OUT:{}", binary_path.display()),
+            object_path.display().to_string(),
+        ],
+        _ => vec![
+            "-o".to_owned(),
+            binary_path.display().to_string(),
+            object_path.display().to_string(),
+        ],
+    };
+    args.extend(extra.iter().cloned());
+    args
+}
+
+fn windows_link_hint(target: &str, linker: &Path, stderr: &str) -> Option<String> {
+    let pe = matches!(nasm_format_for_target(target), "win64" | "win32");
+    if !pe {
+        return None;
+    }
+    let linker_s = linker.to_string_lossy();
+    let mut parts = Vec::new();
+    if linker_s == "ld" || linker_s.ends_with("/ld") || linker_s.ends_with("\\ld") {
+        parts.push(
+            "Windows PE targets need `lld-link` (or `link.exe`), not ELF `ld`. \
+             Re-run with a Win64 triple so VAA selects `lld-link`, or pass an explicit linker.",
+        );
+    }
+    if stderr.to_ascii_lowercase().contains("kernel32")
+        || stderr.to_ascii_lowercase().contains("unresolved")
+    {
+        parts.push(
+            "Hosted Win64 programs that call GetStdHandle/ReadFile need import libs \
+             (e.g. extra linker args `/DEFAULTLIB:kernel32.lib`). Leaf routines without \
+             imports can link without kernel32.",
+        );
+    }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join(" "))
+    }
+}
+
 pub struct BuildPipeline;
 
 /// Map a VAA/SemASM target label to a NASM `-f` output format.
@@ -188,18 +252,27 @@ impl BuildPipeline {
             };
         }
 
-        let mut ld_args = vec![
-            "-o".to_owned(),
-            binary_path.to_string_lossy().to_string(),
-            object_path.to_string_lossy().to_string(),
-        ];
-        ld_args.extend(config.extra_ld_args.clone());
+        let linker_path = if config.linker_path.as_os_str().is_empty()
+            || config.linker_path == Path::new("ld")
+                && matches!(nasm_format_for_target(&config.target), "win64" | "win32")
+        {
+            default_linker_for_target(&config.target)
+        } else {
+            config.linker_path.clone()
+        };
 
-        let ld_cfg = maybe_wrap_container(&config.linker_path.to_string_lossy(), &ld_args, config);
+        let ld_args = linker_args_for_target(
+            &config.target,
+            &object_path,
+            &binary_path,
+            &config.extra_ld_args,
+        );
+
+        let ld_cfg = maybe_wrap_container(&linker_path.to_string_lossy(), &ld_args, config);
 
         let ld_result = ProcessRunner::run(&ld_cfg);
 
-        let (ld_stdout, ld_stderr, ld_ok, ld_code) = match &ld_result {
+        let (ld_stdout, mut ld_stderr, ld_ok, ld_code) = match &ld_result {
             Ok(out) => (
                 out.stdout.clone(),
                 out.stderr.clone(),
@@ -209,11 +282,22 @@ impl BuildPipeline {
             Err(e) => (String::new(), format!("{e}"), false, None),
         };
 
+        if !ld_ok {
+            if let Some(hint) = windows_link_hint(&config.target, &linker_path, &ld_stderr) {
+                if !ld_stderr.is_empty() {
+                    ld_stderr.push('\n');
+                }
+                ld_stderr.push_str(&hint);
+            }
+        }
+
+        let linker_digest = tool_digest(&linker_path);
+
         BuildOutcome {
             success: ld_ok,
             manifest: BuildManifest {
                 assembler: assembler_path.to_string_lossy().to_string(),
-                linker: config.linker_path.to_string_lossy().to_string(),
+                linker: linker_path.to_string_lossy().to_string(),
                 source_path: config.source_path.clone(),
                 object_path,
                 binary_path,
@@ -388,6 +472,26 @@ mod tests {
             nasm_format_for_target("not-a-real-format"),
             "not-a-real-format"
         );
+    }
+
+    #[test]
+    fn default_linker_is_lld_link_on_win64() {
+        assert_eq!(
+            default_linker_for_target("x86_64-pc-windows-msvc"),
+            PathBuf::from("lld-link")
+        );
+        assert_eq!(
+            default_linker_for_target("x86_64-unknown-linux-gnu"),
+            PathBuf::from("ld")
+        );
+        let args = linker_args_for_target(
+            "x86_64-pc-windows-msvc",
+            Path::new("a.o"),
+            Path::new("a.bin"),
+            &[],
+        );
+        assert!(args.iter().any(|a| a.starts_with("/OUT:")));
+        assert!(!args.iter().any(|a| a == "-o"));
     }
 
     #[test]

@@ -36,10 +36,45 @@ pub fn load_task_file(path: impl AsRef<Path>) -> Result<Task, TaskError> {
 
 /// Parse task TOML from a string (path used only for diagnostics).
 pub fn parse_task_toml(path: &Path, text: &str) -> Result<Task, TaskError> {
-    toml::from_str::<Task>(text).map_err(|error| TaskError::Parse {
-        path: path.to_path_buf(),
-        message: error.to_string(),
+    toml::from_str::<Task>(text).map_err(|error| {
+        let raw = error.to_string();
+        TaskError::Parse {
+            path: path.to_path_buf(),
+            message: enrich_task_parse_message(&raw),
+        }
     })
+}
+
+/// Append beginner-oriented hints for common task TOML mistakes.
+fn enrich_task_parse_message(message: &str) -> String {
+    let mut hints: Vec<&str> = Vec::new();
+    let lower = message.to_ascii_lowercase();
+    if lower.contains("unknown field") {
+        hints.push(
+            "hint: task schema 0.1 rejects unknown keys (no free-form `description`); \
+             see schemas/task.vaa.schema.json and docs/task-schema.md",
+        );
+    }
+    if lower.contains("artifact_kind")
+        || message.contains("standalone-executable")
+        || message.contains("standalone_executable")
+    {
+        hints.push(
+            "hint: artifact_kind must be one of: callable-function, hosted-program, \
+             freestanding-image (not standalone-executable)",
+        );
+    }
+    if lower.contains("max_length") || (lower.contains("inputs") && lower.contains("string")) {
+        hints.push(
+            "hint: inputs.* use ValueKind/InputSpec shapes from schema 0.1 — \
+             there is no kind=\"string\" + max_length field",
+        );
+    }
+    if hints.is_empty() {
+        message.to_owned()
+    } else {
+        format!("{message}\n{}", hints.join("\n"))
+    }
 }
 
 /// Expand profiles, validate, and lock a task.
@@ -164,6 +199,19 @@ mod tests {
             message.contains("unknown field") || message.contains("invalid task TOML"),
             "unexpected message: {message}"
         );
+        assert!(
+            message.contains("hint:") || message.contains("schema 0.1"),
+            "expected beginner hint, got: {message}"
+        );
+    }
+
+    #[test]
+    fn parse_hint_mentions_artifact_kind_enum() {
+        let msg = enrich_task_parse_message(
+            "TOML parse error: unknown variant `standalone-executable`, expected one of `callable-function`, `hosted-program`, `freestanding-image` for key `artifact_kind`",
+        );
+        assert!(msg.contains("hosted-program"));
+        assert!(msg.contains("hint:"));
     }
 
     #[test]

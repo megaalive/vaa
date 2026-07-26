@@ -34,10 +34,10 @@ pub use author::{
     AUTHOR_TEMPLATES_DIR, DEFAULT_AUTHOR_ASSEMBLER, LOCKED_MARKER_FILE,
 };
 pub use build::{
-    check_reproducible, compare_canonical, nasm_format_for_target, probe_container_runtime,
-    remap_host_args_to_container, reproducible_build_check, tool_digest, BuildManifest,
-    BuildOutcome, BuildPipeline, CanonicalBuildView, ContainerBuildOpts, PipelineConfig,
-    ReproReport, DEFAULT_CONTAINER_IMAGE,
+    check_reproducible, compare_canonical, default_linker_for_target, linker_args_for_target,
+    nasm_format_for_target, probe_container_runtime, remap_host_args_to_container,
+    reproducible_build_check, tool_digest, BuildManifest, BuildOutcome, BuildPipeline,
+    CanonicalBuildView, ContainerBuildOpts, PipelineConfig, ReproReport, DEFAULT_CONTAINER_IMAGE,
 };
 pub use cache::{
     args_fingerprint, build_cache_key, default_cache_root, may_reuse_build, may_reuse_verification,
