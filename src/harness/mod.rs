@@ -13,7 +13,8 @@ pub mod template;
 
 pub use assembler::AssemblerFlavor;
 pub use envelope::{
-    AgentBudget, AgentCommands, AgentDigests, AgentEnvelope, AgentMode, AGENT_ENVELOPE_SCHEMA_VERSION,
+    AgentBudget, AgentCommands, AgentDigests, AgentEnvelope, AgentMode,
+    AGENT_ENVELOPE_SCHEMA_VERSION,
 };
 pub use feedback::{
     classify_outcome, HarnessNextAction, HarnessOutcomeClass, HarnessSubmitResult,

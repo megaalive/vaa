@@ -15,8 +15,7 @@ fn semasm_available() -> bool {
     Command::new("semasm")
         .arg("--version")
         .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+        .is_ok_and(|o| o.status.success())
         || std::env::var_os("SEMASM_BIN").is_some()
 }
 
@@ -115,9 +114,8 @@ fn harness_prepare_gas_is_fail_closed() {
 #[test]
 fn harness_prepare_generator_repair_from_fixture() {
     let tmp = tmp("vaa-harness-gen");
-    let packet = root().join(
-        "fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json",
-    );
+    let packet =
+        root().join("fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json");
 
     let out = Command::new(vaa_bin())
         .args([
@@ -152,6 +150,7 @@ fn harness_prepare_generator_repair_from_fixture() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn harness_submit_wrong_then_repaired_with_seal_and_chain() {
     if !semasm_available() {
         eprintln!("skipping harness seal gate: semasm unavailable");
@@ -199,7 +198,10 @@ fn harness_submit_wrong_then_repaired_with_seal_and_chain() {
         return;
     }
     assert!(
-        matches!(class, "violated_repairable" | "failed" | "incomplete_coverage" | "accepted"),
+        matches!(
+            class,
+            "violated_repairable" | "failed" | "incomplete_coverage" | "accepted"
+        ),
         "unexpected class={class} {wrong_json}"
     );
     let run_dir = wrong_json["run_dir"]
@@ -248,7 +250,14 @@ fn harness_submit_wrong_then_repaired_with_seal_and_chain() {
 
     // Resume must not reseal index 0; cursor advances.
     let status = Command::new(vaa_bin())
-        .args(["harness", "status", "--run-dir", &run_dir, "--format", "json"])
+        .args([
+            "harness",
+            "status",
+            "--run-dir",
+            &run_dir,
+            "--format",
+            "json",
+        ])
         .output()
         .expect("status");
     let status_json: serde_json::Value =
@@ -273,9 +282,8 @@ fn harness_submit_wrong_then_repaired_with_seal_and_chain() {
 #[test]
 fn harness_generator_submit_rejects_authority_mutation() {
     let tmp = tmp("vaa-harness-auth");
-    let packet = root().join(
-        "fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json",
-    );
+    let packet =
+        root().join("fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json");
     let suite_ev = root().join("fixtures/repair/echoasm-passthrough/suite-evidence.accepted.json");
 
     let out = Command::new(vaa_bin())
@@ -315,9 +323,8 @@ fn harness_generator_submit_rejects_authority_mutation() {
 #[test]
 fn harness_generator_submit_accepted_from_suite_evidence() {
     let tmp = tmp("vaa-harness-patch-ok");
-    let packet = root().join(
-        "fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json",
-    );
+    let packet =
+        root().join("fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json");
     let suite_ev = root().join("fixtures/repair/echoasm-passthrough/suite-evidence.accepted.json");
 
     let out = Command::new(vaa_bin())
@@ -432,7 +439,10 @@ fn invalid_nasm_structured_failure_when_semasm_present() {
     });
     let class = json["class"].as_str().unwrap_or_default();
     assert!(
-        matches!(class, "failed" | "toolchain_retryable" | "violated_repairable"),
+        matches!(
+            class,
+            "failed" | "toolchain_retryable" | "violated_repairable"
+        ),
         "unexpected class={class} {json}"
     );
     let _ = std::fs::remove_dir_all(&tmp);

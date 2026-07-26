@@ -361,6 +361,7 @@ impl From<AssemblerArg> for vaa::AssemblerFlavor {
     }
 }
 
+#[allow(clippy::large_enum_variant)] // transient CLI parse type; Prepare carries many fields
 #[derive(Debug, Subcommand)]
 enum HarnessCommands {
     /// Materialize workspace + agent envelope for a harness loop.
@@ -1510,7 +1511,8 @@ fn run_cli() -> ExitCode {
                 idempotency_key: idempotency_key.as_deref(),
                 format,
             }),
-            HarnessCommands::Resume { run_dir, format } | HarnessCommands::Status { run_dir, format } => {
+            HarnessCommands::Resume { run_dir, format }
+            | HarnessCommands::Status { run_dir, format } => {
                 harness_resume_command(&run_dir, format)
             }
         },
@@ -2776,6 +2778,7 @@ fn repair_rules_command(
     VaaExitCode::Success.as_std()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn harness_prepare_command(
     mode: HarnessModeArg,
     task: Option<&Path>,
@@ -2789,7 +2792,10 @@ fn harness_prepare_command(
     allow_execution: bool,
     format: OutputFormat,
 ) -> ExitCode {
-    use vaa::{prepare_direct_nasm, prepare_generator_repair, PrepareDirectRequest, PrepareGeneratorRequest};
+    use vaa::{
+        prepare_direct_nasm, prepare_generator_repair, PrepareDirectRequest,
+        PrepareGeneratorRequest,
+    };
 
     let result = match mode {
         HarnessModeArg::DirectNasm => {
@@ -2836,9 +2842,11 @@ fn harness_prepare_command(
                     }
                 }
                 OutputFormat::Json => {
-                    println!("{}", serde_json::to_string_pretty(&envelope).unwrap_or_else(|e| {
-                        format!(r#"{{"ok":false,"error":"{e}"}}"#)
-                    }));
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&envelope)
+                            .unwrap_or_else(|e| { format!(r#"{{"ok":false,"error":"{e}"}}"#) })
+                    );
                 }
             }
             VaaExitCode::Success.as_std()
@@ -2859,6 +2867,7 @@ fn harness_prepare_command(
     }
 }
 
+#[allow(clippy::struct_excessive_bools)]
 struct HarnessSubmitCli<'a> {
     mode: HarnessModeArg,
     task: Option<&'a Path>,
@@ -2916,10 +2925,10 @@ fn harness_submit_command(cli: HarnessSubmitCli<'_>) -> ExitCode {
                 eprintln!("error: --repair-packet is required for --mode generator-repair");
                 return VaaExitCode::InvalidInput.as_std();
             };
-            let workspace = cli
-                .workspace
-                .map(Path::to_path_buf)
-                .unwrap_or_else(|| std::env::temp_dir().join("vaa-harness-generator"));
+            let workspace = cli.workspace.map_or_else(
+                || std::env::temp_dir().join("vaa-harness-generator"),
+                Path::to_path_buf,
+            );
             let Some(patched_revision) = cli.patched_revision else {
                 eprintln!("error: --patched-revision is required for --mode generator-repair");
                 return VaaExitCode::InvalidInput.as_std();
@@ -2958,9 +2967,11 @@ fn harness_submit_command(cli: HarnessSubmitCli<'_>) -> ExitCode {
                     println!("  {}", result.message);
                 }
                 OutputFormat::Json => {
-                    println!("{}", serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
-                        format!(r#"{{"ok":false,"error":"{e}"}}"#)
-                    }));
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&result)
+                            .unwrap_or_else(|e| { format!(r#"{{"ok":false,"error":"{e}"}}"#) })
+                    );
                 }
             }
             std::process::ExitCode::from(result.exit_code)
@@ -2992,9 +3003,11 @@ fn harness_resume_command(run_dir: &Path, format: OutputFormat) -> ExitCode {
                     println!("{status}");
                 }
                 OutputFormat::Json => {
-                    println!("{}", serde_json::to_string_pretty(&status).unwrap_or_else(|e| {
-                        format!(r#"{{"ok":false,"error":"{e}"}}"#)
-                    }));
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&status)
+                            .unwrap_or_else(|e| { format!(r#"{{"ok":false,"error":"{e}"}}"#) })
+                    );
                 }
             }
             VaaExitCode::Success.as_std()

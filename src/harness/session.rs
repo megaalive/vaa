@@ -8,10 +8,11 @@ use std::time::Duration;
 use serde_json::Value;
 
 use crate::candidate::CandidateProtocol;
-use crate::evidence::{GeneratorMeta, EvidenceStatus};
+use crate::evidence::{EvidenceStatus, GeneratorMeta};
 use crate::generator::{
-    build_patch_evidence, load_repair_packet, path_policy_violations, run_suite, write_patch_evidence,
-    PatchEvidenceInput, PatchPolicy, PatchStatus, SuiteRunConfig, SuiteStatus,
+    build_patch_evidence, load_repair_packet, path_policy_violations, run_suite,
+    write_patch_evidence, PatchEvidenceInput, PatchPolicy, PatchStatus, SuiteRunConfig,
+    SuiteStatus,
 };
 use crate::harness::assembler::AssemblerFlavor;
 use crate::harness::envelope::{
@@ -152,8 +153,7 @@ pub fn prepare_direct_nasm(req: &PrepareDirectRequest) -> Result<AgentEnvelope, 
         .as_ref()
         .and_then(|p| RunDir::open(p).ok())
         .and_then(|r| r.resume_cursor().ok())
-        .map(|c| c.next_candidate_index)
-        .unwrap_or(0);
+        .map_or(0, |c| c.next_candidate_index);
     let remaining = budget.max_candidates.saturating_sub(sealed);
 
     let task_bytes = fs::read(&req.task)?;
@@ -189,7 +189,11 @@ pub fn prepare_direct_nasm(req: &PrepareDirectRequest) -> Result<AgentEnvelope, 
     };
     if let Some(run) = &req.run_dir {
         env.events_path = Some(run.join("events.jsonl").display().to_string());
-        env.run_id = Some(run.file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default());
+        env.run_id = Some(
+            run.file_name()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+        );
     }
 
     let prompt = render_direct_prompt(&env, &doctor.status, req.allow_execution_in_recipes);
@@ -429,9 +433,7 @@ fn submit_direct_with_seal(
     if created {
         let _ = events.record(EventKind::RunStarted {
             task_id: locked.task().task_id.clone(),
-            task_digest: sha256_digest_prefixed(
-                &fs::read(&req.task).unwrap_or_default(),
-            ),
+            task_digest: sha256_digest_prefixed(&fs::read(&req.task).unwrap_or_default()),
         });
     }
     let _ = events.record(EventKind::CandidateSubmitted {
@@ -462,10 +464,7 @@ fn submit_direct_with_seal(
         allow_execution: req.allow_execution,
     }) {
         Ok(outcome) => {
-            let raw = outcome
-                .verify
-                .as_ref()
-                .map(|v| v.raw_status.as_str());
+            let raw = outcome.verify.as_ref().map(|v| v.raw_status.as_str());
             let (class, mut next, exit) = classify_outcome(
                 outcome.evidence.final_status,
                 raw,
@@ -538,15 +537,18 @@ fn open_or_create_run_dir(
             let run = RunDir::open(existing).map_err(|e| HarnessError::Message(e.to_string()))?;
             let id = existing
                 .file_name()
-                .map(|s| s.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "run".into());
+                .map_or_else(|| "run".into(), |s| s.to_string_lossy().into_owned());
             return Ok((run, id, false));
         }
     }
     let base = req
         .run_base
         .clone()
-        .or_else(|| req.run_dir.as_ref().and_then(|p| p.parent().map(Path::to_path_buf)))
+        .or_else(|| {
+            req.run_dir
+                .as_ref()
+                .and_then(|p| p.parent().map(Path::to_path_buf))
+        })
         .unwrap_or_else(|| std::env::temp_dir().join("vaa-harness-runs"));
     fs::create_dir_all(&base)?;
     let run_id = RunId::generate();
@@ -559,7 +561,8 @@ pub fn submit_generator_repair(
     req: &SubmitGeneratorRequest,
 ) -> Result<HarnessSubmitResult, HarnessError> {
     fs::create_dir_all(&req.workspace)?;
-    let packet = load_repair_packet(&req.repair_packet).map_err(|e| HarnessError::Message(e.to_string()))?;
+    let packet =
+        load_repair_packet(&req.repair_packet).map_err(|e| HarnessError::Message(e.to_string()))?;
 
     let policy = PatchPolicy {
         allowed_paths: packet.repository.allowed_paths.clone(),
@@ -567,12 +570,8 @@ pub fn submit_generator_repair(
     };
     let violations = path_policy_violations(&req.changed_files, &policy);
     if !violations.is_empty() {
-        let (class, next, exit) = classify_outcome(
-            EvidenceStatus::Failed,
-            None,
-            Some("FORBIDDEN_PATH"),
-            false,
-        );
+        let (class, next, exit) =
+            classify_outcome(EvidenceStatus::Failed, None, Some("FORBIDDEN_PATH"), false);
         return Ok(HarnessSubmitResult {
             schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
             class,
@@ -598,90 +597,84 @@ pub fn submit_generator_repair(
     }
 
     // Suite evidence: run live suite, or load prior suite-evidence JSON.
-    let (suite_id, suite_digest, suite_status, binary_digest, run_root) =
-        if let Some(suite_path) = &req.suite {
-            let run_base = req
-                .run_base
-                .clone()
-                .unwrap_or_else(|| req.workspace.join("suite-runs"));
-            fs::create_dir_all(&run_base)?;
-            let report = run_suite(&SuiteRunConfig {
-                suite_path: suite_path.clone(),
-                repo_override: req.repo.clone(),
-                run_base: run_base.clone(),
-                skip_repo_guard: req.skip_repo_guard,
-                skip_build: req.skip_build,
-                skip_verify: false,
-                allow_execution: req.allow_execution,
-                check_deterministic: false,
-            })
-            .map_err(|e| HarnessError::Message(e.to_string()))?;
-            (
-                report.evidence.suite_id,
-                report.evidence.suite_digest,
-                report.evidence.status,
-                report
-                    .evidence
-                    .generator_binary_digest
-                    .unwrap_or_else(|| {
-                        req.generator_binary_digest
-                            .clone()
-                            .unwrap_or_else(|| "sha256:unknown".into())
-                    }),
-                Some(run_base.display().to_string()),
-            )
-        } else if let Some(path) = &req.suite_evidence {
-            let raw = fs::read_to_string(path)?;
-            let v: Value = serde_json::from_str(&raw)?;
-            let suite_id = v
-                .get("suite_id")
-                .and_then(|x| x.as_str())
-                .unwrap_or("unknown")
-                .to_owned();
-            let suite_digest = v
-                .get("suite_digest")
-                .and_then(|x| x.as_str())
-                .unwrap_or("sha256:00")
-                .to_owned();
-            let status_str = v
-                .get("status")
-                .and_then(|x| x.as_str())
-                .unwrap_or("failed");
-            let suite_status = match status_str {
-                "accepted" => SuiteStatus::Accepted,
-                "rejected" => SuiteStatus::Rejected,
-                "incomplete" => SuiteStatus::Incomplete,
-                _ => SuiteStatus::Failed,
-            };
-            let binary = v
-                .get("generator_binary_digest")
-                .and_then(|x| x.as_str())
-                .map(str::to_owned)
-                .or_else(|| req.generator_binary_digest.clone())
-                .unwrap_or_else(|| "sha256:unknown".into());
-            (suite_id, suite_digest, suite_status, binary, None)
-        } else {
-            return Ok(HarnessSubmitResult {
-                schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
-                class: HarnessOutcomeClass::IncompleteCoverage,
-                next_action: HarnessNextAction::Abort,
-                evidence_status: "incomplete".into(),
-                raw_status: None,
-                exit_code: crate::exit_code::ExitCode::Incomplete as u8,
-                message: "generator submit requires --suite or --suite-evidence for acceptance"
-                    .into(),
-                failure_code: Some("SUITE_REQUIRED".into()),
-                candidate_digest: None,
-                run_dir: None,
-                run_id: None,
-                candidate_index: None,
-                candidate_dir: None,
-                seal_digest: None,
-                patch_evidence_path: None,
-                assembler: Some(AssemblerFlavor::Nasm.as_str().to_owned()),
-                may_auto_retry: false,
-            });
+    let (suite_id, suite_digest, suite_status, binary_digest, run_root) = if let Some(suite_path) =
+        &req.suite
+    {
+        let run_base = req
+            .run_base
+            .clone()
+            .unwrap_or_else(|| req.workspace.join("suite-runs"));
+        fs::create_dir_all(&run_base)?;
+        let report = run_suite(&SuiteRunConfig {
+            suite_path: suite_path.clone(),
+            repo_override: req.repo.clone(),
+            run_base: run_base.clone(),
+            skip_repo_guard: req.skip_repo_guard,
+            skip_build: req.skip_build,
+            skip_verify: false,
+            allow_execution: req.allow_execution,
+            check_deterministic: false,
+        })
+        .map_err(|e| HarnessError::Message(e.to_string()))?;
+        (
+            report.evidence.suite_id,
+            report.evidence.suite_digest,
+            report.evidence.status,
+            report.evidence.generator_binary_digest.unwrap_or_else(|| {
+                req.generator_binary_digest
+                    .clone()
+                    .unwrap_or_else(|| "sha256:unknown".into())
+            }),
+            Some(run_base.display().to_string()),
+        )
+    } else if let Some(path) = &req.suite_evidence {
+        let raw = fs::read_to_string(path)?;
+        let v: Value = serde_json::from_str(&raw)?;
+        let suite_id = v
+            .get("suite_id")
+            .and_then(|x| x.as_str())
+            .unwrap_or("unknown")
+            .to_owned();
+        let suite_digest = v
+            .get("suite_digest")
+            .and_then(|x| x.as_str())
+            .unwrap_or("sha256:00")
+            .to_owned();
+        let status_str = v.get("status").and_then(|x| x.as_str()).unwrap_or("failed");
+        let suite_status = match status_str {
+            "accepted" => SuiteStatus::Accepted,
+            "rejected" => SuiteStatus::Rejected,
+            "incomplete" => SuiteStatus::Incomplete,
+            _ => SuiteStatus::Failed,
         };
+        let binary = v
+            .get("generator_binary_digest")
+            .and_then(|x| x.as_str())
+            .map(str::to_owned)
+            .or_else(|| req.generator_binary_digest.clone())
+            .unwrap_or_else(|| "sha256:unknown".into());
+        (suite_id, suite_digest, suite_status, binary, None)
+    } else {
+        return Ok(HarnessSubmitResult {
+            schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
+            class: HarnessOutcomeClass::IncompleteCoverage,
+            next_action: HarnessNextAction::Abort,
+            evidence_status: "incomplete".into(),
+            raw_status: None,
+            exit_code: crate::exit_code::ExitCode::Incomplete as u8,
+            message: "generator submit requires --suite or --suite-evidence for acceptance".into(),
+            failure_code: Some("SUITE_REQUIRED".into()),
+            candidate_digest: None,
+            run_dir: None,
+            run_id: None,
+            candidate_index: None,
+            candidate_dir: None,
+            seal_digest: None,
+            patch_evidence_path: None,
+            assembler: Some(AssemblerFlavor::Nasm.as_str().to_owned()),
+            may_auto_retry: false,
+        });
+    };
 
     let base_revision = req
         .base_revision
@@ -722,17 +715,17 @@ pub fn submit_generator_repair(
             crate::exit_code::ExitCode::Incomplete,
         ),
         PatchStatus::Failed => {
-            if !patch.forbidden_paths_changed.is_empty() {
-                (
-                    HarnessOutcomeClass::PolicyBlocked,
-                    HarnessNextAction::StopPolicy,
-                    crate::exit_code::ExitCode::SecurityBlock,
-                )
-            } else {
+            if patch.forbidden_paths_changed.is_empty() {
                 (
                     HarnessOutcomeClass::Failed,
                     HarnessNextAction::EditGenerator,
                     crate::exit_code::ExitCode::ToolFailure,
+                )
+            } else {
+                (
+                    HarnessOutcomeClass::PolicyBlocked,
+                    HarnessNextAction::StopPolicy,
+                    crate::exit_code::ExitCode::SecurityBlock,
                 )
             }
         }
@@ -743,7 +736,7 @@ pub fn submit_generator_repair(
         class,
         next_action: next,
         evidence_status: format!("{:?}", patch.status).to_ascii_lowercase(),
-        raw_status: Some(format!("{:?}", suite_status).to_ascii_lowercase()),
+        raw_status: Some(format!("{suite_status:?}").to_ascii_lowercase()),
         exit_code: exit as u8,
         message: format!(
             "generator repair patch status={:?} suite={:?}",
@@ -765,8 +758,7 @@ pub fn submit_generator_repair(
 /// Resume / status snapshot for an existing run directory.
 pub fn resume_status(run_dir: &Path) -> Result<Value, HarnessError> {
     let run = RunDir::open(run_dir).map_err(|e| HarnessError::Message(e.to_string()))?;
-    let cursor =
-        scan_resume_cursor(&run).map_err(|e| HarnessError::Message(e.to_string()))?;
+    let cursor = scan_resume_cursor(&run).map_err(|e| HarnessError::Message(e.to_string()))?;
     let events_path = run.event_log_path().display().to_string();
     let evidence_dir = run.paths().evidence_dir.display().to_string();
     let last_events: Vec<Value> = fs::read_to_string(run.event_log_path())
@@ -907,8 +899,7 @@ Remaining attempts: {remaining}\n\n\
         doctor = doctor_status,
         remaining = env
             .remaining_attempts
-            .map(|n| n.to_string())
-            .unwrap_or_else(|| "unknown".into()),
+            .map_or_else(|| "unknown".into(), |n| n.to_string()),
         writable = env
             .writable_paths
             .iter()

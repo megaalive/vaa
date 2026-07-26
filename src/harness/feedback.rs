@@ -159,17 +159,35 @@ pub fn classify_outcome(
     }
 }
 
+// The fatal-code arm is spelled out even though it matches the fallback: it
+// pins the stable SemASM codes in docs/CONTROLLER_PROTOCOL.md to a class.
+#[allow(clippy::match_same_arms)]
 fn classify_failure_code(code: &str) -> (HarnessOutcomeClass, HarnessNextAction, ExitCode) {
     match code {
-        "TOOLCHAIN_INCOMPLETE" | "SCRATCH_IO" | "CONTRACT_IO" | "SOURCE_IO" | "HARNESS_IO"
-        | "ASSEMBLE_ERROR" | "ASSEMBLE_HARNESS_ERROR" | "LINK_ERROR" | "TIMEOUT" => (
+        "TOOLCHAIN_INCOMPLETE"
+        | "SCRATCH_IO"
+        | "CONTRACT_IO"
+        | "SOURCE_IO"
+        | "HARNESS_IO"
+        | "ASSEMBLE_ERROR"
+        | "ASSEMBLE_HARNESS_ERROR"
+        | "LINK_ERROR"
+        | "TIMEOUT" => (
             HarnessOutcomeClass::ToolchainRetryable,
             HarnessNextAction::FixToolchain,
             ExitCode::ToolFailure,
         ),
-        "UNSUPPORTED_SHAPE" | "HARNESS_MISMATCH" | "CONTRACT_INVALID" | "CONTRACT_ENCODING"
-        | "ASSEMBLE_FAILED" | "ASSEMBLE_HARNESS_FAILED" | "LINK_FAILED" | "INVALID_TARGET"
-        | "SEAL_FAILED" | "ALREADY_SEALED" | "SUITE_REQUIRED" => (
+        "UNSUPPORTED_SHAPE"
+        | "HARNESS_MISMATCH"
+        | "CONTRACT_INVALID"
+        | "CONTRACT_ENCODING"
+        | "ASSEMBLE_FAILED"
+        | "ASSEMBLE_HARNESS_FAILED"
+        | "LINK_FAILED"
+        | "INVALID_TARGET"
+        | "SEAL_FAILED"
+        | "ALREADY_SEALED"
+        | "SUITE_REQUIRED" => (
             HarnessOutcomeClass::Failed,
             HarnessNextAction::Abort,
             ExitCode::ToolFailure,
@@ -207,16 +225,24 @@ mod tests {
 
     #[test]
     fn execution_denied_suggests_opt_in() {
-        let (c, n, _) =
-            classify_outcome(EvidenceStatus::Incomplete, Some("execution_denied"), None, false);
+        let (c, n, _) = classify_outcome(
+            EvidenceStatus::Incomplete,
+            Some("execution_denied"),
+            None,
+            false,
+        );
         assert_eq!(c, HarnessOutcomeClass::IncompleteCoverage);
         assert_eq!(n, HarnessNextAction::OptInExecution);
     }
 
     #[test]
     fn toolchain_code_is_retryable() {
-        let (c, n, _) =
-            classify_outcome(EvidenceStatus::Failed, None, Some("TOOLCHAIN_INCOMPLETE"), false);
+        let (c, n, _) = classify_outcome(
+            EvidenceStatus::Failed,
+            None,
+            Some("TOOLCHAIN_INCOMPLETE"),
+            false,
+        );
         assert_eq!(c, HarnessOutcomeClass::ToolchainRetryable);
         assert_eq!(n, HarnessNextAction::FixToolchain);
         assert!(c.may_auto_retry());
