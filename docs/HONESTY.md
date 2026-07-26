@@ -54,3 +54,10 @@ The agent surface is a **Cursor/Codex project skill** plus the reference adapter
 is intentionally **no MCP server** and **no HTTP API** for the harness. See
 [`docs/agent-playbook.md`](agent-playbook.md) for the happy path and the decline
 path.
+
+## Fluent surface roadmap
+
+Product sequencing (capability registry → work packet → target profile →
+repair feedback → later stdio/author/optimize) lives in
+[`docs/fluent-agent-surface.md`](fluent-agent-surface.md). That roadmap must
+not contradict this charter.

@@ -9,6 +9,8 @@ and session resume. Agents are proposers only.
 > ([`schemas/agent-leaf-allowlist.json`](../schemas/agent-leaf-allowlist.json)),
 > `verified_under_preconditions` ≠ `verified`, dry-runs ≠ evidence. For a
 > copy-paste happy/decline path see [`docs/agent-playbook.md`](agent-playbook.md).
+> Fluent surface roadmap (work packet / feedback / releases):
+> [`docs/fluent-agent-surface.md`](fluent-agent-surface.md).
 
 ## Modes
 

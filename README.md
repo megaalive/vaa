@@ -22,6 +22,7 @@ Drive VAA through the project skill
 operates **only** on allowlisted leaves and declines anything else. Copy-paste a
 happy path and a decline path from [`docs/agent-playbook.md`](docs/agent-playbook.md).
 Bounds are fixed by [`docs/HONESTY.md`](docs/HONESTY.md); there is no MCP server.
+Roadmap: [`docs/fluent-agent-surface.md`](docs/fluent-agent-surface.md).
 
 ## What works today
 
