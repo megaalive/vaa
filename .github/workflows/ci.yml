@@ -32,6 +32,67 @@ jobs:
         with:
           command: check
 
+  # Agent harness gates: live SemASM tip so the prepare/submit/seal loop and
+  # structured agent_failure envelopes are exercised end-to-end. These tests
+  # skip silently without semasm; VAA_REQUIRE_SEMASM turns skips into failures.
+  agent-harness-gates:
+    name: Agent harness gates (SemASM tip, Win64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v6
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
+          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+
+      - name: Install NASM and LLVM (lld-link)
+        run: choco install nasm llvm --no-progress -y
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        shell: pwsh
+        run: |
+          $semasmBin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          if (-not (Test-Path (Join-Path $semasmBin "semasm.exe"))) {
+            throw "semasm.exe missing under $semasmBin"
+          }
+          echo $semasmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$semasmBin;$env:PATH"
+          Get-Command semasm | Format-List
+          semasm --version
+
+      - name: Record tool versions
+        shell: pwsh
+        run: |
+          nasm --version
+          lld-link --version
+
+      - name: Harness gates (signed seals; skips become failures)
+        shell: pwsh
+        env:
+          VAA_REQUIRE_SEMASM: "1"
+        run: |
+          ./scripts/ci-gate-sign-setup.ps1
+          cargo test --test agent_harness_gates -- --nocapture
+
   # P8-F: fail-closed parser fuzz smoke (not a security certification).
   fuzz:
     name: Fuzz smoke (PR-022)

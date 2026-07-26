@@ -3,6 +3,7 @@
   "mode": "direct_nasm",
   "target": "x86_64-pc-windows-msvc",
   "abi": "win64",
+  "assembler": "nasm",
   "task_id": "count-byte-win64-v1",
   "writable_paths": ["candidate.asm"],
   "forbidden_paths": [

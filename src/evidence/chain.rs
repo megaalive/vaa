@@ -1,4 +1,4 @@
-//! Full-run seal chain verification (`candidates/0000` … final).
+//! Full-run seal chain verification (`candidates/0000` â€¦ final).
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -73,7 +73,7 @@ pub struct VerifyChainReport {
 /// then confirm `evidence/final.seal.json` matches the last candidate.
 ///
 /// Invariants:
-/// - `candidates/0000` … `candidates/NNNN` exist contiguously (no gaps)
+/// - `candidates/0000` â€¦ `candidates/NNNN` exist contiguously (no gaps)
 /// - candidate 0 has `previous_seal_digest == None`
 /// - candidate `i` has `previous_seal_digest == envelope_digest` of `i-1`
 /// - `provenance.candidate_index` matches the directory index
@@ -178,7 +178,7 @@ pub fn verify_chain(run_dir: &Path) -> Result<VerifyChainReport, SealError> {
     }
     identity.check_against(last.provenance.candidate_index, &final_env)?;
 
-    // Local transparency log (when present — older runs may omit it).
+    // Local transparency log (when present â€” older runs may omit it).
     let evidence_dir = run_dir.join("evidence");
     super::seal_log::verify_seal_log_against_digests(&evidence_dir, &envelope_digests).map_err(
         |e| match e {
@@ -322,7 +322,7 @@ mod tests {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/tasks/sum_i64.vaa.toml")
     }
 
-    /// Same `task_id` + `target` as default, but different locked content → different digest.
+    /// Same `task_id` + `target` as default, but different locked content â†’ different digest.
     fn digest_mut_task() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/tasks/sum_i64_budget_mut.vaa.toml")
     }
@@ -642,7 +642,7 @@ mod tests {
                 previous_seal_digest: None,
             },
         );
-        // Same task_id + target; only locked content (budget) differs → digest only.
+        // Same task_id + target; only locked content (budget) differs â†’ digest only.
         let e1 = write_candidate(
             &run_root,
             1,

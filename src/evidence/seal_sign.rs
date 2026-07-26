@@ -36,7 +36,7 @@ pub struct SealSignature {
     pub sig_b64: String,
     pub signed_over: String,
     /// Authenticity backend label (`practice-ed25519` / `sigstore-dsse` /
-    /// `hsm-pkcs11`). Absent on legacy seals — **not** a production trust root.
+    /// `hsm-pkcs11`). Absent on legacy seals â€” **not** a production trust root.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signer_kind: Option<String>,
 }
@@ -46,7 +46,29 @@ pub const SIGNER_KIND_PRACTICE_ED25519: &str = "practice-ed25519";
 pub const SIGNER_KIND_SIGSTORE_DSSE: &str = "sigstore-dsse";
 pub const SIGNER_KIND_HSM_PKCS11: &str = "hsm-pkcs11";
 
+// Unit tests are hermetic by default: ambient `VAA_SEAL_*` (e.g. exported on
+// a dev machine for live gates) is ignored unless a test opts in on its own
+// thread via `test_env::SealEnvGuard`. Production builds always read env.
+#[cfg(test)]
+thread_local! {
+    static READ_SEAL_ENV: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+fn seal_env_readable() -> bool {
+    #[cfg(test)]
+    {
+        READ_SEAL_ENV.with(std::cell::Cell::get)
+    }
+    #[cfg(not(test))]
+    {
+        true
+    }
+}
+
 fn require_signature_env() -> bool {
+    if !seal_env_readable() {
+        return false;
+    }
     match std::env::var(ENV_REQUIRE_SEAL_SIGNATURE) {
         Ok(v) => {
             let v = v.trim();
@@ -79,6 +101,9 @@ fn parse_hex_seed(raw: &str) -> Result<[u8; 32], SealError> {
 
 /// Load signing key from `VAA_SEAL_SIGNING_KEY` when set.
 pub fn load_signing_key_from_env() -> Result<Option<SigningKey>, SealError> {
+    if !seal_env_readable() {
+        return Ok(None);
+    }
     let Ok(path) = std::env::var(ENV_SEAL_SIGNING_KEY) else {
         return Ok(None);
     };
@@ -202,18 +227,60 @@ pub fn verify_envelope_signature(envelope: &SealEnvelope) -> Result<(), SealErro
     }
 }
 
+/// Test-only opt-in to reading `VAA_SEAL_*` from the process env. Unit tests
+/// are hermetic by default (see [`seal_env_readable`]); the env-behavior tests
+/// below take this guard, which enables env reads for the current thread,
+/// serializes env mutation across tests, and restores ambient values on drop.
+#[cfg(test)]
+pub(crate) mod test_env {
+    use super::{ENV_REQUIRE_SEAL_SIGNATURE, ENV_SEAL_SIGNING_KEY, READ_SEAL_ENV};
+    use std::ffi::OsString;
+    use std::sync::{Mutex, MutexGuard, PoisonError};
+
+    static LOCK: Mutex<()> = Mutex::new(());
+
+    pub(crate) struct SealEnvGuard {
+        _lock: MutexGuard<'static, ()>,
+        saved: [(&'static str, Option<OsString>); 2],
+    }
+
+    impl SealEnvGuard {
+        /// Enable env reads on this thread; the test manages the env vars
+        /// itself. Ambient values are restored on drop even on panic.
+        pub(crate) fn hold() -> Self {
+            let lock = LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+            READ_SEAL_ENV.with(|flag| flag.set(true));
+            let saved = [
+                (ENV_SEAL_SIGNING_KEY, std::env::var_os(ENV_SEAL_SIGNING_KEY)),
+                (
+                    ENV_REQUIRE_SEAL_SIGNATURE,
+                    std::env::var_os(ENV_REQUIRE_SEAL_SIGNATURE),
+                ),
+            ];
+            Self { _lock: lock, saved }
+        }
+    }
+
+    impl Drop for SealEnvGuard {
+        fn drop(&mut self) {
+            READ_SEAL_ENV.with(|flag| flag.set(false));
+            for (key, value) in &self.saved {
+                match value {
+                    Some(v) => std::env::set_var(key, v),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::test_env::SealEnvGuard;
     use super::*;
     use crate::evidence::seal::{seal_envelope, AcceptanceBody, GeneratorMeta, ProvenanceBody};
     use crate::evidence::status::EvidenceStatus;
     use std::sync::atomic::{AtomicU64, Ordering};
-    use std::sync::{Mutex, OnceLock};
-
-    fn env_lock() -> &'static Mutex<()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
-    }
 
     fn tempfile_path(prefix: &str) -> std::path::PathBuf {
         static N: AtomicU64 = AtomicU64::new(0);
@@ -247,7 +314,7 @@ mod tests {
 
     #[test]
     fn sign_then_verify_round_trip() {
-        let _guard = env_lock().lock().unwrap();
+        let _guard = SealEnvGuard::hold();
         let path = tempfile_path("vaa_seal_key");
         let (pk_hex, _) = keygen_seal(&path).unwrap();
         assert_eq!(pk_hex.len(), 64);
@@ -267,7 +334,7 @@ mod tests {
 
     #[test]
     fn tampered_acceptance_digest_fails_signature() {
-        let _guard = env_lock().lock().unwrap();
+        let _guard = SealEnvGuard::hold();
         let path = tempfile_path("vaa_seal_key_tamper");
         keygen_seal(&path).unwrap();
         std::env::set_var(ENV_SEAL_SIGNING_KEY, &path);
@@ -286,7 +353,7 @@ mod tests {
 
     #[test]
     fn unsigned_ok_without_require_env() {
-        let _guard = env_lock().lock().unwrap();
+        let _guard = SealEnvGuard::hold();
         std::env::remove_var(ENV_SEAL_SIGNING_KEY);
         std::env::remove_var(ENV_REQUIRE_SEAL_SIGNATURE);
         let env = sample_envelope();
@@ -295,7 +362,7 @@ mod tests {
 
     #[test]
     fn unsigned_fails_when_required() {
-        let _guard = env_lock().lock().unwrap();
+        let _guard = SealEnvGuard::hold();
         std::env::remove_var(ENV_SEAL_SIGNING_KEY);
         std::env::set_var(ENV_REQUIRE_SEAL_SIGNATURE, "1");
         let env = sample_envelope();
@@ -306,7 +373,7 @@ mod tests {
 
     #[test]
     fn maybe_sign_labels_practice_kind() {
-        let _guard = env_lock().lock().unwrap();
+        let _guard = SealEnvGuard::hold();
         let path = tempfile_path("vaa_seal_key_kind");
         keygen_seal(&path).unwrap();
         std::env::set_var(ENV_SEAL_SIGNING_KEY, &path);

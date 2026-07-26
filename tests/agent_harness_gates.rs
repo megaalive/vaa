@@ -19,6 +19,12 @@ fn semasm_available() -> bool {
         || std::env::var_os("SEMASM_BIN").is_some()
 }
 
+/// CI sets `VAA_REQUIRE_SEMASM=1` so a missing/broken toolchain fails the gate
+/// instead of skipping it silently.
+fn semasm_required() -> bool {
+    std::env::var_os("VAA_REQUIRE_SEMASM").is_some_and(|v| v != "0")
+}
+
 fn tmp(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(format!(
         "{prefix}-{}-{}",
@@ -153,6 +159,10 @@ fn harness_prepare_generator_repair_from_fixture() {
 #[allow(clippy::too_many_lines)]
 fn harness_submit_wrong_then_repaired_with_seal_and_chain() {
     if !semasm_available() {
+        assert!(
+            !semasm_required(),
+            "VAA_REQUIRE_SEMASM is set but semasm is unavailable"
+        );
         eprintln!("skipping harness seal gate: semasm unavailable");
         return;
     }
@@ -193,6 +203,10 @@ fn harness_submit_wrong_then_repaired_with_seal_and_chain() {
         });
     let class = wrong_json["class"].as_str().unwrap_or_default();
     if class == "toolchain_retryable" {
+        assert!(
+            !semasm_required(),
+            "VAA_REQUIRE_SEMASM is set but toolchain is incomplete: {wrong_json}"
+        );
         eprintln!("skipping seal gate: toolchain retryable ({wrong_json})");
         let _ = std::fs::remove_dir_all(&run_base);
         return;
@@ -406,6 +420,10 @@ fn harness_cli_help_lists_subcommands() {
 #[test]
 fn invalid_nasm_structured_failure_when_semasm_present() {
     if !semasm_available() {
+        assert!(
+            !semasm_required(),
+            "VAA_REQUIRE_SEMASM is set but semasm is unavailable"
+        );
         eprintln!("skipping invalid NASM structured failure: semasm unavailable");
         return;
     }
@@ -445,6 +463,14 @@ fn invalid_nasm_structured_failure_when_semasm_present() {
         ),
         "unexpected class={class} {json}"
     );
+    if semasm_required() {
+        // Live SemASM with agent_failure envelopes must yield a stable code,
+        // proving the structured early-failure path end-to-end.
+        assert!(
+            json["failure_code"].as_str().is_some_and(|c| !c.is_empty()),
+            "expected structured failure_code from live SemASM: {json}"
+        );
+    }
     let _ = std::fs::remove_dir_all(&tmp);
 }
 
