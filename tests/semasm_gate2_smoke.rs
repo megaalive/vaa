@@ -15,6 +15,22 @@ fn signing_key_configured() -> bool {
     std::env::var_os("VAA_SEAL_SIGNING_KEY").is_some_and(|v| !v.is_empty())
 }
 
+/// SemASM tip may classify `sum_i64` as verified_under_preconditions when the
+/// contract `requires` is a caller-bound obligation (`length <= 4096`). Gate-2
+/// still requires behavioral vectors to pass; unconditional Verified remains OK.
+fn assert_sum_i64_gate2_accepted(value: &serde_json::Value, label: &str) {
+    let status = value["final_status"].as_str().unwrap_or("");
+    assert!(
+        matches!(status, "Verified" | "VerifiedUnderPreconditions"),
+        "{label}: expected Verified or VerifiedUnderPreconditions: {value}"
+    );
+    let raw = value["verify_report"]["raw_status"].as_str().unwrap_or("");
+    assert!(
+        matches!(raw, "verified" | "verified_under_preconditions"),
+        "{label}: unexpected raw_status={raw}: {value}"
+    );
+}
+
 fn assert_seal_signature_if_signing(run_dir: &Path) {
     if !signing_key_configured() {
         return;
@@ -188,11 +204,7 @@ fn gate2_verify_sum_i64_linux_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 Linux sum_i64 expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_sum_i64_gate2_accepted(&value, "Gate-2 Linux sum_i64");
 }
 
 #[test]
@@ -231,11 +243,7 @@ fn gate2_verify_sum_i64_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 sum_i64 expects Verified with --allow-execution: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_sum_i64_gate2_accepted(&value, "Gate-2 sum_i64");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
@@ -1011,11 +1019,7 @@ fn gate2_verify_hlax64_sum_i64_win64_verified() {
         return;
     }
 
-    assert_eq!(
-        value["final_status"], "Verified",
-        "Gate-2 hlax64 sum_i64 expects Verified: {value}"
-    );
-    assert_eq!(value["verify_report"]["raw_status"], "verified");
+    assert_sum_i64_gate2_accepted(&value, "Gate-2 hlax64 sum_i64");
     let raw_json = value["verify_report"]["raw_json"]
         .as_str()
         .expect("verify_report.raw_json");
