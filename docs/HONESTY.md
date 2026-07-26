@@ -12,10 +12,14 @@ The goal is narrow and durable: never let VAA/SemASM overclaim.
 2. **Controllers parse stdout JSON only.** stderr is human noise. Never derive a
    status, class, or seal from stderr, log lines, or exit-code guessing when a
    JSON envelope is available.
-3. **Allowed shapes = the leaf allowlist.** See
-   [`schemas/agent-leaf-allowlist.json`](../schemas/agent-leaf-allowlist.json).
-   Anything outside it — a new shape, a free-form `.S`, "fix my assembly" —
-   is **declined**, not attempted.
+3. **Allowed shapes = admitted leaves.** Gate via
+   `vaa admit --leaf … --target …` / [`admit_leaf`](../src/semasm/admission.rs)
+   against the frozen SemASM snapshot
+   ([`fixtures/semasm/capabilities-snapshot.json`](../fixtures/semasm/capabilities-snapshot.json)).
+   [`schemas/agent-leaf-allowlist.json`](../schemas/agent-leaf-allowlist.json)
+   is a discovery/freeze **mirror** of those `leaf_names` — not a second skill
+   list to memorize. Anything outside admission — a new shape, free-form `.S`,
+   "fix my assembly" — is **declined**, not attempted.
 4. **`verified_under_preconditions` (VUP) is not unconditional `verified`.**
    Report it as VUP. Only leaves with `strict_verified_ok: true` may be called
    plainly "verified".
@@ -30,7 +34,7 @@ The goal is narrow and durable: never let VAA/SemASM overclaim.
 
 | Surface | Reality |
 |---|---|
-| x86_64 Win64 / SysV via NASM | Leaf allowlist is CI-proven (`agent-harness-gates`, corpus sweep). |
+| x86_64 Win64 / SysV via NASM | Admitted leaves are CI-proven (`agent-harness-gates`, corpus sweep); inventory via `vaa admit --list`. |
 | AArch64 via GAS | CI-proven end-to-end (`agent-harness-gates-gas-aarch64`, qemu). |
 | RISC-V64 via GAS | **Dialect/flavor only.** Capability = `Unknown` / fail-closed. No agent-verify claim. |
 | Generator-repair mode | Exists and tested, but **not** the skill v1 path. |

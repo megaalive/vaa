@@ -6,8 +6,8 @@ pub mod status;
 pub mod verify;
 
 pub use admission::{
-    admit_leaf, load_snapshot, map_acceptance_level, snapshot_digest, AdmissionEntry,
-    AdmissionTier, CapabilitiesSnapshot, SnapshotAdmission, ADMISSION_SOURCE,
+    admit_leaf, list_admitted, load_snapshot, map_acceptance_level, snapshot_digest,
+    AdmissionEntry, AdmissionTier, CapabilitiesSnapshot, SnapshotAdmission, ADMISSION_SOURCE,
     CAPABILITY_SNAPSHOT_DIGEST,
 };
 pub use capabilities::{

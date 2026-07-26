@@ -2,12 +2,11 @@
 
 One happy path, one decline path. Bounds are set by [`HONESTY.md`](HONESTY.md);
 the skill is [`.cursor/skills/vaa-harness/SKILL.md`](../.cursor/skills/vaa-harness/SKILL.md)
-(Codex: [`AGENTS.md`](../AGENTS.md)). Allowed leaves live in
-[`schemas/agent-leaf-allowlist.json`](../schemas/agent-leaf-allowlist.json).
-The SemASM admission snapshot
-([`fixtures/semasm/capabilities-snapshot.json`](../fixtures/semasm/capabilities-snapshot.json))
-must list the same `leaf_names`; admission will eventually replace the skill
-allowlist, but until then **both** apply — decline anything missing from either.
+(Codex: [`AGENTS.md`](../AGENTS.md)). **Skill gate is admission:**
+`vaa admit --leaf … --target …` against
+[`fixtures/semasm/capabilities-snapshot.json`](../fixtures/semasm/capabilities-snapshot.json).
+[`schemas/agent-leaf-allowlist.json`](../schemas/agent-leaf-allowlist.json)
+mirrors admitted `leaf_names` for discovery/freeze only — do not memorize it.
 
 Rule of thumb: **parse stdout JSON only**, act on `class`, never claim more than
 the JSON says. After prepare, read `work-packet.json` (else
@@ -17,10 +16,13 @@ v1 details.
 
 ## Happy path A — `max_i64` (Win64, strict `verified`)
 
-`max_i64` is a pure scalar leaf (`strict_verified_ok: true`), so it reaches
+`max_i64` is a pure scalar leaf (`acceptance_level: verified`), so it reaches
 unconditional `verified`.
 
 ```bash
+vaa admit --leaf max_i64 --target x86_64-pc-windows-msvc --assembler nasm --format json
+# expect {"admitted":true,"acceptance_level":"verified",...}
+
 python scripts/agent_harness_adapter.py loop-direct \
   --task fixtures/run/max_i64/max_i64.vaa.toml \
   --contract fixtures/run/max_i64/max_i64.sem.toml \
@@ -45,6 +47,8 @@ Buffer/loop leaves reach VUP, not plain verified. Pass
 `--allow-under-preconditions` and report the result **as VUP**.
 
 ```bash
+vaa admit --leaf count_byte --target x86_64-pc-windows-msvc --assembler nasm --format json
+
 python scripts/agent_harness_adapter.py loop-direct \
   --task fixtures/run/count_byte/count_byte.vaa.toml \
   --contract fixtures/run/count_byte/count_byte.sem.toml \
@@ -70,14 +74,14 @@ unconditional verified), sealed." Do **not** drop the "under preconditions".
 
 ## Decline path
 
-Decline (do not attempt) when the request is outside the allowlist. Examples and
-the response to give:
+Decline (do not attempt) when `vaa admit` returns `"admitted": false`. Examples
+and the response to give:
 
 - **Unlisted shape** ("verify my `strlen`/`crc32`/… assembly"):
-  > That shape isn't in VAA's leaf allowlist (`schemas/agent-leaf-allowlist.json`),
-  > so I can't claim SemASM verifies it. I can only drive the listed leaves.
+  > That shape isn't admitted (`vaa admit` / capability snapshot), so I can't
+  > claim SemASM verifies it. I can only drive admitted leaves.
 - **Free-form `.S` / "fix my assembly freely"**:
-  > This skill only repairs allowlisted corpus leaves toward a locked contract,
+  > This skill only repairs admitted corpus leaves toward a locked contract,
   > not arbitrary assembly. SemASM would fail-closed on unmodeled instructions.
 - **RISC-V64 verify**:
   > RISC-V64 is GAS dialect-only in VAA (capability `Unknown`, fail-closed). No

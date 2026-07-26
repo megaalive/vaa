@@ -49,9 +49,10 @@ response, and finish with sealed evidence.
   `semasm target profile <target>`.
 - VAA: frozen snapshot
   [`fixtures/semasm/capabilities-snapshot.json`](../fixtures/semasm/capabilities-snapshot.json)
-  (`CAPABILITY_SNAPSHOT_DIGEST`); `admit_leaf` + admission tiers in
-  `src/semasm/admission.rs`. Skill allowlist remains the skill gate until
-  admission fully replaces it; freeze gate requires matching `leaf_names`.
+  (`CAPABILITY_SNAPSHOT_DIGEST`); `admit_leaf` / `vaa admit` + admission tiers in
+  `src/semasm/admission.rs`. **Skill gate is admission** (`vaa admit`); the JSON
+  allowlist is a discovery/freeze mirror of admitted `leaf_names` (freeze gate
+  requires matching pairs).
 - Prepare writes `agent-envelope.json` and `work-packet.json` (same
   content), plus `target-profile.json` (live SemASM profile or embedded
   fallback) and records digests on the envelope.
@@ -60,10 +61,9 @@ response, and finish with sealed evidence.
 **Claim (gates green):**
 
 > Agents discover supported authoring/acceptance level from one capability
-> snapshot, receive one work packet + target profile, and repair from one
-> structured feedback document — without duplicated ABI tables in skills.
-> Leaf-name allowlist remains the skill decline gate pending full admission
-> cutover.
+> snapshot (`vaa admit`), receive one work packet + target profile, and repair
+> from one structured feedback document — without duplicated leaf/ABI tables in
+> skills.
 
 ### Release B — Fluent repair loop (**delivered**)
 

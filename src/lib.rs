@@ -126,12 +126,12 @@ pub use search::{
     SearchIngestConfig, SearchReport,
 };
 pub use semasm::{
-    admit_leaf, compare_live_status, load_snapshot, map_acceptance_level, match_task_requirements,
-    parse_status_json, probe_live_for_target, snapshot_digest, AdmissionEntry, AdmissionTier,
-    CapabilitiesSnapshot, CapabilityMatch, CompareOutcome, DoctorReport, DoctorStatus,
-    EvidencePolicy, LiveProbeSummary, LiveStatusCompare, SemasmDoctor, SemasmStatusDocument,
-    SemasmVerify, SnapshotAdmission, TargetCapabilities, VerifyError, VerifyReport,
-    ADMISSION_SOURCE, CAPABILITY_SNAPSHOT_DIGEST, CAPABILITY_SOURCE,
+    admit_leaf, compare_live_status, list_admitted, load_snapshot, map_acceptance_level,
+    match_task_requirements, parse_status_json, probe_live_for_target, snapshot_digest,
+    AdmissionEntry, AdmissionTier, CapabilitiesSnapshot, CapabilityMatch, CompareOutcome,
+    DoctorReport, DoctorStatus, EvidencePolicy, LiveProbeSummary, LiveStatusCompare, SemasmDoctor,
+    SemasmStatusDocument, SemasmVerify, SnapshotAdmission, TargetCapabilities, VerifyError,
+    VerifyReport, ADMISSION_SOURCE, CAPABILITY_SNAPSHOT_DIGEST, CAPABILITY_SOURCE,
 };
 pub use task::{load_locked_task, load_task_file, LockedTask, Task, TaskError};
 

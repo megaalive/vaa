@@ -1,9 +1,10 @@
 //! Capability admission freeze: checked-in SemASM capabilities snapshot.
 //!
-//! Agents / controllers consult this registry for which leaf×target×assembler
-//! tuples VAA may admit. The skill allowlist
-//! (`schemas/agent-leaf-allowlist.json`) remains the skill gate until admission
-//! fully replaces it; protocol freeze requires both list the same leaf_names.
+//! **Skill / agent gate:** [`admit_leaf`] / [`list_admitted`] against
+//! [`ADMISSION_SOURCE`]. The JSON allowlist
+//! (`schemas/agent-leaf-allowlist.json`) is a **discovery / freeze mirror** of
+//! admitted `leaf_names` — keep it in sync via protocol-freeze gates; do not
+//! hardcode leaf names in skills.
 
 use serde::{Deserialize, Serialize};
 
@@ -149,6 +150,28 @@ pub fn admit_leaf(name: &str, target: &str, assembler: &str) -> Option<Admission
     })
 }
 
+/// List admitted `(leaf, target, assembler, acceptance_level, tier)` rows.
+///
+/// When `target` / `assembler` are `Some`, filter to matching rows. This is the
+/// skill-facing inventory — prefer it over hardcoding leaf names.
+#[must_use]
+pub fn list_admitted(target: Option<&str>, assembler: Option<&str>) -> Vec<AdmissionEntry> {
+    let snap = load_snapshot();
+    snap.admission
+        .into_iter()
+        .filter(|row| target.is_none_or(|t| row.targets.iter().any(|x| x == t)))
+        .filter(|row| assembler.is_none_or(|a| row.assemblers.iter().any(|x| x == a)))
+        .filter(|row| !row.leaf_names.is_empty())
+        .map(|row| {
+            let tier = map_acceptance_level(&row.acceptance_level, false);
+            AdmissionEntry {
+                tier,
+                snapshot: row,
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,6 +211,15 @@ mod tests {
     #[test]
     fn unknown_leaf_is_not_admitted() {
         assert!(admit_leaf("strlen", "x86_64-pc-windows-msvc", "nasm").is_none());
+    }
+
+    #[test]
+    fn list_admitted_includes_max_i64_on_win64() {
+        let rows = list_admitted(Some("x86_64-pc-windows-msvc"), Some("nasm"));
+        assert!(rows.iter().any(|e| {
+            e.snapshot.leaf_names.iter().any(|n| n == "max_i64")
+                && e.snapshot.acceptance_level == "verified"
+        }));
     }
 
     #[test]

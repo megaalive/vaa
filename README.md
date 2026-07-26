@@ -8,8 +8,9 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 
 > **Honesty charter.** Before wiring an agent or citing what VAA "proves", read
 > [`docs/HONESTY.md`](docs/HONESTY.md). Short version: agents propose, SemASM
-> verifies; controllers parse **stdout JSON only**; work is limited to the leaf
-> allowlist ([`schemas/agent-leaf-allowlist.json`](schemas/agent-leaf-allowlist.json));
+> verifies; controllers parse **stdout JSON only**; work is limited to
+> **admitted** leaves (`vaa admit` / capability snapshot; allowlist JSON is a
+> discovery mirror);
 > `verified_under_preconditions` ≠ `verified`; dry-runs ≠ evidence. VAA is a
 > local CLI + project skill — **not an MCP product**.
 
@@ -19,7 +20,7 @@ Drive VAA through the project skill
 [`.cursor/skills/vaa-harness/SKILL.md`](.cursor/skills/vaa-harness/SKILL.md)
 (Codex: see [`AGENTS.md`](AGENTS.md)), backed by the reference adapter
 [`scripts/agent_harness_adapter.py`](scripts/agent_harness_adapter.py). The skill
-operates **only** on allowlisted leaves and declines anything else. Copy-paste a
+operates **only** on admitted leaves (`vaa admit`) and declines anything else. Copy-paste a
 happy path and a decline path from [`docs/agent-playbook.md`](docs/agent-playbook.md).
 Bounds are fixed by [`docs/HONESTY.md`](docs/HONESTY.md); there is no MCP server.
 Roadmap: [`docs/fluent-agent-surface.md`](docs/fluent-agent-surface.md).

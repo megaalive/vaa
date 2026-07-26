@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Fail-closed check: the agent leaf allowlist agrees with corpus_sweep discovery.
+"""Fail-closed check: allowlist ↔ corpus_sweep ↔ admission snapshot.
 
-Two invariants, both hermetic (no SemASM / toolchain needed):
+Three hermetic invariants (no SemASM / toolchain needed):
 
   1. Every allowlist leaf is discoverable by scripts/corpus_sweep.py across all
      targets — the allowlist cannot invent a shape that does not exist on disk.
   2. Every allowlist leaf whose target matches the *host* OS appears in the
-     host-filtered `corpus_sweep --list`, i.e. what an agent could actually run
-     here is a subset of what the sweep would exercise.
+     host-filtered `corpus_sweep --list`.
+  3. Every allowlist leaf×target appears in the frozen SemASM admission
+     snapshot (`fixtures/semasm/capabilities-snapshot.json`) leaf_names — the
+     skill gate is admission; the allowlist is only a discovery/freeze mirror.
 
 Run from CI (adapter-reference job) and locally:
 
@@ -25,6 +27,17 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import corpus_sweep  # noqa: E402
 
 ALLOWLIST = ROOT / "schemas" / "agent-leaf-allowlist.json"
+ADMISSION = ROOT / "fixtures" / "semasm" / "capabilities-snapshot.json"
+
+
+def admission_pairs() -> set[tuple[str, str]]:
+    snap = json.loads(ADMISSION.read_text(encoding="utf-8"))
+    pairs: set[tuple[str, str]] = set()
+    for row in snap.get("admission", []):
+        for leaf in row.get("leaf_names") or []:
+            for target in row.get("targets") or []:
+                pairs.add((leaf, target))
+    return pairs
 
 
 def main() -> int:
@@ -33,6 +46,7 @@ def main() -> int:
 
     discovered = corpus_sweep.discover_leaves()
     discovered_names = {leaf["name"] for leaf in discovered}
+    admitted = admission_pairs()
 
     errors: list[str] = []
 
@@ -52,15 +66,25 @@ def main() -> int:
         if leaf["target"] in host and leaf["name"] not in host_discovered:
             errors.append(f"{leaf['name']}: host target {leaf['target']} not in host discovery")
 
+    # (3) allowlist ⊆ admission snapshot leaf_names×target.
+    for leaf in leaves:
+        pair = (leaf["name"], leaf["target"])
+        if pair not in admitted:
+            errors.append(
+                f"{leaf['name']} @ {leaf['target']}: missing from admission snapshot "
+                f"({ADMISSION.relative_to(ROOT).as_posix()})"
+            )
+
     if errors:
-        print("allowlist check FAILED:", file=sys.stderr)
+        print("allowlist/admission check FAILED:", file=sys.stderr)
         for err in errors:
             print(f"  - {err}", file=sys.stderr)
         return 1
 
     print(
-        f"allowlist OK: {len(leaves)} leaves, all discoverable "
-        f"(host={sys.platform}, host-relevant={len(host_discovered)})"
+        f"allowlist OK: {len(leaves)} leaves, all discoverable + admitted "
+        f"(host={sys.platform}, host-relevant={len(host_discovered)}, "
+        f"admission_pairs={len(admitted)})"
     )
     return 0
 

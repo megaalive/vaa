@@ -69,6 +69,26 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
     },
+    /// Look up or list admitted leaves from the frozen SemASM capability snapshot.
+    ///
+    /// Skill gate: admit before driving the harness. Decline when `admitted=false`.
+    Admit {
+        /// Leaf name to look up (omit with `--list` to inventory).
+        #[arg(long)]
+        leaf: Option<String>,
+        /// Target triple (required for a single-leaf lookup; optional filter for `--list`).
+        #[arg(long)]
+        target: Option<String>,
+        /// Assembler flavor (default `nasm`).
+        #[arg(long, default_value = "nasm")]
+        assembler: String,
+        /// List admitted leaves (optionally filtered by `--target` / `--assembler`).
+        #[arg(long, default_value_t = false)]
+        list: bool,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
+        format: OutputFormat,
+    },
     /// Verify an assembly source against a locked task.
     Verify {
         /// Path to the locked task file.
@@ -1143,6 +1163,13 @@ fn run_cli() -> ExitCode {
         } => validate_command(&task, format, show_digest),
         Commands::Doctor { format } => doctor_command(format),
         Commands::Capabilities { target, format } => capabilities_command(&target, format),
+        Commands::Admit {
+            leaf,
+            target,
+            assembler,
+            list,
+            format,
+        } => admit_command(leaf.as_deref(), target.as_deref(), &assembler, list, format),
         Commands::Verify {
             task,
             source,
@@ -3645,6 +3672,112 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
         }
     }
     VaaExitCode::Success.as_std()
+}
+
+fn admit_command(
+    leaf: Option<&str>,
+    target: Option<&str>,
+    assembler: &str,
+    list: bool,
+    format: OutputFormat,
+) -> ExitCode {
+    if list {
+        let entries = vaa::list_admitted(target, Some(assembler));
+        let rows: Vec<_> = entries
+            .iter()
+            .flat_map(|e| {
+                e.snapshot.leaf_names.iter().map(|name| {
+                    serde_json::json!({
+                        "leaf": name,
+                        "capability_id": e.snapshot.capability_id,
+                        "targets": e.snapshot.targets,
+                        "assemblers": e.snapshot.assemblers,
+                        "acceptance_level": e.snapshot.acceptance_level,
+                        "tier": e.tier.as_str(),
+                    })
+                })
+            })
+            .collect();
+        let body = serde_json::json!({
+            "admitted": true,
+            "capability_snapshot_digest": vaa::CAPABILITY_SNAPSHOT_DIGEST,
+            "admission_source": vaa::ADMISSION_SOURCE,
+            "assembler": assembler,
+            "target_filter": target,
+            "leaves": rows,
+        });
+        match format {
+            OutputFormat::Json => println!("{body}"),
+            OutputFormat::Terminal => {
+                println!(
+                    "admitted leaves (assembler={assembler}, digest={}):",
+                    vaa::CAPABILITY_SNAPSHOT_DIGEST
+                );
+                for row in &rows {
+                    println!(
+                        "  {} @ {:?} — {} / {}",
+                        row["leaf"], row["targets"], row["acceptance_level"], row["tier"]
+                    );
+                }
+            }
+        }
+        return VaaExitCode::Success.as_std();
+    }
+
+    let Some(leaf) = leaf else {
+        eprintln!("error: provide --leaf <name> or --list");
+        return VaaExitCode::InvalidInput.as_std();
+    };
+    let Some(target) = target else {
+        eprintln!("error: --target is required for a single-leaf admit lookup");
+        return VaaExitCode::InvalidInput.as_std();
+    };
+
+    if let Some(entry) = vaa::admit_leaf(leaf, target, assembler) {
+        let body = serde_json::json!({
+            "admitted": true,
+            "leaf": leaf,
+            "target": target,
+            "assembler": assembler,
+            "capability_id": entry.snapshot.capability_id,
+            "acceptance_level": entry.snapshot.acceptance_level,
+            "tier": entry.tier.as_str(),
+            "oracles": entry.snapshot.oracles,
+            "required_gates": entry.snapshot.required_gates,
+            "capability_snapshot_digest": vaa::CAPABILITY_SNAPSHOT_DIGEST,
+            "admission_source": vaa::ADMISSION_SOURCE,
+        });
+        match format {
+            OutputFormat::Json => println!("{body}"),
+            OutputFormat::Terminal => {
+                println!(
+                    "admitted: {leaf} @ {target} ({assembler}) — {} / {}",
+                    entry.snapshot.acceptance_level,
+                    entry.tier.as_str()
+                );
+            }
+        }
+        VaaExitCode::Success.as_std()
+    } else {
+        let body = serde_json::json!({
+            "admitted": false,
+            "leaf": leaf,
+            "target": target,
+            "assembler": assembler,
+            "capability_snapshot_digest": vaa::CAPABILITY_SNAPSHOT_DIGEST,
+            "admission_source": vaa::ADMISSION_SOURCE,
+            "next_action": "decline",
+        });
+        match format {
+            OutputFormat::Json => println!("{body}"),
+            OutputFormat::Terminal => {
+                println!("declined: {leaf} @ {target} ({assembler}) — not in admission snapshot");
+            }
+        }
+        // Not admitted is a successful query that reports decline (exit 0)
+        // so controllers can parse JSON; skills treat admitted=false as stop.
+        VaaExitCode::Success.as_std()
+    }
 }
 
 fn verify_command(

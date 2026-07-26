@@ -5,8 +5,9 @@ SemASM remains the verifier; VAA owns task lock, budgets, path policy, seals,
 and session resume. Agents are proposers only.
 
 > **Read the charter first:** [`docs/HONESTY.md`](HONESTY.md) is the canonical
-> claim boundary — parse stdout JSON only, stay inside the leaf allowlist
-> ([`schemas/agent-leaf-allowlist.json`](../schemas/agent-leaf-allowlist.json)),
+> claim boundary — parse stdout JSON only, stay inside **admitted** leaves
+> (`vaa admit` / [`fixtures/semasm/capabilities-snapshot.json`](../fixtures/semasm/capabilities-snapshot.json);
+> allowlist JSON is a discovery mirror),
 > `verified_under_preconditions` ≠ `verified`, dry-runs ≠ evidence. For a
 > copy-paste happy/decline path see [`docs/agent-playbook.md`](agent-playbook.md).
 > Fluent surface roadmap (work packet / feedback / releases):

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "kind": "agent_leaf_allowlist",
-  "description": "Leaves an agent skill is permitted to drive through `vaa harness`. Anything not listed here is declined (see docs/HONESTY.md). Each leaf is discovered by scripts/corpus_sweep.py; the protocol-freeze gate enforces that every entry exists on disk and appears in corpus_sweep --list. Protocol note: the SemASM admission snapshot (`fixtures/semasm/capabilities-snapshot.json`) must list the same leaf_names (with matching targets) until admission fully replaces this skill gate.",
+  "description": "Discovery/freeze mirror of admitted SemASM leaf_names (see fixtures/semasm/capabilities-snapshot.json and `vaa admit`). Skill gate is admission lookup, not memorizing this list. Protocol-freeze requires every entry here to exist on disk, appear in corpus_sweep --list, and match an admission leaf_names×target row.",
   "profile_notes": {
     "verified": "SemASM reaches unconditional `verified`; may be called plainly verified.",
     "verified_under_preconditions": "SemASM reaches VUP; report as VUP, never plain verified. Requires --allow-under-preconditions."
