@@ -49,10 +49,16 @@ case/
 
 After `prepare`, the workspace also contains:
 
-- `agent-envelope.json` — machine payload (`schemas/agent-envelope.schema.json`)
+- `work-packet.json` — canonical agent work packet (same schema as envelope;
+  prefer this over `agent-envelope.json` when both exist)
+- `agent-envelope.json` — compat alias of the work packet
+  (`schemas/agent-envelope.schema.json`)
+- `target-profile.json` — ABI / dialect authoring profile (live SemASM or
+  embedded fallback); **do not hardcode ABI** — read this file
 - `prompt.md` — bounded human/agent brief (remaining attempts, assembler, verify)
 - `candidate.asm` (or `.S`) — writable in direct mode
 - `semasm-packet.json` — best-effort SemASM packet when SemASM is on PATH
+- `feedback.json` — written on submit (Repair Feedback v1)
 - `repair-packet.json` / `.md` — generator mode only
 
 ## Commands

@@ -33,6 +33,15 @@ TERMINAL_CLASSES = frozenset(
 )
 
 
+def load_work_packet(workspace: Path) -> dict[str, Any] | None:
+    """Prefer `work-packet.json`, else fall back to `agent-envelope.json`."""
+    for name in ("work-packet.json", "agent-envelope.json"):
+        path = workspace / name
+        if path.is_file():
+            return json.loads(path.read_text(encoding="utf-8"))
+    return None
+
+
 def vaa_command() -> list[str]:
     """CLI to spawn: `VAA_BIN` if set, else `vaa` from PATH.
 
@@ -103,6 +112,10 @@ def loop_direct(ns: argparse.Namespace) -> dict[str, Any]:
     if ns.allow_execution:
         prep_args.append("--allow-execution")
     envelope = run_vaa(prep_args)
+    disk_packet = load_work_packet(workspace)
+    if disk_packet is not None:
+        disk_packet["_vaa_exit_code"] = envelope.get("_vaa_exit_code", 0)
+        envelope = disk_packet
 
     candidate_name = "candidate.S" if ns.assembler == "gas" else "candidate.asm"
     candidate_path = workspace / candidate_name
@@ -217,6 +230,10 @@ def loop_generator(ns: argparse.Namespace) -> dict[str, Any]:
             "json",
         ]
     )
+    disk_packet = load_work_packet(workspace)
+    if disk_packet is not None:
+        disk_packet["_vaa_exit_code"] = envelope.get("_vaa_exit_code", 0)
+        envelope = disk_packet
 
     steps: list[dict[str, Any]] = []
 

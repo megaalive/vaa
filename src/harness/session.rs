@@ -16,17 +16,19 @@ use crate::generator::{
 };
 use crate::harness::assembler::AssemblerFlavor;
 use crate::harness::envelope::{
-    AgentBudget, AgentCommands, AgentDigests, AgentEnvelope, AgentMode,
+    default_allowed_operations, AgentBudget, AgentCommands, AgentDigests, AgentEnvelope, AgentMode,
 };
 use crate::harness::feedback::{
-    classify_outcome, HarnessNextAction, HarnessOutcomeClass, HarnessSubmitResult,
-    HARNESS_SUBMIT_SCHEMA_VERSION,
+    classify_outcome, enrich_repair_feedback, HarnessNextAction, HarnessOutcomeClass,
+    HarnessSubmitResult, HARNESS_SUBMIT_SCHEMA_VERSION,
 };
+use crate::harness::target_profile::write_target_profile;
 use crate::process::{ProcessConfig, ProcessRunner};
 use crate::run::{
     doctor_and_capabilities, scan_resume_cursor, verify_candidate_and_seal, EventKind, EventLog,
     RunDir, RunId, VerifySealInput,
 };
+use crate::semasm::admission::CAPABILITY_SNAPSHOT_DIGEST;
 use crate::semasm::doctor::{semasm_subprocess_allowed_env, SemasmDoctor, ENV_SEMASM_BIN};
 use crate::semasm::verify::SemasmVerify;
 use crate::sha256_digest_prefixed;
@@ -175,6 +177,13 @@ pub fn prepare_direct_nasm(req: &PrepareDirectRequest) -> Result<AgentEnvelope, 
     env.semasm_packet_path = packet_path
         .exists()
         .then(|| packet_path.display().to_string());
+    let (profile_path, profile_digest) = write_target_profile(&req.workspace, &task.target)?;
+    let feedback_path = req.workspace.join("feedback.json");
+    let work_packet_path = req.workspace.join("work-packet.json");
+
+    env.allowed_operations = default_allowed_operations();
+    env.target_profile_path = Some(profile_path.display().to_string());
+    env.feedback_path = Some(feedback_path.display().to_string());
     env.digests = AgentDigests {
         task: Some(sha256_digest_prefixed(&task_bytes)),
         contract: Some(sha256_digest_prefixed(&contract_bytes)),
@@ -183,6 +192,8 @@ pub fn prepare_direct_nasm(req: &PrepareDirectRequest) -> Result<AgentEnvelope, 
             .then(|| fs::read(&candidate).ok())
             .flatten()
             .map(|b| sha256_digest_prefixed(&b)),
+        capability_snapshot: Some(CAPABILITY_SNAPSHOT_DIGEST.to_owned()),
+        target_profile: Some(profile_digest),
     };
     if let Some(run) = &req.run_dir {
         env.events_path = Some(run.join("events.jsonl").display().to_string());
@@ -197,8 +208,12 @@ pub fn prepare_direct_nasm(req: &PrepareDirectRequest) -> Result<AgentEnvelope, 
     fs::write(&prompt_path, prompt)?;
     env.prompt_markdown_path = Some(prompt_path.display().to_string());
 
+    // Paths must be set before serializing so both files carry them.
     let envelope_path = req.workspace.join("agent-envelope.json");
-    fs::write(&envelope_path, serde_json::to_string_pretty(&env)?)?;
+    env.work_packet_path = Some(work_packet_path.display().to_string());
+    let pretty = serde_json::to_string_pretty(&env)?;
+    fs::write(&envelope_path, &pretty)?;
+    fs::write(&work_packet_path, &pretty)?;
     Ok(env)
 }
 
@@ -257,7 +272,10 @@ pub fn prepare_generator_repair(
         fs::write(&md, crate::generator::render_repair_markdown(&packet))?;
     }
 
-    let env = AgentEnvelope {
+    let (profile_path, profile_digest) = write_target_profile(&req.workspace, &req.target)?;
+    let feedback_path = req.workspace.join("feedback.json");
+    let work_packet_path = req.workspace.join("work-packet.json");
+    let mut env = AgentEnvelope {
         schema_version: crate::harness::envelope::AGENT_ENVELOPE_SCHEMA_VERSION.to_owned(),
         mode: AgentMode::GeneratorRepair,
         target: req.target.clone(),
@@ -280,15 +298,26 @@ pub fn prepare_generator_repair(
             .pointer("/failure/message")
             .and_then(|v| v.as_str())
             .map(str::to_owned),
-        digests: AgentDigests::default(),
+        digests: AgentDigests {
+            capability_snapshot: Some(CAPABILITY_SNAPSHOT_DIGEST.to_owned()),
+            target_profile: Some(profile_digest),
+            ..AgentDigests::default()
+        },
         semasm_packet_path: None,
         repair_packet_path: Some(dest.display().to_string()),
         workspace_dir: Some(req.workspace.display().to_string()),
         prompt_markdown_path: md.exists().then(|| md.display().to_string()),
         events_path: None,
+        allowed_operations: default_allowed_operations(),
+        target_profile_path: Some(profile_path.display().to_string()),
+        feedback_path: Some(feedback_path.display().to_string()),
+        work_packet_path: None,
     };
     let envelope_path = req.workspace.join("agent-envelope.json");
-    fs::write(&envelope_path, serde_json::to_string_pretty(&env)?)?;
+    env.work_packet_path = Some(work_packet_path.display().to_string());
+    let pretty = serde_json::to_string_pretty(&env)?;
+    fs::write(&envelope_path, &pretty)?;
+    fs::write(&work_packet_path, &pretty)?;
     Ok(env)
 }
 
@@ -302,25 +331,30 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
 
     let source_bytes = fs::read(&req.source)?;
     let candidate_digest = sha256_digest_prefixed(&source_bytes);
+    let feedback_dir = req.source.parent().map(Path::to_path_buf);
 
     // Seal path: create/open run dir and verify_candidate_and_seal.
     if req.run_dir.is_some() || req.run_base.is_some() {
-        return submit_direct_with_seal(req, &locked, &source_bytes, &candidate_digest);
+        let mut result = submit_direct_with_seal(req, &locked, &source_bytes, &candidate_digest)?;
+        persist_feedback(&mut result, feedback_dir.as_deref())?;
+        return Ok(result);
     }
 
     let doctor = SemasmDoctor::run();
     let Some(binary) = doctor.binary_path.clone() else {
-        return Ok(submit_result_from_failure(
+        let mut result = submit_result_from_failure(
             "TOOLCHAIN_INCOMPLETE",
             "semasm binary not found",
             Some(candidate_digest),
             None,
             req.assembler,
             req.allow_under_preconditions,
-        ));
+        );
+        persist_feedback(&mut result, feedback_dir.as_deref())?;
+        return Ok(result);
     };
 
-    match SemasmVerify::run_with_timeout(
+    let mut result = match SemasmVerify::run_with_timeout(
         &req.source,
         &req.contract,
         &binary,
@@ -338,7 +372,7 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
             if matches!(class, HarnessOutcomeClass::ViolatedRepairable) {
                 next = HarnessNextAction::EditCandidate;
             }
-            Ok(HarnessSubmitResult {
+            HarnessSubmitResult {
                 schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
                 class,
                 next_action: next,
@@ -359,7 +393,12 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
                 patch_evidence_path: None,
                 assembler: Some(req.assembler.as_str().to_owned()),
                 may_auto_retry: class.may_auto_retry(),
-            })
+                failure: None,
+                counterexample: None,
+                candidate_delta: None,
+                repair_focus: None,
+                feedback_path: None,
+            }
         }
         Err(err) => {
             let failure_code = err.failure_code().map(str::to_owned);
@@ -369,7 +408,7 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
                 failure_code.as_deref(),
                 req.allow_under_preconditions,
             );
-            Ok(HarnessSubmitResult {
+            HarnessSubmitResult {
                 schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
                 class,
                 next_action: next,
@@ -387,9 +426,16 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
                 patch_evidence_path: None,
                 assembler: Some(req.assembler.as_str().to_owned()),
                 may_auto_retry: class.may_auto_retry(),
-            })
+                failure: None,
+                counterexample: None,
+                candidate_delta: None,
+                repair_focus: None,
+                feedback_path: None,
+            }
         }
-    }
+    };
+    persist_feedback(&mut result, feedback_dir.as_deref())?;
+    Ok(result)
 }
 
 fn submit_direct_with_seal(
@@ -504,6 +550,11 @@ fn submit_direct_with_seal(
                 patch_evidence_path: None,
                 assembler: Some(req.assembler.as_str().to_owned()),
                 may_auto_retry: class.may_auto_retry(),
+                failure: None,
+                counterexample: None,
+                candidate_delta: None,
+                repair_focus: None,
+                feedback_path: None,
             })
         }
         Err(err) => {
@@ -570,7 +621,7 @@ pub fn submit_generator_repair(
     if !violations.is_empty() {
         let (class, next, exit) =
             classify_outcome(EvidenceStatus::Failed, None, Some("FORBIDDEN_PATH"), false);
-        return Ok(HarnessSubmitResult {
+        let mut result = HarnessSubmitResult {
             schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
             class,
             next_action: next,
@@ -591,7 +642,14 @@ pub fn submit_generator_repair(
             patch_evidence_path: None,
             assembler: Some(AssemblerFlavor::Nasm.as_str().to_owned()),
             may_auto_retry: false,
-        });
+            failure: None,
+            counterexample: None,
+            candidate_delta: None,
+            repair_focus: None,
+            feedback_path: None,
+        };
+        persist_feedback(&mut result, Some(req.workspace.as_path()))?;
+        return Ok(result);
     }
 
     // Suite evidence: run live suite, or load prior suite-evidence JSON.
@@ -653,7 +711,7 @@ pub fn submit_generator_repair(
             .unwrap_or_else(|| "sha256:unknown".into());
         (suite_id, suite_digest, suite_status, binary, None)
     } else {
-        return Ok(HarnessSubmitResult {
+        let mut result = HarnessSubmitResult {
             schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
             class: HarnessOutcomeClass::IncompleteCoverage,
             next_action: HarnessNextAction::Abort,
@@ -671,7 +729,14 @@ pub fn submit_generator_repair(
             patch_evidence_path: None,
             assembler: Some(AssemblerFlavor::Nasm.as_str().to_owned()),
             may_auto_retry: false,
-        });
+            failure: None,
+            counterexample: None,
+            candidate_delta: None,
+            repair_focus: None,
+            feedback_path: None,
+        };
+        persist_feedback(&mut result, Some(req.workspace.as_path()))?;
+        return Ok(result);
     };
 
     let base_revision = req
@@ -729,7 +794,7 @@ pub fn submit_generator_repair(
         }
     };
 
-    Ok(HarnessSubmitResult {
+    let mut result = HarnessSubmitResult {
         schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
         class,
         next_action: next,
@@ -750,7 +815,14 @@ pub fn submit_generator_repair(
         patch_evidence_path: Some(patch_path.display().to_string()),
         assembler: Some(AssemblerFlavor::Nasm.as_str().to_owned()),
         may_auto_retry: class.may_auto_retry(),
-    })
+        failure: None,
+        counterexample: None,
+        candidate_delta: None,
+        repair_focus: None,
+        feedback_path: None,
+    };
+    persist_feedback(&mut result, Some(req.workspace.as_path()))?;
+    Ok(result)
 }
 
 /// Resume / status snapshot for an existing run directory.
@@ -818,7 +890,29 @@ fn submit_result_from_failure(
         patch_evidence_path: None,
         assembler: Some(assembler.as_str().to_owned()),
         may_auto_retry: class.may_auto_retry(),
+        failure: None,
+        counterexample: None,
+        candidate_delta: None,
+        repair_focus: None,
+        feedback_path: None,
     }
+}
+
+fn persist_feedback(
+    result: &mut HarnessSubmitResult,
+    dir: Option<&Path>,
+) -> Result<(), HarnessError> {
+    enrich_repair_feedback(result);
+    let Some(dir) = dir else {
+        return Ok(());
+    };
+    fs::create_dir_all(dir)?;
+    let path = dir.join("feedback.json");
+    fs::write(&path, serde_json::to_string_pretty(result)?)?;
+    result.feedback_path = Some(path.display().to_string());
+    // Re-write so the on-disk copy includes feedback_path.
+    fs::write(&path, serde_json::to_string_pretty(result)?)?;
+    Ok(())
 }
 
 fn try_semasm_packet(

@@ -43,6 +43,19 @@ response, and finish with sealed evidence.
 3. Target Authoring Profile
 4. Repair Feedback v1 (`feedback.json` + extended submit JSON)
 
+**Landed in VAA (A3–A6):**
+
+- Frozen SemASM snapshot at
+  [`fixtures/semasm/capabilities-snapshot.json`](../fixtures/semasm/capabilities-snapshot.json)
+  (`CAPABILITY_SNAPSHOT_DIGEST`); `admit_leaf` + admission tiers in
+  `src/semasm/admission.rs`. Skill allowlist remains the skill gate until
+  admission fully replaces it; freeze gate requires matching `leaf_names`.
+- Prepare writes both `agent-envelope.json` and `work-packet.json` (same
+  content), plus `target-profile.json` (live SemASM profile or embedded
+  Win64/SysV/AArch64 fallback) and records digests on the envelope.
+- Submit writes `feedback.json` (Repair Feedback v1 fields on
+  `HarnessSubmitResult`).
+
 Claim when gates are green:
 
 > Agents discover supported authoring/acceptance level from one capability

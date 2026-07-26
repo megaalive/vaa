@@ -1,9 +1,15 @@
+pub mod admission;
 pub mod capabilities;
 pub mod doctor;
 pub mod semantic_evidence;
 pub mod status;
 pub mod verify;
 
+pub use admission::{
+    admit_leaf, load_snapshot, map_acceptance_level, snapshot_digest, AdmissionEntry,
+    AdmissionTier, CapabilitiesSnapshot, SnapshotAdmission, ADMISSION_SOURCE,
+    CAPABILITY_SNAPSHOT_DIGEST,
+};
 pub use capabilities::{
     match_task_requirements, CapabilityMatch, TargetCapabilities, CAPABILITY_SOURCE,
 };

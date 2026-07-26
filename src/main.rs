@@ -3162,6 +3162,11 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
         OutputFormat::Terminal => {
             println!("Target: {}", caps.target_id);
             println!("  source:         {}", vaa::CAPABILITY_SOURCE);
+            println!("  admission_source: {}", vaa::ADMISSION_SOURCE);
+            println!(
+                "  capability_snapshot_digest: {}",
+                vaa::CAPABILITY_SNAPSHOT_DIGEST
+            );
             println!("  decode:         {:?}", caps.decode);
             println!("  lower:          {:?}", caps.lower);
             println!("  abi_check:      {:?}", caps.abi_check);
@@ -3200,6 +3205,8 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
             });
             let body = serde_json::json!({
                 "source": vaa::CAPABILITY_SOURCE,
+                "admission_source": vaa::ADMISSION_SOURCE,
+                "capability_snapshot_digest": vaa::CAPABILITY_SNAPSHOT_DIGEST,
                 "target_id": caps.target_id,
                 "decode": format!("{:?}", caps.decode),
                 "lower": format!("{:?}", caps.lower),

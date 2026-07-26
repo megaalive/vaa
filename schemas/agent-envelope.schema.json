@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AgentEnvelope",
-  "description": "VAA agent harness envelope 0.1 — discriminates direct_nasm (SemASM TaskPacket) vs generator_repair (VAA RepairPacket).",
+  "description": "VAA agent harness envelope / work packet 0.1 — discriminates direct_nasm (SemASM TaskPacket) vs generator_repair (VAA RepairPacket). Additive fields (allowed_operations, target_profile_path, feedback_path, work_packet_path, digests.capability_snapshot / target_profile) default or omit when unset.",
   "type": "object",
   "required": [
     "schema_version",
@@ -60,7 +60,9 @@
       "properties": {
         "task": { "type": ["string", "null"] },
         "contract": { "type": ["string", "null"] },
-        "candidate": { "type": ["string", "null"] }
+        "candidate": { "type": ["string", "null"] },
+        "capability_snapshot": { "type": ["string", "null"] },
+        "target_profile": { "type": ["string", "null"] }
       },
       "additionalProperties": false
     },
@@ -68,7 +70,15 @@
     "repair_packet_path": { "type": ["string", "null"] },
     "workspace_dir": { "type": ["string", "null"] },
     "prompt_markdown_path": { "type": ["string", "null"] },
-    "events_path": { "type": ["string", "null"] }
+    "events_path": { "type": ["string", "null"] },
+    "allowed_operations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Default direct-mode ops: write_candidate, check_candidate, verify_candidate, finish_session"
+    },
+    "target_profile_path": { "type": ["string", "null"] },
+    "feedback_path": { "type": ["string", "null"] },
+    "work_packet_path": { "type": ["string", "null"] }
   },
   "additionalProperties": false
 }

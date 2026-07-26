@@ -1,6 +1,7 @@
 //! Strict outcome / retry classification for harness loops.
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::evidence::EvidenceStatus;
 use crate::exit_code::ExitCode;
@@ -64,7 +65,40 @@ pub enum HarnessNextAction {
     Abort,
 }
 
-/// Compact submit result returned to harnesses.
+/// Optional source location for a structured failure.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FailureLocation {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<String>,
+}
+
+/// Repair Feedback v1 failure detail.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FailureDetail {
+    pub code: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stage: Option<String>,
+    pub summary: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub location: Option<FailureLocation>,
+}
+
+/// Gate delta hints between candidate attempts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct CandidateDelta {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub improved_gates: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub regressed_gates: Vec<String>,
+}
+
+/// Compact submit result returned to harnesses (Repair Feedback v1 carrier).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HarnessSubmitResult {
     pub schema_version: String,
@@ -93,10 +127,64 @@ pub struct HarnessSubmitResult {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub assembler: Option<String>,
     pub may_auto_retry: bool,
+    /// Structured failure (Repair Feedback v1).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure: Option<FailureDetail>,
+    /// Optional counterexample payload from SemASM / suite.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub counterexample: Option<Value>,
+    /// Improved / regressed gate hints across attempts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_delta: Option<CandidateDelta>,
+    /// Free-form repair focus hints for the agent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repair_focus: Option<Value>,
+    /// Path to written `feedback.json` when persisted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_path: Option<String>,
 }
 
 /// Schema for [`HarnessSubmitResult`].
 pub const HARNESS_SUBMIT_SCHEMA_VERSION: &str = "0.1";
+
+/// Infer a coarse stage label from a known failure code / class.
+#[must_use]
+pub fn stage_for_failure_code(code: &str) -> Option<&'static str> {
+    Some(match code {
+        "TOOLCHAIN_INCOMPLETE" | "TIMEOUT" => "toolchain",
+        "SCRATCH_IO" | "CONTRACT_IO" | "SOURCE_IO" | "HARNESS_IO" => "io",
+        "ASSEMBLE_ERROR"
+        | "ASSEMBLE_HARNESS_ERROR"
+        | "ASSEMBLE_FAILED"
+        | "ASSEMBLE_HARNESS_FAILED" => "assemble",
+        "LINK_ERROR" | "LINK_FAILED" => "link",
+        "UNSUPPORTED_SHAPE" => "unsupported_shape",
+        "HARNESS_MISMATCH" | "CONTRACT_INVALID" | "CONTRACT_ENCODING" | "INVALID_TARGET" => {
+            "contract"
+        }
+        "SEAL_FAILED" | "ALREADY_SEALED" => "seal",
+        "SUITE_REQUIRED" => "suite",
+        "BUDGET_EXHAUSTED" => "budget",
+        "POLICY_BLOCK" | "FORBIDDEN_PATH" => "policy",
+        _ => return None,
+    })
+}
+
+/// Populate [`HarnessSubmitResult::failure`] from `failure_code` / message when present.
+pub fn enrich_repair_feedback(result: &mut HarnessSubmitResult) {
+    if result.failure.is_some() {
+        return;
+    }
+    let Some(code) = result.failure_code.clone() else {
+        return;
+    };
+    result.failure = Some(FailureDetail {
+        stage: stage_for_failure_code(&code).map(str::to_owned),
+        code,
+        summary: result.message.clone(),
+        location: None,
+    });
+}
 
 /// Map SemASM/VAA evidence + optional agent-failure code into harness class.
 #[must_use]
@@ -258,5 +346,38 @@ mod tests {
         );
         assert_eq!(c, HarnessOutcomeClass::IncompleteCoverage);
         assert_eq!(e, ExitCode::Incomplete);
+    }
+
+    #[test]
+    fn enrich_populates_failure_from_code() {
+        let mut result = HarnessSubmitResult {
+            schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
+            class: HarnessOutcomeClass::Failed,
+            next_action: HarnessNextAction::Abort,
+            evidence_status: "failed".into(),
+            raw_status: None,
+            exit_code: 2,
+            message: "shape rejected".into(),
+            failure_code: Some("UNSUPPORTED_SHAPE".into()),
+            candidate_digest: None,
+            run_dir: None,
+            run_id: None,
+            candidate_index: None,
+            candidate_dir: None,
+            seal_digest: None,
+            patch_evidence_path: None,
+            assembler: None,
+            may_auto_retry: false,
+            failure: None,
+            counterexample: None,
+            candidate_delta: None,
+            repair_focus: None,
+            feedback_path: None,
+        };
+        enrich_repair_feedback(&mut result);
+        let failure = result.failure.expect("failure detail");
+        assert_eq!(failure.code, "UNSUPPORTED_SHAPE");
+        assert_eq!(failure.stage.as_deref(), Some("unsupported_shape"));
+        assert_eq!(failure.summary, "shape rejected");
     }
 }

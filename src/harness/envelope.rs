@@ -7,6 +7,21 @@ use crate::harness::assembler::AssemblerFlavor;
 /// Schema version for [`AgentEnvelope`].
 pub const AGENT_ENVELOPE_SCHEMA_VERSION: &str = "0.1";
 
+/// Default direct-mode operations declared on the work packet.
+#[must_use]
+pub fn default_allowed_operations() -> Vec<String> {
+    vec![
+        "write_candidate".to_owned(),
+        "check_candidate".to_owned(),
+        "verify_candidate".to_owned(),
+        "finish_session".to_owned(),
+    ]
+}
+
+fn is_default_allowed_operations(ops: &[String]) -> bool {
+    ops == default_allowed_operations()
+}
+
 /// Which agent loop this envelope drives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -70,9 +85,15 @@ pub struct AgentDigests {
     pub contract: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub candidate: Option<String>,
+    /// Frozen SemASM capabilities snapshot digest (`CAPABILITY_SNAPSHOT_DIGEST`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capability_snapshot: Option<String>,
+    /// Digest of the embedded/live `target-profile.json` written at prepare.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_profile: Option<String>,
 }
 
-/// Agent-facing prepare payload (machine JSON).
+/// Agent-facing prepare payload (machine JSON) / work packet.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentEnvelope {
     pub schema_version: String,
@@ -108,6 +129,21 @@ pub struct AgentEnvelope {
     pub prompt_markdown_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub events_path: Option<String>,
+    /// Allowed harness operations for this work packet (direct-mode default).
+    #[serde(
+        default = "default_allowed_operations",
+        skip_serializing_if = "is_default_allowed_operations"
+    )]
+    pub allowed_operations: Vec<String>,
+    /// Workspace-relative or absolute path to `target-profile.json`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_profile_path: Option<String>,
+    /// Path where submit will write `feedback.json` (hint for agents).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_path: Option<String>,
+    /// Canonical work-packet path (`work-packet.json`); mirrors envelope.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_packet_path: Option<String>,
 }
 
 impl AgentEnvelope {
@@ -144,6 +180,10 @@ impl AgentEnvelope {
             workspace_dir: None,
             prompt_markdown_path: None,
             events_path: None,
+            allowed_operations: default_allowed_operations(),
+            target_profile_path: None,
+            feedback_path: None,
+            work_packet_path: None,
         }
     }
 }
@@ -171,6 +211,7 @@ mod tests {
         assert_eq!(back.mode, AgentMode::DirectNasm);
         assert_eq!(back.assembler, AssemblerFlavor::Nasm);
         assert_eq!(back.schema_version, AGENT_ENVELOPE_SCHEMA_VERSION);
+        assert_eq!(back.allowed_operations, default_allowed_operations());
     }
 
     #[test]
@@ -181,5 +222,24 @@ mod tests {
         assert_eq!(env.schema_version, AGENT_ENVELOPE_SCHEMA_VERSION);
         assert_eq!(env.target, "x86_64-pc-windows-msvc");
         assert!(!env.commands.verify.is_empty());
+        assert_eq!(env.allowed_operations, default_allowed_operations());
+    }
+
+    #[test]
+    fn default_ops_omitted_from_minimal_serialize() {
+        let env = AgentEnvelope::direct_nasm(
+            "x86_64-pc-windows-msvc",
+            "t",
+            AgentCommands {
+                doctor: None,
+                verify: "v".into(),
+                verify_gate2: None,
+                regenerate: None,
+                suite: None,
+            },
+            AgentBudget::default(),
+        );
+        let v = serde_json::to_value(&env).unwrap();
+        assert!(v.get("allowed_operations").is_none());
     }
 }

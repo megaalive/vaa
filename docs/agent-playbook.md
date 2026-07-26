@@ -4,9 +4,16 @@ One happy path, one decline path. Bounds are set by [`HONESTY.md`](HONESTY.md);
 the skill is [`.cursor/skills/vaa-harness/SKILL.md`](../.cursor/skills/vaa-harness/SKILL.md)
 (Codex: [`AGENTS.md`](../AGENTS.md)). Allowed leaves live in
 [`schemas/agent-leaf-allowlist.json`](../schemas/agent-leaf-allowlist.json).
+The SemASM admission snapshot
+([`fixtures/semasm/capabilities-snapshot.json`](../fixtures/semasm/capabilities-snapshot.json))
+must list the same `leaf_names`; admission will eventually replace the skill
+allowlist, but until then **both** apply — decline anything missing from either.
 
 Rule of thumb: **parse stdout JSON only**, act on `class`, never claim more than
-the JSON says.
+the JSON says. After prepare, read `work-packet.json` (else
+`agent-envelope.json`) and `target-profile.json` for ABI — do not hardcode
+registers. After submit, read `feedback.json` when present for Repair Feedback
+v1 details.
 
 ## Happy path A — `max_i64` (Win64, strict `verified`)
 

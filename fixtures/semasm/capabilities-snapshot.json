@@ -1,0 +1,433 @@
+{
+  "admission": [
+    {
+      "acceptance_level": "verified",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "pure-int-binary",
+      "leaf_names": [
+        "max_i64"
+      ],
+      "oracles": [
+        "builtin.pure_int.binary_i64"
+      ],
+      "parameters": [
+        "i64",
+        "i64"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "behavior"
+      ],
+      "returns": [
+        "i64"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "sum_i64",
+      "leaf_names": [
+        "sum_i64"
+      ],
+      "oracles": [
+        "builtin.buffer.wrapping_sum_i64"
+      ],
+      "parameters": [
+        "ptr<const i64>",
+        "usize"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "i64"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "count_byte",
+      "leaf_names": [
+        "count_byte"
+      ],
+      "oracles": [
+        "builtin.buffer.count_equal_u8"
+      ],
+      "parameters": [
+        "ptr<const u8>",
+        "usize",
+        "u8"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "usize"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "count_byte_linux",
+      "leaf_names": [
+        "count_byte_linux"
+      ],
+      "oracles": [
+        "builtin.buffer.count_equal_u8"
+      ],
+      "parameters": [
+        "ptr<const u8>",
+        "usize",
+        "u8"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "usize"
+      ],
+      "targets": [
+        "x86_64-unknown-linux-gnu"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "find_first_byte",
+      "leaf_names": [
+        "find_first_byte"
+      ],
+      "oracles": [
+        "builtin.buffer.find_first_u8"
+      ],
+      "parameters": [
+        "ptr<const u8>",
+        "usize",
+        "u8"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "usize"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "find_last_byte",
+      "leaf_names": [
+        "find_last_byte"
+      ],
+      "oracles": [
+        "builtin.buffer.find_last_u8"
+      ],
+      "parameters": [
+        "ptr<const u8>",
+        "usize",
+        "u8"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "usize"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "memcmp",
+      "leaf_names": [
+        "memcmp"
+      ],
+      "oracles": [
+        "builtin.buffer.memcmp_i8"
+      ],
+      "parameters": [
+        "ptr<const u8>",
+        "ptr<const u8>",
+        "usize"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "isize"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "memcpy",
+      "leaf_names": [
+        "memcpy"
+      ],
+      "oracles": [
+        "builtin.buffer.memcpy"
+      ],
+      "parameters": [
+        "ptr<u8>",
+        "ptr<const u8>",
+        "usize"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "usize"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "memset",
+      "leaf_names": [
+        "memset"
+      ],
+      "oracles": [
+        "builtin.buffer.memset"
+      ],
+      "parameters": [
+        "ptr<u8>",
+        "usize",
+        "u8"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "usize"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    {
+      "acceptance_level": "verified_under_preconditions",
+      "assemblers": [
+        "nasm"
+      ],
+      "authoring_level": "full",
+      "capability_id": "replace_byte",
+      "leaf_names": [
+        "replace_byte"
+      ],
+      "oracles": [
+        "builtin.buffer.replace_byte"
+      ],
+      "parameters": [
+        "ptr<u8>",
+        "usize",
+        "u8",
+        "u8"
+      ],
+      "required_gates": [
+        "object",
+        "decode",
+        "lower",
+        "abi",
+        "capability",
+        "control",
+        "memory",
+        "behavior"
+      ],
+      "returns": [
+        "usize"
+      ],
+      "targets": [
+        "x86_64-pc-windows-msvc"
+      ]
+    }
+  ],
+  "capability_schema": "0.1",
+  "digest": "sha256:94bda0b92b69d12360e757451478b07c7fdcff317a50e7f3f8d3677f33d13e05",
+  "name": "semasm",
+  "targets": [
+    {
+      "abi": "CI-verified",
+      "agent": "CI-verified",
+      "assemble": "CI-verified",
+      "decode": "CI-verified",
+      "description": "x86-64 Linux, System V ABI, ELF",
+      "execute": "CI-verified",
+      "id": "x86_64-unknown-linux-gnu",
+      "link": "CI-verified",
+      "lower": "CI-verified",
+      "pipeline": "CI-verified"
+    },
+    {
+      "abi": "CI-verified",
+      "agent": "CI-verified",
+      "assemble": "CI-verified",
+      "decode": "CI-verified",
+      "description": "x86-64 Windows, Microsoft x64 ABI, PE/COFF",
+      "execute": "CI-verified",
+      "id": "x86_64-pc-windows-msvc",
+      "link": "CI-verified",
+      "lower": "CI-verified",
+      "pipeline": "CI-verified"
+    },
+    {
+      "abi": "CI-verified",
+      "agent": "CI-verified",
+      "assemble": "CI-verified",
+      "decode": "CI-verified",
+      "description": "AArch64 Linux, AAPCS64 ABI, ELF",
+      "execute": "CI-verified",
+      "id": "aarch64-unknown-linux-gnu",
+      "link": "CI-verified",
+      "lower": "CI-verified",
+      "pipeline": "CI-verified"
+    },
+    {
+      "abi": "CI-verified",
+      "agent": "CI-verified",
+      "assemble": "CI-verified",
+      "decode": "CI-verified",
+      "description": "RV64 Linux, RISC-V psABI, ELF",
+      "execute": "CI-verified",
+      "id": "riscv64gc-unknown-linux-gnu",
+      "link": "CI-verified",
+      "lower": "CI-verified",
+      "pipeline": "CI-verified"
+    },
+    {
+      "abi": "unit-tested",
+      "agent": "declared",
+      "assemble": "unavailable",
+      "decode": "declared",
+      "description": "RV32 bare-metal, RISC-V psABI, ELF",
+      "execute": "unavailable",
+      "id": "riscv32imac-unknown-none-elf",
+      "link": "unavailable",
+      "lower": "partial",
+      "pipeline": "unavailable"
+    }
+  ],
+  "version": "0.2.1",
+  "workspace_crates": [
+    "semasm-core",
+    "semasm-contract",
+    "semasm-asir",
+    "semasm-target",
+    "semasm-build",
+    "semasm-agent",
+    "semasm-cli",
+    "semasm-obj",
+    "semasm-decode",
+    "semasm-cfg",
+    "semasm-x86",
+    "semasm-aarch64",
+    "semasm-riscv"
+  ]
+}

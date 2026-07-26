@@ -12,18 +12,24 @@ You are a **proposer**; SemASM is the verifier. The canonical claim boundary is
 
 ## Hard rules
 
-1. **Allowlist only.** Operate only on leaves in
+1. **Allowlist only (until admission fully replaces it).** Operate only on leaves
+   in
    [`schemas/agent-leaf-allowlist.json`](../../../schemas/agent-leaf-allowlist.json)
    (`count_byte`, `count_byte_linux`, `find_first_byte`, `find_last_byte`,
-   `memcmp`, `memcpy`, `memset`, `replace_byte`, `sum_i64`, `max_i64`). If the
-   user asks for any other shape, free-form `.S`, RISC-V verify, "fix my
-   assembly", or generator-repair — **stop and decline** (see the playbook
+   `memcmp`, `memcpy`, `memset`, `replace_byte`, `sum_i64`, `max_i64`). The
+   SemASM admission snapshot
+   ([`fixtures/semasm/capabilities-snapshot.json`](../../../fixtures/semasm/capabilities-snapshot.json))
+   must list the same leaf names — decline anything missing from either gate.
+   If the user asks for any other shape, free-form `.S`, RISC-V verify, "fix
+   my assembly", or generator-repair — **stop and decline** (see the playbook
    decline path). Do not improvise.
 2. **Use the adapter, not shell soup.** Prefer
    `python scripts/agent_harness_adapter.py loop-direct …`. Do not hand-roll
    `vaa harness` pipelines.
 3. **Parse stdout JSON only.** stderr is noise. Never infer a status, class, or
-   seal from stderr, logs, or exit-code guessing.
+   seal from stderr, logs, or exit-code guessing. Also read workspace
+   `work-packet.json` (else `agent-envelope.json`) and `feedback.json` when
+   present. Use `target-profile.json` for ABI — **do not hardcode** registers.
 4. **Map `class` → action, nothing else:**
    - `accepted` → done. Report the JSON `class`, `evidence_status`, `seal_digest`.
    - `violated_repairable` → edit the candidate assembly only; resubmit.

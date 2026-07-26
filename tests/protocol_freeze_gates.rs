@@ -92,12 +92,18 @@ fn agent_envelope_schema_declares_every_serialized_field() {
         task: Some("sha256:aa".into()),
         contract: Some("sha256:bb".into()),
         candidate: Some("sha256:cc".into()),
+        capability_snapshot: Some(vaa::CAPABILITY_SNAPSHOT_DIGEST.to_owned()),
+        target_profile: Some("sha256:dd".into()),
     };
     env.semasm_packet_path = Some("task-packet.json".into());
     env.repair_packet_path = Some("repair-packet.json".into());
     env.workspace_dir = Some("ws".into());
     env.prompt_markdown_path = Some("prompt.md".into());
     env.events_path = Some("events.jsonl".into());
+    env.allowed_operations = vec!["write_candidate".into(), "custom_op".into()];
+    env.target_profile_path = Some("target-profile.json".into());
+    env.feedback_path = Some("feedback.json".into());
+    env.work_packet_path = Some("work-packet.json".into());
 
     let full = serde_json::to_value(&env).expect("serialize");
     assert_keys_declared(&schema, &full, "AgentEnvelope");
@@ -213,6 +219,24 @@ fn harness_submit_result_schema_declares_every_serialized_field() {
         patch_evidence_path: Some("patch-evidence.json".into()),
         assembler: Some("nasm".into()),
         may_auto_retry: false,
+        failure: Some(vaa::FailureDetail {
+            code: "ASSEMBLE_FAILED".into(),
+            stage: Some("assemble".into()),
+            summary: "structured failure".into(),
+            location: Some(vaa::FailureLocation {
+                path: Some("candidate.asm".into()),
+                line: Some(12),
+                symbol: Some("count_byte".into()),
+                offset: Some("0x2f".into()),
+            }),
+        }),
+        counterexample: Some(serde_json::json!({"input": [1, 2], "expected": 3})),
+        candidate_delta: Some(vaa::CandidateDelta {
+            improved_gates: vec!["abi".into()],
+            regressed_gates: vec!["behavior".into()],
+        }),
+        repair_focus: Some(serde_json::json!({"hint": "fix rcx caller-save"})),
+        feedback_path: Some("feedback.json".into()),
     };
     let value = serde_json::to_value(&full).expect("serialize");
     assert_keys_declared(&schema, &value, "HarnessSubmitResult");
@@ -362,6 +386,41 @@ fn harness_loop_result_shares_submit_vocabulary() {
             loop_values, submit_values,
             "`{field}` vocabulary drifted between harness-loop-result and \
              harness-submit-result schemas"
+        );
+    }
+}
+
+/// Skill allowlist leaves must appear in the frozen SemASM admission snapshot
+/// with a matching target (until admission fully replaces the allowlist gate).
+#[test]
+fn allowlist_leaves_are_covered_by_admission_snapshot() {
+    let snap = vaa::load_snapshot();
+    assert_eq!(
+        snap.digest,
+        vaa::CAPABILITY_SNAPSHOT_DIGEST,
+        "frozen snapshot digest drifted from CAPABILITY_SNAPSHOT_DIGEST"
+    );
+    assert_eq!(vaa::snapshot_digest(), vaa::CAPABILITY_SNAPSHOT_DIGEST);
+
+    let allowlist = read_json("schemas/agent-leaf-allowlist.json");
+    let leaves = allowlist["leaves"]
+        .as_array()
+        .expect("allowlist.leaves is an array");
+
+    for leaf in leaves {
+        let name = leaf["name"].as_str().expect("leaf.name");
+        let target = leaf["target"].as_str().expect("leaf.target");
+        let admitted = snap.admission.iter().any(|row| {
+            row.leaf_names.iter().any(|n| n == name) && row.targets.iter().any(|t| t == target)
+        });
+        assert!(
+            admitted,
+            "allowlist leaf `{name}` target `{target}` missing from \
+             fixtures/semasm/capabilities-snapshot.json admission leaf_names"
+        );
+        assert!(
+            vaa::admit_leaf(name, target, "nasm").is_some(),
+            "admit_leaf({name}, {target}, nasm) returned None"
         );
     }
 }

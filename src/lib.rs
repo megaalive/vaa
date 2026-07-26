@@ -78,12 +78,13 @@ pub use generator::{
     PATCH_EVIDENCE_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION, SUITE_SCHEMA_VERSION,
 };
 pub use harness::{
-    classify_outcome, prepare_direct_nasm, prepare_generator_repair, resume_status,
-    submit_direct_nasm, submit_generator_repair, AgentBudget, AgentCommands, AgentDigests,
-    AgentEnvelope, AgentMode, AssemblerFlavor, HarnessConfig, HarnessError, HarnessNextAction,
-    HarnessOutcomeClass, HarnessSubmitResult, HarnessTemplate, PrepareDirectRequest,
-    PrepareGeneratorRequest, SubmitDirectRequest, SubmitGeneratorRequest,
-    AGENT_ENVELOPE_SCHEMA_VERSION, HARNESS_SUBMIT_SCHEMA_VERSION,
+    classify_outcome, default_allowed_operations, enrich_repair_feedback, prepare_direct_nasm,
+    prepare_generator_repair, resume_status, stage_for_failure_code, submit_direct_nasm,
+    submit_generator_repair, AgentBudget, AgentCommands, AgentDigests, AgentEnvelope, AgentMode,
+    AssemblerFlavor, CandidateDelta, FailureDetail, FailureLocation, HarnessConfig, HarnessError,
+    HarnessNextAction, HarnessOutcomeClass, HarnessSubmitResult, HarnessTemplate,
+    PrepareDirectRequest, PrepareGeneratorRequest, ResolvedTargetProfile, SubmitDirectRequest,
+    SubmitGeneratorRequest, AGENT_ENVELOPE_SCHEMA_VERSION, HARNESS_SUBMIT_SCHEMA_VERSION,
 };
 pub use inspect::{ArtifactInfo, ArtifactInspector};
 #[cfg(feature = "live-model")]
@@ -108,10 +109,12 @@ pub use search::{
     SearchIngestConfig, SearchReport,
 };
 pub use semasm::{
-    compare_live_status, match_task_requirements, parse_status_json, probe_live_for_target,
-    CapabilityMatch, CompareOutcome, DoctorReport, DoctorStatus, EvidencePolicy, LiveProbeSummary,
-    LiveStatusCompare, SemasmDoctor, SemasmStatusDocument, SemasmVerify, TargetCapabilities,
-    VerifyError, VerifyReport, CAPABILITY_SOURCE,
+    admit_leaf, compare_live_status, load_snapshot, map_acceptance_level, match_task_requirements,
+    parse_status_json, probe_live_for_target, snapshot_digest, AdmissionEntry, AdmissionTier,
+    CapabilitiesSnapshot, CapabilityMatch, CompareOutcome, DoctorReport, DoctorStatus,
+    EvidencePolicy, LiveProbeSummary, LiveStatusCompare, SemasmDoctor, SemasmStatusDocument,
+    SemasmVerify, SnapshotAdmission, TargetCapabilities, VerifyError, VerifyReport,
+    ADMISSION_SOURCE, CAPABILITY_SNAPSHOT_DIGEST, CAPABILITY_SOURCE,
 };
 pub use task::{load_locked_task, load_task_file, LockedTask, Task, TaskError};
 

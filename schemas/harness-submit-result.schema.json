@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "HarnessSubmitResult",
-  "description": "VAA harness submit result schema 0.1 — compact outcome classification returned on stdout after vaa harness submit.",
+  "description": "VAA harness submit result / Repair Feedback v1 schema 0.1 — compact outcome classification returned on stdout after vaa harness submit; optional failure/counterexample/candidate_delta/repair_focus/feedback_path fields.",
   "type": "object",
   "required": [
     "schema_version",
@@ -53,7 +53,38 @@
       "type": ["string", "null"],
       "enum": ["nasm", "gas", null]
     },
-    "may_auto_retry": { "type": "boolean" }
+    "may_auto_retry": { "type": "boolean" },
+    "failure": {
+      "type": ["object", "null"],
+      "required": ["code", "summary"],
+      "properties": {
+        "code": { "type": "string" },
+        "stage": { "type": ["string", "null"] },
+        "summary": { "type": "string" },
+        "location": {
+          "type": ["object", "null"],
+          "properties": {
+            "path": { "type": ["string", "null"] },
+            "line": { "type": ["integer", "null"] },
+            "symbol": { "type": ["string", "null"] },
+            "offset": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "counterexample": {},
+    "candidate_delta": {
+      "type": ["object", "null"],
+      "properties": {
+        "improved_gates": { "type": "array", "items": { "type": "string" } },
+        "regressed_gates": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "repair_focus": {},
+    "feedback_path": { "type": ["string", "null"] }
   },
   "additionalProperties": false
 }
