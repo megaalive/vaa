@@ -10,10 +10,28 @@ use crate::task::load_locked_task;
 /// Required filenames inside a sealable evidence bundle directory.
 pub const BUNDLE_TASK: &str = "task.vaa.toml";
 pub const BUNDLE_CONTRACT: &str = "contract.sem.toml";
+/// NASM / Intel dialect candidate source (default).
 pub const BUNDLE_SOURCE: &str = "candidate.asm";
+/// GAS / AT-syntax candidate source (AArch64 / RISC-V).
+pub const BUNDLE_SOURCE_GAS: &str = "candidate.S";
 pub const BUNDLE_REPORT: &str = "semasm-report.json";
 pub const BUNDLE_EVIDENCE: &str = "evidence.json";
 pub const BUNDLE_SEAL: &str = "evidence.seal.json";
+
+/// Read candidate source from a bundle (`candidate.asm` or `candidate.S`).
+fn read_bundle_source(bundle_dir: &Path) -> Result<Vec<u8>, SealError> {
+    let asm = bundle_dir.join(BUNDLE_SOURCE);
+    if asm.is_file() {
+        return fs::read(&asm).map_err(|e| SealError::Bundle(format!("read candidate: {e}")));
+    }
+    let gas = bundle_dir.join(BUNDLE_SOURCE_GAS);
+    if gas.is_file() {
+        return fs::read(&gas).map_err(|e| SealError::Bundle(format!("read candidate: {e}")));
+    }
+    Err(SealError::Bundle(format!(
+        "read candidate: neither {BUNDLE_SOURCE} nor {BUNDLE_SOURCE_GAS} present"
+    )))
+}
 
 /// Verify a candidate/final bundle directory against sealed digests.
 ///
@@ -53,12 +71,11 @@ pub fn verify_bundle(bundle_dir: &Path) -> Result<SealEnvelope, SealError> {
         ));
     }
 
-    let source_bytes = fs::read(bundle_dir.join(BUNDLE_SOURCE))
-        .map_err(|e| SealError::Bundle(format!("read candidate: {e}")))?;
+    let source_bytes = read_bundle_source(bundle_dir)?;
     let source_digest = sha256_digest_prefixed(&source_bytes);
     if source_digest != envelope.acceptance.source_digest {
         return Err(SealError::Bundle(
-            "candidate.asm digest != acceptance.source_digest".into(),
+            "candidate source digest != acceptance.source_digest".into(),
         ));
     }
 
@@ -208,6 +225,73 @@ mod tests {
         let err = verify_bundle(&dir).expect_err("source swap");
         assert!(matches!(err, SealError::Bundle(_)));
 
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn verify_bundle_accepts_gas_candidate_s() {
+        let task_path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/tasks/sum_i64.vaa.toml");
+        let task = load_locked_task(&task_path).unwrap();
+        let task_bytes = fs::read(&task_path).unwrap();
+        let contract_bytes = b"contract-bytes";
+        let source_bytes = b"// gas\nret\n";
+        let report_json = r#"{"status":"execution_denied"}"#;
+        let expect = EvidenceExpect::new(
+            task.task().target.clone(),
+            sha256_digest_prefixed(source_bytes),
+            sha256_digest_prefixed(contract_bytes),
+        );
+        let verify = VerifyReport {
+            outcome: EvidenceStatus::Incomplete,
+            raw_status: "execution_denied".to_owned(),
+            schema_version: Some("0.4".to_owned()),
+            diagnostics: vec![],
+            target: Some(task.task().target.clone()),
+            source_digest: Some(expect.expected_source_digest.clone()),
+            contract_digest: Some(expect.expected_contract_digest.clone()),
+            tool_version: Some("semasm 0.1.0".to_owned()),
+            raw_json: report_json.to_owned(),
+        };
+        let report = EvidenceAggregator::build(
+            &task,
+            Some("run-gas".to_owned()),
+            Some(verify),
+            Some(DoctorReport {
+                status: DoctorStatus::Available,
+                binary_path: Some(PathBuf::from("semasm")),
+                version: Some(SemasmVersion {
+                    version: "0.1.0".to_owned(),
+                    schema_version: "0.1".to_owned(),
+                }),
+                details: vec![],
+                live_probe: None,
+            }),
+            Some(CapabilityMatch {
+                compatible: true,
+                missing: vec![],
+                insufficient: vec![],
+            }),
+            &expect,
+        );
+
+        let dir = std::env::temp_dir().join(format!("vaa_bundle_gas_{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        materialize_bundle_files(&dir, &task_bytes, contract_bytes, Some(report_json)).unwrap();
+        fs::write(dir.join(BUNDLE_SOURCE_GAS), source_bytes).unwrap();
+        write_sealed_evidence(
+            &dir,
+            &report,
+            &expect,
+            SealBuildInput {
+                candidate_index: 0,
+                previous_seal_digest: None,
+                generator: GeneratorMeta::ingest("unit-gas"),
+            },
+        )
+        .unwrap();
+
+        verify_bundle(&dir).expect("gas candidate.S bundle ok");
         let _ = fs::remove_dir_all(&dir);
     }
 
