@@ -102,11 +102,11 @@ pub struct SubmitGeneratorRequest {
 
 /// Prepare a direct-assembly workspace + agent envelope.
 pub fn prepare_direct_nasm(req: &PrepareDirectRequest) -> Result<AgentEnvelope, HarnessError> {
-    req.assembler
-        .ensure_supported()
-        .map_err(HarnessError::Message)?;
     let locked = load_locked_task(&req.task).map_err(|e| HarnessError::Task(e.to_string()))?;
     let task = locked.task();
+    req.assembler
+        .ensure_supported_for(&task.target)
+        .map_err(HarnessError::Message)?;
     fs::create_dir_all(&req.workspace)?;
 
     let candidate_name = req.assembler.candidate_filename();
@@ -116,10 +116,7 @@ pub fn prepare_direct_nasm(req: &PrepareDirectRequest) -> Result<AgentEnvelope, 
     } else if !candidate.exists() {
         fs::write(
             &candidate,
-            format!(
-                "; TODO: implement `{}` for target {} (assembler={})\nbits 64\ndefault rel\nsection .text\nglobal {}\n{}:\n    ret\n",
-                task.entry.symbol, task.target, req.assembler.as_str(), task.entry.symbol, task.entry.symbol
-            ),
+            req.assembler.seed_stub(&task.entry.symbol, &task.target),
         )?;
     }
 
@@ -297,12 +294,12 @@ pub fn prepare_generator_repair(
 
 /// Submit a direct-assembly candidate through SemASM (optional ingest/seal).
 pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResult, HarnessError> {
-    req.assembler
-        .ensure_supported()
-        .map_err(HarnessError::Message)?;
-
     let locked = load_locked_task(&req.task).map_err(|e| HarnessError::Task(e.to_string()))?;
     let target = locked.task().target.clone();
+    req.assembler
+        .ensure_supported_for(&target)
+        .map_err(HarnessError::Message)?;
+
     let source_bytes = fs::read(&req.source)?;
     let candidate_digest = sha256_digest_prefixed(&source_bytes);
 
@@ -462,6 +459,7 @@ fn submit_direct_with_seal(
         doctor,
         capability_match,
         allow_execution: req.allow_execution,
+        assembler: req.assembler,
     }) {
         Ok(outcome) => {
             let raw = outcome.verify.as_ref().map(|v| v.raw_status.as_str());
@@ -879,7 +877,7 @@ fn render_direct_prompt(
         "# Direct assembly harness task `{task}`\n\n\
 Target: `{target}`\n\
 Mode: `{mode}`\n\
-Assembler: `{assembler}` (gas reserved / fail-closed until VAA build path lands)\n\
+Assembler: `{assembler}` (gas supported for aarch64/riscv64; x86_64 remains nasm)\n\
 Doctor: `{doctor:?}`\n\
 Remaining attempts: {remaining}\n\n\
 ## Writable\n\n{writable}\n\n\
@@ -891,7 +889,7 @@ Remaining attempts: {remaining}\n\n\
 - Success requires SemASM `verified` (or allowed `verified_under_preconditions`).\n\
 - `incomplete` / `execution_denied` is not success.\n\
 - Fb9c arbitrary loop invariants stay locked.\n\
-- Do not claim GAS / other assemblers until AssemblerFlavor reports supported.\n",
+- Do not claim unsupported assembler/target pairings (gas is aarch64/riscv64 only).\n",
         task = env.task_id,
         target = env.target,
         mode = env.mode.as_str(),

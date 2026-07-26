@@ -60,6 +60,8 @@ pub struct PipelineConfig {
     pub source_path: PathBuf,
     pub output_dir: PathBuf,
     pub target: String,
+    /// Assembler dialect (NASM x86_64 / GAS AArch64|RV).
+    pub assembler_flavor: crate::harness::AssemblerFlavor,
     pub extra_as_args: Vec<String>,
     pub extra_ld_args: Vec<String>,
     pub timeout: Duration,
@@ -75,6 +77,7 @@ impl Default for PipelineConfig {
             source_path: PathBuf::new(),
             output_dir: PathBuf::from("."),
             target: "elf64".to_owned(),
+            assembler_flavor: crate::harness::AssemblerFlavor::Nasm,
             extra_as_args: Vec::new(),
             extra_ld_args: Vec::new(),
             timeout: Duration::from_secs(60),
@@ -131,18 +134,23 @@ impl BuildPipeline {
         let object_path = config.output_dir.join(&object_name);
         let binary_path = config.output_dir.join(&binary_name);
 
-        let nasm_fmt = nasm_format_for_target(&config.target);
-        let mut as_args = vec![
-            "-f".to_owned(),
-            nasm_fmt.to_owned(),
-            "-o".to_owned(),
-            object_path.to_string_lossy().to_string(),
-            config.source_path.to_string_lossy().to_string(),
-        ];
+        let mut as_args = config.assembler_flavor.assemble_args(
+            &config.source_path,
+            &object_path,
+            &config.target,
+        );
         as_args.extend(config.extra_as_args.clone());
 
-        let as_cfg =
-            maybe_wrap_container(&config.assembler_path.to_string_lossy(), &as_args, config);
+        let assembler_path = if config.assembler_path.as_os_str().is_empty()
+            || (config.assembler_flavor == crate::harness::AssemblerFlavor::Gas
+                && config.assembler_path == Path::new("nasm"))
+        {
+            config.assembler_flavor.default_program(&config.target)
+        } else {
+            config.assembler_path.clone()
+        };
+
+        let as_cfg = maybe_wrap_container(&assembler_path.to_string_lossy(), &as_args, config);
 
         let as_result = ProcessRunner::run(&as_cfg);
 
@@ -155,14 +163,14 @@ impl BuildPipeline {
             Err(e) => (String::new(), format!("{e}"), false),
         };
 
-        let assembler_digest = tool_digest(&config.assembler_path);
+        let assembler_digest = tool_digest(&assembler_path);
         let linker_digest = tool_digest(&config.linker_path);
 
         if !as_ok {
             return BuildOutcome {
                 success: false,
                 manifest: BuildManifest {
-                    assembler: config.assembler_path.to_string_lossy().to_string(),
+                    assembler: assembler_path.to_string_lossy().to_string(),
                     linker: config.linker_path.to_string_lossy().to_string(),
                     source_path: config.source_path.clone(),
                     object_path,
@@ -204,7 +212,7 @@ impl BuildPipeline {
         BuildOutcome {
             success: ld_ok,
             manifest: BuildManifest {
-                assembler: config.assembler_path.to_string_lossy().to_string(),
+                assembler: assembler_path.to_string_lossy().to_string(),
                 linker: config.linker_path.to_string_lossy().to_string(),
                 source_path: config.source_path.clone(),
                 object_path,

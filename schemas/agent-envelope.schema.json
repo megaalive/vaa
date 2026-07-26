@@ -25,7 +25,7 @@
       "type": "string",
       "enum": ["nasm", "gas"],
       "default": "nasm",
-      "description": "nasm supported today; gas recognized but fail-closed until VAA dialect path lands"
+      "description": "nasm for x86_64; gas for aarch64/riscv64 Linux (fail-closed on x86_64)"
     },
     "task_id": { "type": "string" },
     "run_id": { "type": ["string", "null"] },

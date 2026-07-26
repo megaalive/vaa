@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -93,6 +93,66 @@ jobs:
           ./scripts/ci-gate-sign-setup.ps1
           cargo test --test agent_harness_gates -- --nocapture
 
+  # Agent harness gates on Linux SysV with the same SemASM tip.
+  agent-harness-gates-linux:
+    name: Agent harness gates (SemASM tip, SysV)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v6
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
+          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+
+      - name: Install NASM, LLVM (ld.lld), and qemu-user
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm lld qemu-user binutils
+          command -v qemu-x86_64
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        run: |
+          SEMASM_BIN="${GITHUB_WORKSPACE}/semasm/target/release"
+          test -x "${SEMASM_BIN}/semasm"
+          echo "${SEMASM_BIN}" >> "$GITHUB_PATH"
+          export PATH="${SEMASM_BIN}:$PATH"
+          command -v semasm
+          semasm --version
+
+      - name: Record tool versions
+        run: |
+          nasm --version
+          ld.lld --version || lld --version
+          qemu-x86_64 --version | head -n1
+
+      - name: Harness gates (signed seals; skips become failures)
+        env:
+          VAA_REQUIRE_SEMASM: "1"
+        run: |
+          chmod +x scripts/ci-gate-sign-setup.sh
+          # shellcheck disable=SC1091
+          source ./scripts/ci-gate-sign-setup.sh
+          cargo test --test agent_harness_gates -- --nocapture
+
   # P8-F: fail-closed parser fuzz smoke (not a security certification).
   fuzz:
     name: Fuzz smoke (PR-022)
@@ -147,7 +207,7 @@ jobs:
         run: cargo test --features pkcs11 softhsm_live_round_trip -- --nocapture
 
   # Gate-1: live SemASM Incomplete smoke (count_byte Win64, no --allow-execution).
-  # This is NOT a Verified vertical slice â€” see docs/progress.md.
+  # This is NOT a Verified vertical slice Ã¢â‚¬â€ see docs/progress.md.
   semasm-gate1:
     name: Gate-1 SemASM Incomplete (Win64)
     runs-on: windows-latest
@@ -160,8 +220,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
-          ref: 928bd66569320674cd49e4dd7758da17b03338c2
+          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
+          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -237,8 +297,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
-          ref: 928bd66569320674cd49e4dd7758da17b03338c2
+          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
+          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -316,7 +376,7 @@ jobs:
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
+          # Pin: match integrations/hlax64/stack.lock.toml (distinct IRâ†’NASM map lines).
           ref: 0778aad3bd8bb5394252755367de00e52618bde8
 
       - name: Setup .NET
@@ -392,7 +452,7 @@ jobs:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
           # Milestone 6 live suite path: generation + identity via pack spec.
-          # --skip-verify ⇒ Incomplete ≠ Verified (SemASM Gate remains the
+          # --skip-verify â‡’ Incomplete â‰  Verified (SemASM Gate remains the
           # existing hlax64-bridge ingest steps below / above).
           ./scripts/run-hlax64-suite.ps1 `
             -Suite integrations/hlax64/suites/scalar-win64.vaa-suite.toml `
@@ -409,8 +469,8 @@ jobs:
         env:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
-          # Pack path Gate: live generate → SemASM agent verify --allow-execution.
-          # Expects suite Accepted with Verified cases. Practice seal ≠ trust root.
+          # Pack path Gate: live generate â†’ SemASM agent verify --allow-execution.
+          # Expects suite Accepted with Verified cases. Practice seal â‰  trust root.
           # Relies on semasm already on PATH from earlier steps.
           ./scripts/run-hlax64-suite.ps1 `
             -Gate `
@@ -435,9 +495,9 @@ jobs:
         env:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
-          # Plan §17.5 Phase A named i64: return/add/sub/min/max/abs_i64.
+          # Plan Â§17.5 Phase A named i64: return/add/sub/min/max/abs_i64.
           # Requires SemASM 566ca8e+ (builtin.pure_int.binary_i64 / unary_i64).
-          # Expects suite Accepted with 6 Verified cases. Practice seal ≠ trust root.
+          # Expects suite Accepted with 6 Verified cases. Practice seal â‰  trust root.
           ./scripts/run-hlax64-suite.ps1 `
             -Gate `
             -Suite integrations/hlax64/suites/scalar-i64-win64.vaa-suite.toml `
@@ -464,7 +524,7 @@ jobs:
         env:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
-          # Plan §17.2 Phase B named loops/stack. Requires SemASM 3cae1e1+
+          # Plan Â§17.2 Phase B named loops/stack. Requires SemASM 3cae1e1+
           # (unary i64 v2: sum_range / countdown / identity aliases).
           ./scripts/run-hlax64-suite.ps1 `
             -Gate `
@@ -491,7 +551,7 @@ jobs:
           }
           $join = & cargo run -q -- generator map-join $maps[0].FullName --line 7 --format json
           if ($LASTEXITCODE -ne 0) { throw "map-join failed on $($maps[0].FullName)" }
-          # Quality: IR→NASM lines must not all collapse onto one label line.
+          # Quality: IRâ†’NASM lines must not all collapse onto one label line.
           $json = Get-Content -Raw $maps[0].FullName | ConvertFrom-Json
           $distinct = @($json.entries | ForEach-Object { $_.assembly_line } | Select-Object -Unique)
           if ($distinct.Count -lt 2) {
@@ -509,7 +569,7 @@ jobs:
         env:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
-          # Honesty: memory-leaf affine ⇒ verified_under_preconditions ≠ verified.
+          # Honesty: memory-leaf affine â‡’ verified_under_preconditions â‰  verified.
           ./scripts/run-hlax64-suite.ps1 -Gate `
             -Suite integrations/hlax64/suites/memory-read-win64.vaa-suite.toml `
             -Repo $env:HLAX64_ROOT `
@@ -538,7 +598,7 @@ jobs:
         env:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
-          # Literal region length ⇒ SemASM verified (≠ under_preconditions).
+          # Literal region length â‡’ SemASM verified (â‰  under_preconditions).
           # Requires SemASM 28fb22f+ (load_byte0 / store_byte0 oracles).
           ./scripts/run-hlax64-suite.ps1 -Gate `
             -Suite integrations/hlax64/suites/memory-concrete-win64.vaa-suite.toml `
@@ -559,7 +619,7 @@ jobs:
         shell: pwsh
         run: |
           # Universality: EchoAsm copy-generator + SemASM concrete cell Gate.
-          # load_byte0 + store_byte0. Practice seal ≠ trust root.
+          # load_byte0 + store_byte0. Practice seal â‰  trust root.
           if (-not $env:VAA_SEAL_SIGNING_KEY) {
             ./scripts/ci-gate-sign-setup.ps1
           }
@@ -745,8 +805,8 @@ jobs:
         env:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
-          # Plan §17.5 Phase E: call ABI, sections, aggregate layout.
-          # --skip-verify ⇒ Incomplete ≠ Verified.
+          # Plan Â§17.5 Phase E: call ABI, sections, aggregate layout.
+          # --skip-verify â‡’ Incomplete â‰  Verified.
           ./scripts/run-hlax64-suite.ps1 `
             -Suite integrations/hlax64/suites/calls-data-win64.vaa-suite.toml `
             -Repo $env:HLAX64_ROOT `
@@ -764,7 +824,7 @@ jobs:
           HLAX64_ROOT: ${{ github.workspace }}/hlax64
         run: |
           # SysV live: emit-nasm --target linux-x64-sysv via generator.sysv.spec.
-          # Emitting from any host is fine (text-only); --skip-verify ⇒ Incomplete.
+          # Emitting from any host is fine (text-only); --skip-verify â‡’ Incomplete.
           ./scripts/run-hlax64-suite.ps1 `
             -Suite integrations/hlax64/suites/scalar-sysv.vaa-suite.toml `
             -Repo $env:HLAX64_ROOT `
@@ -834,7 +894,7 @@ jobs:
           if-no-files-found: error
 
   # Gate-1 Linux: live SemASM Incomplete smoke (count_byte/sysv64, no --allow-execution).
-  # VAA+SemASM smoke on the pinned SemASM SHA â€” not a claim SemASM Linux is upstream CI-verified.
+  # VAA+SemASM smoke on the pinned SemASM SHA Ã¢â‚¬â€ not a claim SemASM Linux is upstream CI-verified.
   semasm-gate1-linux:
     name: Gate-1 SemASM Incomplete (Linux)
     runs-on: ubuntu-latest
@@ -847,8 +907,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
-          ref: 928bd66569320674cd49e4dd7758da17b03338c2
+          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
+          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -926,8 +986,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip 928bd66 (find_* memory-leaf + Sei).
-          ref: 928bd66569320674cd49e4dd7758da17b03338c2
+          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
+          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -1009,7 +1069,7 @@ jobs:
         with:
           repository: megaalive/hlax64
           path: hlax64
-          # Pin: match integrations/hlax64/stack.lock.toml (distinct IR→NASM map lines).
+          # Pin: match integrations/hlax64/stack.lock.toml (distinct IRâ†’NASM map lines).
           ref: 0778aad3bd8bb5394252755367de00e52618bde8
 
       - name: Setup .NET

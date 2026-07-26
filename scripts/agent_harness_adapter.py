@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Minimal reference adapter: spawn `vaa harness` and parse stdout JSON only.
+"""Reference adapter: spawn `vaa harness` and parse stdout JSON only.
 
-This is intentionally not an SDK. Controllers should treat stderr as noise.
-Supports direct assembly (NASM today; GAS reserved/fail-closed) and generator repair.
+Controllers must treat stderr as noise. Supports:
+  - one-shot prepare / submit / status helpers
+  - deterministic `loop-direct` that applies a sequence of candidate sources
+    (wrong → repaired) until accepted / budget / policy / hard failure
+
+This is intentionally not an SDK and does not call an LLM.
 """
 
 from __future__ import annotations
@@ -10,9 +14,21 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
+
+
+TERMINAL_CLASSES = frozenset(
+    {
+        "accepted",
+        "policy_blocked",
+        "failed",
+        "incomplete_coverage",
+    }
+)
 
 
 def run_vaa(args: list[str], timeout: float | None = None) -> dict[str, Any]:
@@ -39,6 +55,132 @@ def run_vaa(args: list[str], timeout: float | None = None) -> dict[str, Any]:
         ) from exc
     payload["_vaa_exit_code"] = proc.returncode
     return payload
+
+
+def emit(payload: dict[str, Any]) -> int:
+    json.dump(payload, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return int(payload.get("_vaa_exit_code", 0))
+
+
+def loop_direct(ns: argparse.Namespace) -> dict[str, Any]:
+    workspace = Path(ns.workspace)
+    workspace.mkdir(parents=True, exist_ok=True)
+    run_base = Path(ns.run_base)
+    run_base.mkdir(parents=True, exist_ok=True)
+
+    prep_args = [
+        "harness",
+        "prepare",
+        "--mode",
+        "direct-nasm",
+        "--task",
+        ns.task,
+        "--contract",
+        ns.contract,
+        "--workspace",
+        str(workspace),
+        "--assembler",
+        ns.assembler,
+        "--format",
+        "json",
+    ]
+    if ns.seed:
+        prep_args.extend(["--seed", ns.seed])
+    if ns.allow_execution:
+        prep_args.append("--allow-execution")
+    envelope = run_vaa(prep_args)
+
+    candidate_name = "candidate.S" if ns.assembler == "gas" else "candidate.asm"
+    candidate_path = workspace / candidate_name
+    steps: list[dict[str, Any]] = []
+    run_dir: str | None = None
+    last: dict[str, Any] = envelope
+
+    for index, source in enumerate(ns.candidate):
+        shutil.copyfile(source, candidate_path)
+        submit_args = [
+            "harness",
+            "submit",
+            "--mode",
+            "direct-nasm",
+            "--task",
+            ns.task,
+            "--contract",
+            ns.contract,
+            "--source",
+            str(candidate_path),
+            "--assembler",
+            ns.assembler,
+            "--timeout",
+            str(ns.timeout),
+            "--format",
+            "json",
+        ]
+        if ns.allow_execution:
+            submit_args.append("--allow-execution")
+        if ns.allow_under_preconditions:
+            submit_args.append("--allow-under-preconditions")
+        if run_dir:
+            submit_args.extend(["--run-dir", run_dir])
+        else:
+            submit_args.extend(["--run-base", str(run_base)])
+
+        result = run_vaa(submit_args, timeout=float(ns.timeout) + 60.0)
+        step = {
+            "index": index,
+            "source": source,
+            "class": result.get("class"),
+            "next_action": result.get("next_action"),
+            "failure_code": result.get("failure_code"),
+            "candidate_index": result.get("candidate_index"),
+            "exit_code": result.get("_vaa_exit_code"),
+        }
+        steps.append(step)
+        last = result
+        if result.get("run_dir"):
+            run_dir = result["run_dir"]
+
+        cls = result.get("class")
+        if cls == "accepted":
+            break
+        if cls in TERMINAL_CLASSES and cls != "incomplete_coverage":
+            # incomplete_coverage may continue with --allow-execution already set
+            if cls != "violated_repairable":
+                break
+        if result.get("failure_code") == "BUDGET_EXHAUSTED":
+            break
+        if cls == "toolchain_retryable" and not result.get("may_auto_retry"):
+            break
+
+    status = None
+    if run_dir:
+        status = run_vaa(
+            ["harness", "status", "--run-dir", run_dir, "--format", "json"]
+        )
+
+    return {
+        "schema_version": "0.1",
+        "kind": "agent_harness_loop",
+        "mode": "direct",
+        "envelope": {
+            "task_id": envelope.get("task_id"),
+            "target": envelope.get("target"),
+            "assembler": envelope.get("assembler"),
+            "remaining_attempts": envelope.get("remaining_attempts"),
+        },
+        "steps": steps,
+        "final": {
+            "class": last.get("class"),
+            "next_action": last.get("next_action"),
+            "failure_code": last.get("failure_code"),
+            "run_dir": run_dir,
+            "seal_digest": last.get("seal_digest"),
+            "exit_code": last.get("_vaa_exit_code"),
+        },
+        "status": status,
+        "_vaa_exit_code": last.get("_vaa_exit_code", 0),
+    }
 
 
 def main() -> int:
@@ -85,6 +227,26 @@ def main() -> int:
     p_st = sub.add_parser("status")
     p_st.add_argument("--run-dir", required=True)
 
+    p_loop = sub.add_parser(
+        "loop-direct",
+        help="Deterministic envelope→edit→submit loop over --candidate sources",
+    )
+    p_loop.add_argument("--task", required=True)
+    p_loop.add_argument("--contract", required=True)
+    p_loop.add_argument("--workspace", required=True)
+    p_loop.add_argument("--run-base", required=True)
+    p_loop.add_argument(
+        "--candidate",
+        action="append",
+        required=True,
+        help="Candidate source to copy into the workspace (repeatable, in order)",
+    )
+    p_loop.add_argument("--seed")
+    p_loop.add_argument("--assembler", default="nasm", choices=["nasm", "gas"])
+    p_loop.add_argument("--allow-execution", action="store_true")
+    p_loop.add_argument("--allow-under-preconditions", action="store_true")
+    p_loop.add_argument("--timeout", type=int, default=120)
+
     ns = parser.parse_args()
     if ns.cmd == "prepare-direct":
         args = [
@@ -109,25 +271,27 @@ def main() -> int:
             args.extend(["--run-dir", ns.run_dir])
         if ns.allow_execution:
             args.append("--allow-execution")
-        payload = run_vaa(args)
-    elif ns.cmd == "prepare-generator":
-        payload = run_vaa(
-            [
-                "harness",
-                "prepare",
-                "--mode",
-                "generator-repair",
-                "--repair-packet",
-                ns.repair_packet,
-                "--workspace",
-                ns.workspace,
-                "--target",
-                ns.target,
-                "--format",
-                "json",
-            ]
+        return emit(run_vaa(args))
+    if ns.cmd == "prepare-generator":
+        return emit(
+            run_vaa(
+                [
+                    "harness",
+                    "prepare",
+                    "--mode",
+                    "generator-repair",
+                    "--repair-packet",
+                    ns.repair_packet,
+                    "--workspace",
+                    ns.workspace,
+                    "--target",
+                    ns.target,
+                    "--format",
+                    "json",
+                ]
+            )
         )
-    elif ns.cmd == "submit":
+    if ns.cmd == "submit":
         args = [
             "harness",
             "submit",
@@ -156,8 +320,8 @@ def main() -> int:
             args.extend(["--run-base", ns.run_base])
         if ns.idempotency_key:
             args.extend(["--idempotency-key", ns.idempotency_key])
-        payload = run_vaa(args, timeout=float(ns.timeout) + 60.0)
-    elif ns.cmd == "submit-generator":
+        return emit(run_vaa(args, timeout=float(ns.timeout) + 60.0))
+    if ns.cmd == "submit-generator":
         args = [
             "harness",
             "submit",
@@ -184,15 +348,12 @@ def main() -> int:
             args.extend(["--run-base", ns.run_base])
         if ns.repo:
             args.extend(["--repo", ns.repo])
-        payload = run_vaa(args)
-    else:
-        payload = run_vaa(
-            ["harness", "status", "--run-dir", ns.run_dir, "--format", "json"]
-        )
-
-    json.dump(payload, sys.stdout, indent=2)
-    sys.stdout.write("\n")
-    return int(payload.get("_vaa_exit_code", 0))
+        return emit(run_vaa(args))
+    if ns.cmd == "loop-direct":
+        return emit(loop_direct(ns))
+    return emit(
+        run_vaa(["harness", "status", "--run-dir", ns.run_dir, "--format", "json"])
+    )
 
 
 if __name__ == "__main__":

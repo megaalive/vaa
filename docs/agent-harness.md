@@ -18,12 +18,12 @@ invariants stay locked.
 
 | Flavor | Status | Candidate file |
 |---|---|---|
-| `nasm` | Supported (Win64 / SysV x86_64) | `candidate.asm` |
-| `gas` | **Reserved / fail-closed** | `candidate.S` (when enabled) |
+| `nasm` | Supported for x86_64 Win64 / SysV | `candidate.asm` |
+| `gas` | Supported for AArch64 / RISC-V Linux | `candidate.S` |
 
-SemASM already has gas dialects for AArch64/RISC-V. VAA's build + object-inspect
-path is still NASM-hardcoded for x86_64, so `vaa harness … --assembler gas`
-rejects until that wiring lands. Do not invent cross-assembler claims.
+`gas` on x86_64 stays **fail-closed** (SemASM+VAA remain NASM/Intel there).
+VAA object-inspect / build pipeline select `nasm` vs `aarch64-linux-gnu-as` /
+`riscv64-linux-gnu-as` from the flavor+target pair.
 
 ## Case kit layout
 
@@ -102,11 +102,25 @@ evidence dir, seal cursor, and recent events — not human logs as decision trut
 See [`../scripts/agent_harness_adapter.py`](../scripts/agent_harness_adapter.py):
 spawn `vaa harness …`, parse stdout JSON, never scrape stderr for decisions.
 
+Deterministic loop (no LLM) — prepare, then apply candidates in order until
+accepted / budget / policy:
+
+```text
+python scripts/agent_harness_adapter.py loop-direct \
+  --task fixtures/run/count_byte/count_byte.vaa.toml \
+  --contract fixtures/run/count_byte/count_byte.sem.toml \
+  --workspace .vaa/harness/demo \
+  --run-base .vaa/runs \
+  --allow-execution --allow-under-preconditions \
+  --candidate fixtures/run/count_byte/01_wrong.asm \
+  --candidate fixtures/run/count_byte/02_repaired.asm
+```
+
 ## Protocol freeze
 
 - SemASM: `docs/CONTROLLER_PROTOCOL.md`, `docs/CLI_COMPATIBILITY.md`,
   VerificationReport `>=0.4,<0.6`, early `agent_failure` schema `0.1`.
 - VAA: `schemas/agent-envelope.schema.json`, `schemas/repair-packet.schema.json`,
-  submit result schema `0.1`.
-
-No HTTP/MCP surface until this CLI+JSON loop stays stable in CI.
+  `schemas/harness-submit-result.schema.json`, submit result schema `0.1`.
+  Golden fixtures live under `schemas/fixtures/`; `tests/protocol_freeze_gates.rs`
+  fails on field/schema drift.

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HarnessSubmitResult",
+  "description": "VAA harness submit result schema 0.1 — compact outcome classification returned on stdout after vaa harness submit.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "class",
+    "next_action",
+    "evidence_status",
+    "exit_code",
+    "message",
+    "may_auto_retry"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "class": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "violated_repairable",
+        "incomplete_coverage",
+        "toolchain_retryable",
+        "policy_blocked",
+        "failed"
+      ]
+    },
+    "next_action": {
+      "type": "string",
+      "enum": [
+        "done",
+        "edit_candidate",
+        "edit_generator",
+        "opt_in_execution",
+        "fix_toolchain",
+        "stop_policy",
+        "abort"
+      ]
+    },
+    "evidence_status": { "type": "string" },
+    "raw_status": { "type": ["string", "null"] },
+    "exit_code": { "type": "integer", "minimum": 0, "maximum": 255 },
+    "message": { "type": "string" },
+    "failure_code": { "type": ["string", "null"] },
+    "candidate_digest": { "type": ["string", "null"] },
+    "run_dir": { "type": ["string", "null"] },
+    "run_id": { "type": ["string", "null"] },
+    "candidate_index": { "type": ["integer", "null"], "minimum": 0 },
+    "candidate_dir": { "type": ["string", "null"] },
+    "seal_digest": { "type": ["string", "null"] },
+    "patch_evidence_path": { "type": ["string", "null"] },
+    "assembler": {
+      "type": ["string", "null"],
+      "enum": ["nasm", "gas", null]
+    },
+    "may_auto_retry": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

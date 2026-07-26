@@ -249,6 +249,7 @@ pub fn run_search(
             doctor: doctor.clone(),
             capability_match: capability_match.clone(),
             allow_execution: cfg.allow_execution,
+            assembler: crate::harness::AssemblerFlavor::Nasm,
         }) {
             Ok(o) => o,
             Err(e) => {

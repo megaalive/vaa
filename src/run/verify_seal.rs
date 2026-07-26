@@ -61,6 +61,8 @@ pub struct VerifySealInput<'a> {
     pub doctor: DoctorReport,
     pub capability_match: CapabilityMatch,
     pub allow_execution: bool,
+    /// Assembler used for object-inspect (NASM x86_64 / GAS AArch64|RV).
+    pub assembler: crate::harness::AssemblerFlavor,
 }
 
 /// Submit candidate, run SemASM verify, aggregate evidence, write per-candidate seal + final.
@@ -88,7 +90,7 @@ pub fn verify_candidate_and_seal(
             other => VerifySealError::RunDir(other.to_string()),
         })?;
 
-    let source_path = cand_dir.join("candidate.asm");
+    let source_path = cand_dir.join(input.assembler.candidate_filename());
     input
         .run_dir
         .write_new_file(&source_path, source_text.as_bytes())
@@ -131,7 +133,12 @@ pub fn verify_candidate_and_seal(
         contract_digest.clone(),
     );
     if input.locked.task().verification.require_object_inspection {
-        expect.object_inspection = Some(assemble_and_inspect(&source_path, &cand_dir, &target));
+        expect.object_inspection = Some(assemble_and_inspect_with(
+            &source_path,
+            &cand_dir,
+            &target,
+            input.assembler,
+        ));
     }
     if input.locked.task().verification.require_reproducible_build {
         let (matched, details) = crate::build::reproducible_build_check(&source_path, &target);
@@ -206,17 +213,29 @@ pub fn assemble_and_inspect(
     out_dir: &Path,
     target: &str,
 ) -> ObjectInspectionOutcome {
+    assemble_and_inspect_with(
+        source_path,
+        out_dir,
+        target,
+        crate::harness::AssemblerFlavor::Nasm,
+    )
+}
+
+/// Assemble with an explicit [`crate::harness::AssemblerFlavor`].
+#[must_use]
+pub fn assemble_and_inspect_with(
+    source_path: &Path,
+    out_dir: &Path,
+    target: &str,
+    assembler: crate::harness::AssemblerFlavor,
+) -> ObjectInspectionOutcome {
     let object_path = out_dir.join("candidate.o");
-    let fmt = crate::nasm_format_for_target(target);
+    let program = assembler.default_program(target);
+    let args = assembler.assemble_args(source_path, &object_path, target);
+    let tool = assembler.as_str();
     let cfg = ProcessConfig {
-        program: PathBuf::from("nasm"),
-        args: vec![
-            "-f".to_owned(),
-            fmt.to_owned(),
-            "-o".to_owned(),
-            object_path.to_string_lossy().to_string(),
-            source_path.to_string_lossy().to_string(),
-        ],
+        program,
+        args,
         timeout: Duration::from_secs(60),
         max_output_bytes: 1_048_576,
         ..ProcessConfig::default()
@@ -238,7 +257,7 @@ pub fn assemble_and_inspect(
         },
         Ok(out) => ObjectInspectionOutcome {
             error: Some(format!(
-                "nasm failed code={:?} stderr={}",
+                "{tool} failed code={:?} stderr={}",
                 out.exit_code, out.stderr
             )),
             has_wxorx: false,
@@ -246,7 +265,7 @@ pub fn assemble_and_inspect(
             format: "none".into(),
         },
         Err(e) => ObjectInspectionOutcome {
-            error: Some(format!("nasm invoke failed: {e}")),
+            error: Some(format!("{tool} invoke failed: {e}")),
             has_wxorx: false,
             has_executable_stack: false,
             format: "none".into(),
@@ -288,5 +307,6 @@ pub fn ingest_candidate(
         doctor,
         capability_match: cm,
         allow_execution,
+        assembler: crate::harness::AssemblerFlavor::Nasm,
     })
 }

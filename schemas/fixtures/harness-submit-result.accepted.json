@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "class": "accepted",
+  "next_action": "done",
+  "evidence_status": "verified",
+  "raw_status": "verified",
+  "exit_code": 0,
+  "message": "sealed verified candidate",
+  "candidate_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "run_dir": ".vaa/runs/example",
+  "run_id": "example",
+  "candidate_index": 1,
+  "candidate_dir": ".vaa/runs/example/candidates/0001",
+  "seal_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "assembler": "nasm",
+  "may_auto_retry": false
+}

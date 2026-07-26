@@ -184,6 +184,7 @@ pub fn run_fixture_loop(config: &RunConfig<'_>) -> Result<RunOutcome, RunError> 
             doctor: doctor.clone(),
             capability_match: cm.clone(),
             allow_execution: config.allow_execution,
+            assembler: crate::harness::AssemblerFlavor::Nasm,
         })
         .map_err(|e| match e {
             crate::run::verify_seal::VerifySealError::SemasmUnavailable => {

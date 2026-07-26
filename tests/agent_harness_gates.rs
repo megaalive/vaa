@@ -111,9 +111,48 @@ fn harness_prepare_gas_is_fail_closed() {
         .expect("prepare gas");
     assert!(
         !out.status.success(),
-        "gas prepare must fail-closed; stdout={}",
+        "gas+x86_64 prepare must fail-closed; stdout={}",
         String::from_utf8_lossy(&out.stdout)
     );
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn harness_prepare_gas_aarch64_is_supported() {
+    let tmp = tmp("vaa-harness-gas-a64");
+    let task = root().join("fixtures/run/gas_aarch64/task.vaa.toml");
+    let contract = root().join("fixtures/run/gas_aarch64/contract.sem.toml");
+    let out = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "prepare",
+            "--mode",
+            "direct",
+            "--task",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--workspace",
+            tmp.to_str().unwrap(),
+            "--assembler",
+            "gas",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("prepare gas aarch64");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        out.status.success(),
+        "gas+aarch64 prepare failed: {stdout}\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let value: serde_json::Value = serde_json::from_str(stdout.trim()).expect("json");
+    assert_eq!(value["assembler"], "gas");
+    assert_eq!(value["target"], "aarch64-unknown-linux-gnu");
+    assert!(tmp.join("candidate.S").is_file());
+    let stub = std::fs::read_to_string(tmp.join("candidate.S")).unwrap();
+    assert!(stub.contains(".global"), "expected gas stub: {stub}");
     let _ = std::fs::remove_dir_all(&tmp);
 }
 
@@ -158,6 +197,10 @@ fn harness_prepare_generator_repair_from_fixture() {
 #[test]
 #[allow(clippy::too_many_lines)]
 fn harness_submit_wrong_then_repaired_with_seal_and_chain() {
+    if !cfg!(windows) {
+        eprintln!("skipping Win64 seal gate on non-Windows host");
+        return;
+    }
     if !semasm_available() {
         assert!(
             !semasm_required(),
@@ -472,6 +515,268 @@ fn invalid_nasm_structured_failure_when_semasm_present() {
         );
     }
     let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+#[allow(clippy::too_many_lines)]
+fn harness_submit_sysv_wrong_then_repaired_with_seal() {
+    if !cfg!(target_os = "linux") {
+        eprintln!("skipping SysV seal gate on non-Linux host");
+        return;
+    }
+    if !semasm_available() {
+        assert!(
+            !semasm_required(),
+            "VAA_REQUIRE_SEMASM is set but semasm is unavailable"
+        );
+        eprintln!("skipping SysV seal gate: semasm unavailable");
+        return;
+    }
+
+    let run_base = tmp("vaa-harness-sysv-seal");
+    let task = root().join("fixtures/run/count_byte_linux/count_byte.vaa.toml");
+    let contract = root().join("fixtures/run/count_byte_linux/count_byte.sem.toml");
+    let wrong = root().join("fixtures/run/count_byte_linux/01_wrong.asm");
+    let repaired = root().join("fixtures/run/count_byte_linux/02_repaired.asm");
+
+    let wrong_out = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "submit",
+            "--mode",
+            "direct-nasm",
+            "--task",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            wrong.to_str().unwrap(),
+            "--allow-execution",
+            "--run-base",
+            run_base.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("submit wrong sysv");
+    let wrong_stdout = String::from_utf8_lossy(&wrong_out.stdout);
+    let wrong_json: serde_json::Value =
+        serde_json::from_str(wrong_stdout.trim()).unwrap_or_else(|_| {
+            panic!(
+                "expected JSON stdout for wrong SysV candidate; got: {wrong_stdout}\nstderr={}",
+                String::from_utf8_lossy(&wrong_out.stderr)
+            )
+        });
+    let class = wrong_json["class"].as_str().unwrap_or_default();
+    if class == "toolchain_retryable" {
+        assert!(
+            !semasm_required(),
+            "VAA_REQUIRE_SEMASM is set but toolchain is incomplete: {wrong_json}"
+        );
+        eprintln!("skipping SysV seal gate: toolchain retryable ({wrong_json})");
+        let _ = std::fs::remove_dir_all(&run_base);
+        return;
+    }
+    assert!(
+        matches!(
+            class,
+            "violated_repairable" | "failed" | "incomplete_coverage" | "accepted"
+        ),
+        "unexpected class={class} {wrong_json}"
+    );
+    let run_dir = wrong_json["run_dir"]
+        .as_str()
+        .expect("sealed submit must return run_dir")
+        .to_owned();
+
+    // Mid-loop resume: cursor advances after first seal; remaining attempts known.
+    let mid = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "status",
+            "--run-dir",
+            &run_dir,
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("mid status");
+    let mid_json: serde_json::Value =
+        serde_json::from_str(String::from_utf8_lossy(&mid.stdout).trim()).expect("status json");
+    assert_eq!(mid_json["next_candidate_index"], 1, "{mid_json}");
+    assert!(mid_json["events_path"].as_str().is_some());
+
+    let ok_out = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "submit",
+            "--mode",
+            "direct-nasm",
+            "--task",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            repaired.to_str().unwrap(),
+            "--allow-execution",
+            "--allow-under-preconditions",
+            "--run-dir",
+            &run_dir,
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("submit repaired sysv");
+    let ok_stdout = String::from_utf8_lossy(&ok_out.stdout);
+    let ok_json: serde_json::Value = serde_json::from_str(ok_stdout.trim()).unwrap_or_else(|_| {
+        panic!(
+            "expected JSON stdout for repaired SysV; got: {ok_stdout}\nstderr={}",
+            String::from_utf8_lossy(&ok_out.stderr)
+        )
+    });
+    assert_eq!(
+        ok_json["class"], "accepted",
+        "repaired SysV candidate not accepted: {ok_json}"
+    );
+    assert_eq!(ok_json["candidate_index"], 1);
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", &run_dir])
+        .output()
+        .expect("verify-chain");
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={}\nstderr={}",
+        String::from_utf8_lossy(&chain.stdout),
+        String::from_utf8_lossy(&chain.stderr)
+    );
+
+    let _ = std::fs::remove_dir_all(&run_base);
+}
+
+#[test]
+#[allow(clippy::too_many_lines)]
+fn harness_budget_exhausted_refuses_reseal() {
+    let (task, contract, seed) = if cfg!(windows) {
+        (
+            root().join("fixtures/run/count_byte/count_byte_budget1.vaa.toml"),
+            root().join("fixtures/run/count_byte/count_byte.sem.toml"),
+            root().join("fixtures/run/count_byte/01_wrong.asm"),
+        )
+    } else if cfg!(target_os = "linux") {
+        (
+            root().join("fixtures/run/count_byte_linux/count_byte_budget1.vaa.toml"),
+            root().join("fixtures/run/count_byte_linux/count_byte.sem.toml"),
+            root().join("fixtures/run/count_byte_linux/01_wrong.asm"),
+        )
+    } else {
+        eprintln!("skipping budget gate: unsupported host");
+        return;
+    };
+    if !semasm_available() {
+        assert!(
+            !semasm_required(),
+            "VAA_REQUIRE_SEMASM is set but semasm is unavailable"
+        );
+        eprintln!("skipping budget gate: semasm unavailable");
+        return;
+    }
+
+    let run_base = tmp("vaa-harness-budget");
+    let first = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "submit",
+            "--mode",
+            "direct-nasm",
+            "--task",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            seed.to_str().unwrap(),
+            "--allow-execution",
+            "--run-base",
+            run_base.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("first submit");
+    let first_stdout = String::from_utf8_lossy(&first.stdout);
+    let first_json: serde_json::Value =
+        serde_json::from_str(first_stdout.trim()).unwrap_or_else(|_| {
+            panic!(
+                "expected JSON; got {first_stdout}\nstderr={}",
+                String::from_utf8_lossy(&first.stderr)
+            )
+        });
+    if first_json["class"] == "toolchain_retryable" {
+        assert!(
+            !semasm_required(),
+            "VAA_REQUIRE_SEMASM is set but toolchain incomplete: {first_json}"
+        );
+        let _ = std::fs::remove_dir_all(&run_base);
+        return;
+    }
+    let run_dir = first_json["run_dir"]
+        .as_str()
+        .expect("run_dir after first seal")
+        .to_owned();
+    assert_eq!(first_json["candidate_index"], 0);
+
+    let second = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "submit",
+            "--mode",
+            "direct-nasm",
+            "--task",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            seed.to_str().unwrap(),
+            "--allow-execution",
+            "--run-dir",
+            &run_dir,
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("second submit");
+    let second_stdout = String::from_utf8_lossy(&second.stdout);
+    let second_json: serde_json::Value =
+        serde_json::from_str(second_stdout.trim()).unwrap_or_else(|_| {
+            panic!(
+                "expected JSON; got {second_stdout}\nstderr={}",
+                String::from_utf8_lossy(&second.stderr)
+            )
+        });
+    assert_eq!(
+        second_json["failure_code"], "BUDGET_EXHAUSTED",
+        "{second_json}"
+    );
+    assert_eq!(second_json["class"], "failed", "{second_json}");
+    assert_eq!(second.status.code(), Some(7)); // ExitCode::BudgetExhausted
+
+    // Resume still reports the sealed cursor (next would be 1, past max).
+    let status = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "status",
+            "--run-dir",
+            &run_dir,
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("status");
+    let status_json: serde_json::Value =
+        serde_json::from_str(String::from_utf8_lossy(&status.stdout).trim()).expect("status json");
+    assert_eq!(status_json["next_candidate_index"], 1, "{status_json}");
+
+    let _ = std::fs::remove_dir_all(&run_base);
 }
 
 #[allow(dead_code)]

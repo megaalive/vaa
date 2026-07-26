@@ -171,3 +171,53 @@ fn semasm_agent_failure_golden_parses_to_structured_error() {
         other => panic!("expected VerifyError::AgentFailure, got {other:?}"),
     }
 }
+
+#[test]
+fn harness_submit_result_fixture_round_trips_exactly() {
+    let fixture = read_json("schemas/fixtures/harness-submit-result.accepted.json");
+    let result: vaa::HarnessSubmitResult = serde_json::from_value(fixture.clone())
+        .expect("golden fixture parses as HarnessSubmitResult");
+    assert_eq!(result.schema_version, vaa::HARNESS_SUBMIT_SCHEMA_VERSION);
+    let back = serde_json::to_value(&result).expect("serialize");
+    assert_eq!(
+        back, fixture,
+        "HarnessSubmitResult serialization drifted from the golden fixture; \
+         update schemas/fixtures/harness-submit-result.accepted.json and the schema together"
+    );
+}
+
+#[test]
+fn harness_submit_result_schema_declares_every_serialized_field() {
+    let schema = read_json("schemas/harness-submit-result.schema.json");
+    assert_eq!(
+        schema["properties"]["schema_version"]["const"],
+        Value::from(vaa::HARNESS_SUBMIT_SCHEMA_VERSION),
+        "schema const must track HARNESS_SUBMIT_SCHEMA_VERSION"
+    );
+
+    let full = vaa::HarnessSubmitResult {
+        schema_version: vaa::HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
+        class: vaa::HarnessOutcomeClass::Failed,
+        next_action: vaa::HarnessNextAction::Abort,
+        evidence_status: "failed".into(),
+        raw_status: Some("assemble_failed".into()),
+        exit_code: 2,
+        message: "structured failure".into(),
+        failure_code: Some("ASSEMBLE_FAILED".into()),
+        candidate_digest: Some("sha256:aa".into()),
+        run_dir: Some("runs/r1".into()),
+        run_id: Some("r1".into()),
+        candidate_index: Some(0),
+        candidate_dir: Some("runs/r1/candidates/0000".into()),
+        seal_digest: Some("sha256:bb".into()),
+        patch_evidence_path: Some("patch-evidence.json".into()),
+        assembler: Some("nasm".into()),
+        may_auto_retry: false,
+    };
+    let value = serde_json::to_value(&full).expect("serialize");
+    assert_keys_declared(&schema, &value, "HarnessSubmitResult");
+
+    let fixture = read_json("schemas/fixtures/harness-submit-result.accepted.json");
+    assert_keys_declared(&schema, &fixture, "HarnessSubmitResult fixture");
+    assert_required_present(&schema, &fixture, "HarnessSubmitResult fixture");
+}
