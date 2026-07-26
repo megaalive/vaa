@@ -139,13 +139,7 @@ fn author_lock_admitted_max_i64_writes_locked_marker() {
     );
     let case = out.join("max_i64");
     let lock = Command::new(vaa_bin())
-        .args([
-            "author",
-            "lock",
-            case.to_str().unwrap(),
-            "--format",
-            "json",
-        ])
+        .args(["author", "lock", case.to_str().unwrap(), "--format", "json"])
         .current_dir(root())
         .output()
         .expect("lock");

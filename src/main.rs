@@ -342,6 +342,11 @@ enum Commands {
         #[command(subcommand)]
         command: AuthorCommands,
     },
+    /// Correctness-preserving optimize (`rank` / `validate`) — Release D.
+    Optimize {
+        #[command(subcommand)]
+        command: OptimizeCommands,
+    },
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -410,6 +415,33 @@ enum AgentCommands {
         /// Optional leaf / shape filter (`max_i64`, `count_byte`, …).
         #[arg(long)]
         shape: Option<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum OptimizeCommands {
+    /// Rank sealed candidates under a run dir; write `selection-evidence.json`.
+    Rank {
+        /// Existing run directory with sealed candidates.
+        #[arg(long)]
+        run_dir: PathBuf,
+        /// Objective TOML (`schemas/objective.vaa.schema.json`).
+        #[arg(long)]
+        objective: PathBuf,
+        /// Allow `verified_under_preconditions` as accepted for ranking (never promotes to verified).
+        #[arg(long, default_value_t = false)]
+        allow_under_preconditions: bool,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Validate an objective TOML file (fail-closed).
+    Validate {
+        /// Path to `objective.toml`.
+        objective: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
     },
 }
 
@@ -1635,6 +1667,17 @@ fn run_cli() -> ExitCode {
                 experimental,
                 format,
             } => author_lock_command(&case_dir, experimental, format),
+        },
+        Commands::Optimize { command } => match command {
+            OptimizeCommands::Rank {
+                run_dir,
+                objective,
+                allow_under_preconditions,
+                format,
+            } => optimize_rank_command(&run_dir, &objective, allow_under_preconditions, format),
+            OptimizeCommands::Validate { objective, format } => {
+                optimize_validate_command(&objective, format)
+            }
         },
     }
 }
@@ -3199,9 +3242,8 @@ fn author_init_command(
                 OutputFormat::Json => {
                     println!(
                         "{}",
-                        serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
-                            format!(r#"{{"ok":false,"error":"{e}"}}"#)
-                        })
+                        serde_json::to_string_pretty(&result)
+                            .unwrap_or_else(|e| { format!(r#"{{"ok":false,"error":"{e}"}}"#) })
                     );
                 }
             }
@@ -3219,10 +3261,7 @@ fn author_review_command(case_dir: &Path, format: OutputFormat) -> ExitCode {
         Ok(result) => {
             match format {
                 OutputFormat::Terminal => {
-                    println!(
-                        "{}: author review",
-                        if result.ok { "ok" } else { "issues" }
-                    );
+                    println!("{}: author review", if result.ok { "ok" } else { "issues" });
                     println!("  case_dir: {}", result.case_dir.display());
                     if let Some(state) = &result.state {
                         println!("  state: {}", state.state.as_str());
@@ -3261,9 +3300,8 @@ fn author_review_command(case_dir: &Path, format: OutputFormat) -> ExitCode {
                 OutputFormat::Json => {
                     println!(
                         "{}",
-                        serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
-                            format!(r#"{{"ok":false,"error":"{e}"}}"#)
-                        })
+                        serde_json::to_string_pretty(&result)
+                            .unwrap_or_else(|e| { format!(r#"{{"ok":false,"error":"{e}"}}"#) })
                     );
                 }
             }
@@ -3297,9 +3335,8 @@ fn author_lock_command(case_dir: &Path, experimental: bool, format: OutputFormat
                 OutputFormat::Json => {
                     println!(
                         "{}",
-                        serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
-                            format!(r#"{{"ok":false,"error":"{e}"}}"#)
-                        })
+                        serde_json::to_string_pretty(&result)
+                            .unwrap_or_else(|e| { format!(r#"{{"ok":false,"error":"{e}"}}"#) })
                     );
                 }
             }
@@ -3307,6 +3344,108 @@ fn author_lock_command(case_dir: &Path, experimental: bool, format: OutputFormat
         }
         Err(error) => {
             eprintln!("error: author lock failed: {error}");
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn optimize_validate_command(objective: &Path, format: OutputFormat) -> ExitCode {
+    match vaa::load_objective(objective) {
+        Ok(obj) => {
+            let digest = vaa::objective_digest(&obj);
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: objective valid");
+                    println!("  schema_version: {}", obj.schema_version);
+                    println!("  primary: {}", obj.primary.as_str());
+                    println!(
+                        "  secondary: {}",
+                        obj.secondary
+                            .iter()
+                            .map(|m| m.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    println!("  must_preserve_status: {}", obj.must_preserve_status);
+                    println!("  max_candidates: {}", obj.max_candidates);
+                    println!("  objective_digest: {digest}");
+                }
+                OutputFormat::Json => {
+                    let body = serde_json::json!({
+                        "ok": true,
+                        "objective": obj,
+                        "objective_digest": digest,
+                    });
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&body)
+                            .unwrap_or_else(|e| { format!(r#"{{"ok":false,"error":"{e}"}}"#) })
+                    );
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            eprintln!("error: objective validate failed: {error}");
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn optimize_rank_command(
+    run_dir: &Path,
+    objective: &Path,
+    allow_under_preconditions: bool,
+    format: OutputFormat,
+) -> ExitCode {
+    let obj = match vaa::load_objective(objective) {
+        Ok(o) => o,
+        Err(error) => {
+            eprintln!("error: objective load failed: {error}");
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    match vaa::rank_run_dir(run_dir, &obj, allow_under_preconditions) {
+        Ok((evidence, out_path)) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: correctness-preserving selection");
+                    println!("  selected_candidate: {:04}", evidence.selected_candidate);
+                    println!("  correctness_status: {}", evidence.correctness_status);
+                    if let Some(n) = evidence.objective.object_bytes {
+                        println!("  object_bytes: {n}");
+                    }
+                    if let Some(n) = evidence.objective.instruction_count {
+                        println!("  instruction_count: {n}");
+                    }
+                    if let Some(n) = evidence.objective.stack_bytes {
+                        println!("  stack_bytes: {n}");
+                    }
+                    if let Some(b) = &evidence.objective.metric_basis {
+                        println!("  metric_basis: {b}");
+                    }
+                    println!("  objective_digest: {}", evidence.objective_digest);
+                    println!("  seal_digest: {}", evidence.seal_digest);
+                    println!("  selection_evidence: {}", out_path.display());
+                    if !evidence.rejected_candidates.is_empty() {
+                        println!("  rejected:");
+                        for r in &evidence.rejected_candidates {
+                            println!("    {:04}: {}", r.index, r.reason);
+                        }
+                    }
+                }
+                OutputFormat::Json => {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&evidence)
+                            .unwrap_or_else(|e| { format!(r#"{{"ok":false,"error":"{e}"}}"#) })
+                    );
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            eprintln!("error: optimize rank failed: {error}");
             VaaExitCode::InvalidInput.as_std()
         }
     }
@@ -5152,5 +5291,44 @@ mod tests {
     fn clap_parses_inspect() {
         let cli = Cli::try_parse_from(["vaa", "inspect", "artifact.o"]).expect("parse");
         assert!(matches!(cli.command, Some(Commands::Inspect { .. })));
+    }
+
+    #[test]
+    fn clap_parses_optimize_rank() {
+        let cli = Cli::try_parse_from([
+            "vaa",
+            "optimize",
+            "rank",
+            "--run-dir",
+            "runs/x",
+            "--objective",
+            "objective.toml",
+            "--allow-under-preconditions",
+            "--format",
+            "json",
+        ])
+        .expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Optimize {
+                command: OptimizeCommands::Rank {
+                    allow_under_preconditions: true,
+                    format: OutputFormat::Json,
+                    ..
+                }
+            })
+        ));
+    }
+
+    #[test]
+    fn clap_parses_optimize_validate() {
+        let cli =
+            Cli::try_parse_from(["vaa", "optimize", "validate", "objective.toml"]).expect("parse");
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Optimize {
+                command: OptimizeCommands::Validate { .. }
+            })
+        ));
     }
 }

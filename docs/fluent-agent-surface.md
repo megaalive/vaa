@@ -107,11 +107,31 @@ response, and finish with sealed evidence.
 > Humans author bounded cases from templates, review admission before lock,
 > and only then hand a locked case to the agent harness. Agents never hold
 > acceptance / lock authority.
-### Release D — Correctness-preserving optimization
+### Release D — Correctness-preserving optimization (**delivered**)
 
 - Optimize only after an accepted candidate
 - Deterministic metrics; invalid smaller candidate never wins
 - Sealed selection evidence
+
+**Landed:**
+
+- Objective schema
+  [`schemas/objective.vaa.schema.json`](../schemas/objective.vaa.schema.json)
+  + example
+  [`fixtures/optimize/objective.object_bytes.toml`](../fixtures/optimize/objective.object_bytes.toml)
+  (separate from `task.vaa.toml`)
+- `src/optimize/mod.rs` — parse/validate objective; scan sealed candidates;
+  compute `object_bytes` / `instruction_count` / `stack_bytes`;
+  `rank_candidates` → `selection-evidence.json`
+- CLI: `vaa optimize validate` / `vaa optimize rank --run-dir … --objective …`
+  (`--allow-under-preconditions` for VUP; fail-closed if no accepted)
+
+**Claim (gates green):**
+
+> After ≥1 sealed accepted/verified-class candidate exists, VAA ranks by a
+> declared objective with deterministic metrics and writes sealed selection
+> evidence — without ever selecting violated, incomplete, or failed candidates,
+> and without counting fast checks as acceptance.
 
 ## Non-goals
 
@@ -127,5 +147,6 @@ response, and finish with sealed evidence.
 - [`HONESTY.md`](HONESTY.md) — claim boundary
 - [`agent-harness.md`](agent-harness.md) — harness CLI
 - [`author.md`](author.md) — draft → review → lock lifecycle
+- [`optimize.md`](optimize.md) — correctness-preserving selection
 - [`agent-playbook.md`](agent-playbook.md) — happy / decline paths
 - SemASM: `docs/fluent-agent-surface.md` (controller-facing pointer)

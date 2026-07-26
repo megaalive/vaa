@@ -18,6 +18,7 @@ pub mod generator;
 pub mod harness;
 pub mod inspect;
 pub mod model;
+pub mod optimize;
 pub mod orchestrate;
 pub mod process;
 pub mod run;
@@ -102,6 +103,12 @@ pub use model::{build_generation_prompt, LiveModelConfig, OpenAiCompatibleAdapte
 pub use model::{
     ArgvExternalGenerator, FixtureModelAdapter, GeneratorJailOpts, ModelAdapter, ModelError,
     ModelResponse, DEFAULT_STAGING_OUTPUT,
+};
+pub use optimize::{
+    collect_candidate_metrics, load_objective, metrics_for_candidate_dir, objective_digest,
+    parse_objective_toml, rank_candidates, rank_run_dir, status_label, validate_objective,
+    CandidateMetrics, Objective, ObjectiveMetric, OptimizeError, RejectedCandidate,
+    SelectedObjectiveView, SelectionEvidence, OBJECTIVE_SCHEMA_VERSION, SELECTION_EVIDENCE_FILE,
 };
 pub use orchestrate::{MachineState, Orchestrator, StateTransition};
 pub use process::{ProcessConfig, ProcessError, ProcessOutput, ProcessRunner};

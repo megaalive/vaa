@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/megaalive/vaa/schemas/objective.vaa.schema.json",
+  "title": "VAA optimize objective schema 0.1",
+  "description": "Correctness-preserving optimization objective. Lives in a separate TOML file (not task.vaa.toml) so task schema 0.1 fixtures stay stable. Ranking never selects violated/incomplete/failed candidates; must_preserve_status must be true.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "primary",
+    "secondary",
+    "must_preserve_status",
+    "max_candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "primary": {
+      "type": "string",
+      "enum": ["object_bytes", "instruction_count", "stack_bytes"]
+    },
+    "secondary": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["object_bytes", "instruction_count", "stack_bytes"]
+      }
+    },
+    "must_preserve_status": {
+      "type": "boolean",
+      "const": true,
+      "description": "Always true: only verified (or explicitly allowed VUP) candidates may win."
+    },
+    "max_candidates": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9999
+    }
+  }
+}

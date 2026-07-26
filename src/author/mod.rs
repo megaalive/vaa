@@ -497,7 +497,10 @@ pub fn author_review(case_dir: &Path) -> Result<ReviewResult, AuthorError> {
     };
 
     if case_dir.join(LOCKED_MARKER_FILE).is_file() {
-        if state.as_ref().is_none_or(|s| s.state != AuthorCaseState::Locked) {
+        if state
+            .as_ref()
+            .is_none_or(|s| s.state != AuthorCaseState::Locked)
+        {
             issues.push("LOCKED marker present but AUTHOR_STATE.state is not locked".into());
         }
     }
@@ -528,10 +531,8 @@ pub fn author_review(case_dir: &Path) -> Result<ReviewResult, AuthorError> {
 
     let snap = snapshot_digest().to_owned();
 
-    let ok = issues.is_empty()
-        && task_digest.is_some()
-        && contract_digest.is_some()
-        && state.is_some();
+    let ok =
+        issues.is_empty() && task_digest.is_some() && contract_digest.is_some() && state.is_some();
 
     Ok(ReviewResult {
         ok,
@@ -570,7 +571,9 @@ pub fn author_lock(case_dir: &Path, experimental: bool) -> Result<LockResult, Au
             !(issue.contains("not admitted") && issue.contains("experimental case"))
         });
         // Also drop the generic not-admitted issue for experimental locks.
-        review.issues.retain(|issue| !issue.contains("not admitted"));
+        review
+            .issues
+            .retain(|issue| !issue.contains("not admitted"));
     }
 
     if !review.issues.is_empty() {
@@ -740,10 +743,7 @@ mod tests {
         assert!(locked.ok);
         assert_eq!(locked.state.state, AuthorCaseState::Locked);
         assert!(locked.locked_marker.is_file());
-        assert_ne!(
-            locked.acceptance,
-            AdmissionTier::SealedAcceptance.as_str()
-        );
+        assert_ne!(locked.acceptance, AdmissionTier::SealedAcceptance.as_str());
         let again = author_init(
             "pure-int-binary",
             "max_i64",
@@ -765,9 +765,6 @@ mod tests {
         .expect("init");
         assert!(init.state.experimental);
         let locked = author_lock(&init.case_dir, true).expect("experimental lock");
-        assert_eq!(
-            locked.acceptance,
-            AdmissionTier::AuthoringOnly.as_str()
-        );
+        assert_eq!(locked.acceptance, AdmissionTier::AuthoringOnly.as_str());
     }
 }

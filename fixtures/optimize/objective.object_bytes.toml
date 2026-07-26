@@ -1,0 +1,7 @@
+# Correctness-preserving optimize objective (Release D).
+# Separate from task.vaa.toml — do not fold into task schema 0.1.
+schema_version = "0.1"
+primary = "object_bytes"   # object_bytes | instruction_count | stack_bytes
+secondary = ["instruction_count", "stack_bytes"]
+must_preserve_status = true
+max_candidates = 4
