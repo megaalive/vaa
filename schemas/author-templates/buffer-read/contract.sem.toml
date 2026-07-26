@@ -1,0 +1,48 @@
+contract_version = "0.1"
+
+[function]
+name = "__NAME__"
+summary = "Buffer-read leaf sketch (count_byte-like; draft until lock)"
+
+[[function.parameters]]
+name = "buffer"
+type = "ptr<const u8>"
+role = "input"
+
+[[function.parameters]]
+name = "length"
+type = "usize"
+role = "input"
+
+[[function.parameters]]
+name = "needle"
+type = "u8"
+role = "input"
+
+[[function.returns]]
+name = "count"
+type = "usize"
+
+[[function.requires]]
+expression = "length <= 4096"
+reason = "Arbitrary safety limit for this authoring stub."
+
+[[function.ensures]]
+expression = "count <= length"
+
+[[function.effects]]
+kind = "memory_read"
+region = "buffer[0..length]"
+
+[function.memory]
+
+[[function.memory.regions]]
+name = "buffer"
+base = "buffer"
+length = "length"
+access = "read"
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 128

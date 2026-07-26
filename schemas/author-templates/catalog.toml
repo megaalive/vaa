@@ -1,0 +1,32 @@
+# Author template catalog metadata (Release C).
+schema_version = "0.1"
+
+[[templates]]
+name = "pure-int-unary"
+known_ci_shape = false
+summary = "Single i64 input → i64 (abs-like sketch)"
+
+[[templates]]
+name = "pure-int-binary"
+known_ci_shape = true
+summary = "Two i64 inputs → i64 (max_i64 / sum_i64 shapes)"
+
+[[templates]]
+name = "pure-int-ternary"
+known_ci_shape = false
+summary = "Three i64 inputs → i64 (clamp-like sketch)"
+
+[[templates]]
+name = "buffer-read"
+known_ci_shape = true
+summary = "Buffer read leaf (count_byte-like)"
+
+[[templates]]
+name = "buffer-write"
+known_ci_shape = true
+summary = "Buffer write leaf (memset / replace_byte-like)"
+
+[[templates]]
+name = "dual-buffer"
+known_ci_shape = true
+summary = "Dual-buffer leaf (memcmp / memcpy-like)"

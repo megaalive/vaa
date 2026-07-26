@@ -1,0 +1,28 @@
+contract_version = "0.1"
+
+[function]
+name = "__NAME__"
+summary = "Pure binary i64 sketch (max_i64 / sum_i64-like; draft until lock)"
+
+[[function.parameters]]
+name = "a"
+type = "i64"
+role = "input"
+
+[[function.parameters]]
+name = "b"
+type = "i64"
+role = "input"
+
+[[function.returns]]
+name = "result"
+type = "i64"
+
+[[function.ensures]]
+expression = "true"
+reason = "Semantics are draft until human lock + SemASM evidence."
+
+[function.constraints]
+no_heap = true
+no_recursion = true
+bounded_stack_bytes = 128

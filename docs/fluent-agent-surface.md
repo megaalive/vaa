@@ -79,11 +79,34 @@ response, and finish with sealed evidence.
 `src/harness/stdio_serve.rs`; `src/harness/idioms.rs` +
 `schemas/idiom-catalog.json`.
 
-### Release C — Authoring cases
+### Release C — Authoring cases (**delivered**)
 
 - `vaa author init|review|lock` + bounded template catalog
 - Draft vs locked; agents may propose, must not lock
 
+**Landed:**
+
+- Template catalog under
+  [`schemas/author-templates/`](../schemas/author-templates/)
+  (`pure-int-unary` / `pure-int-binary` / `pure-int-ternary` /
+  `buffer-read` / `buffer-write` / `dual-buffer`) — drafts until lock
+- `vaa author init --template … --name … --target …` writes
+  `.vaa/author/<name>/` with `task.vaa.toml`, `contract.sem.toml`, and
+  `AUTHOR_STATE.toml` (`state=draft`, `experimental=true` unless known-CI
+  template)
+- `vaa author review` validates task schema, prints digests, admission via
+  `admit_leaf`, capability snapshot digest, and issues (JSON or terminal)
+- `vaa author lock` is **human CLI only**: fail-closed if review issues remain;
+  requires admission for the leaf×target (or `--experimental` →
+  `authoring_only`, never `sealed_acceptance`); writes `LOCKED` marker with
+  digests; refuses further init mutation
+- Skill path **declines** lock — agents propose drafts only
+
+**Claim (gates green):**
+
+> Humans author bounded cases from templates, review admission before lock,
+> and only then hand a locked case to the agent harness. Agents never hold
+> acceptance / lock authority.
 ### Release D — Correctness-preserving optimization
 
 - Optimize only after an accepted candidate
@@ -103,5 +126,6 @@ response, and finish with sealed evidence.
 
 - [`HONESTY.md`](HONESTY.md) — claim boundary
 - [`agent-harness.md`](agent-harness.md) — harness CLI
+- [`author.md`](author.md) — draft → review → lock lifecycle
 - [`agent-playbook.md`](agent-playbook.md) — happy / decline paths
 - SemASM: `docs/fluent-agent-surface.md` (controller-facing pointer)

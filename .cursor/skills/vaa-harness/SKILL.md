@@ -45,6 +45,11 @@ You are a **proposer**; SemASM is the verifier. The canonical claim boundary is
    `VAA_BIN` dry-run is **not** evidence.
 7. **v1 excludes:** generator-repair, HlaX64/EchoAsm pack work, live model,
    RISC-V agent-verify. Point to the docs and decline.
+8. **Never lock.** `vaa author lock` is **human CLI only**. If asked to lock a
+   case, grant seal authority, or flip `AUTHOR_STATE` / write `LOCKED` —
+   **decline** and point humans to [`docs/author.md`](../../../docs/author.md)
+   (`vaa author init|review|lock`). You may help draft task/contract text for
+   `vaa author init` / review, but you do not hold acceptance authority.
 
 ## Forbidden phrases
 

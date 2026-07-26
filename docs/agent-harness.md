@@ -133,6 +133,13 @@ stderr may log diagnostics. Duplicate request ids return the cached response.
 acceptance authority. Prepare may write `idioms.json` (≤5 entries) into the
 workspace for the same reason.
 
+### Authoring new cases (`vaa author`)
+
+Draft → review → **human** lock → agent harness start. Templates live under
+`schemas/author-templates/`. Full lifecycle:
+[`docs/author.md`](author.md). Agents may propose draft edits; agents must
+**decline** `vaa author lock`.
+
 ### Submit outcome classes
 
 | `class` | Meaning | Auto-retry? |

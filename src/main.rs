@@ -337,6 +337,11 @@ enum Commands {
         #[command(subcommand)]
         command: AgentCommands,
     },
+    /// Authoring cases (`init` / `review` / `lock`) — humans lock; agents draft only.
+    Author {
+        #[command(subcommand)]
+        command: AuthorCommands,
+    },
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -405,6 +410,47 @@ enum AgentCommands {
         /// Optional leaf / shape filter (`max_i64`, `count_byte`, …).
         #[arg(long)]
         shape: Option<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum AuthorCommands {
+    /// Materialize a draft case from a bounded template (does not lock).
+    Init {
+        /// Template name (`pure-int-binary`, `buffer-read`, …).
+        #[arg(long)]
+        template: String,
+        /// Routine / leaf symbol name.
+        #[arg(long)]
+        name: String,
+        /// Target triple.
+        #[arg(long)]
+        target: String,
+        /// Parent directory for `<out>/<name>/` (default `.vaa/author`).
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Validate task, print digests / admission / issues (JSON or terminal).
+    Review {
+        /// Case directory (`task.vaa.toml` + `AUTHOR_STATE.toml`).
+        case_dir: PathBuf,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Human-only authority lock (fail-closed). Agents must decline this path.
+    Lock {
+        /// Case directory to lock.
+        case_dir: PathBuf,
+        /// Lock an unadmitted / experimental case as `authoring_only` (never sealed).
+        #[arg(long, default_value_t = false)]
+        experimental: bool,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
     },
 }
 
@@ -1575,6 +1621,21 @@ fn run_cli() -> ExitCode {
                 agent_idioms_command(&target, shape.as_deref())
             }
         },
+        Commands::Author { command } => match command {
+            AuthorCommands::Init {
+                template,
+                name,
+                target,
+                out,
+                format,
+            } => author_init_command(&template, &name, &target, out.as_deref(), format),
+            AuthorCommands::Review { case_dir, format } => author_review_command(&case_dir, format),
+            AuthorCommands::Lock {
+                case_dir,
+                experimental,
+                format,
+            } => author_lock_command(&case_dir, experimental, format),
+        },
     }
 }
 
@@ -1584,7 +1645,7 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch, repair, harness, agent");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch, repair, harness, agent, author");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
@@ -3111,6 +3172,144 @@ fn agent_idioms_command(target: &str, shape: Option<&str>) -> ExitCode {
             .unwrap_or_else(|e| format!(r#"{{"ok":false,"error":"{e}"}}"#))
     );
     VaaExitCode::Success.as_std()
+}
+
+fn author_init_command(
+    template: &str,
+    name: &str,
+    target: &str,
+    out: Option<&Path>,
+    format: OutputFormat,
+) -> ExitCode {
+    match vaa::author_init(template, name, target, out) {
+        Ok(result) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: author draft initialized");
+                    println!("  case_dir: {}", result.case_dir.display());
+                    println!("  template: {}", result.state.template);
+                    println!("  name: {}", result.state.name);
+                    println!("  target: {}", result.state.target);
+                    println!("  state: {}", result.state.state.as_str());
+                    println!("  experimental: {}", result.state.experimental);
+                    println!("  task: {}", result.task.display());
+                    println!("  contract: {}", result.contract.display());
+                    println!("  note: draft only — humans lock with `vaa author lock`");
+                }
+                OutputFormat::Json => {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
+                            format!(r#"{{"ok":false,"error":"{e}"}}"#)
+                        })
+                    );
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            eprintln!("error: author init failed: {error}");
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn author_review_command(case_dir: &Path, format: OutputFormat) -> ExitCode {
+    match vaa::author_review(case_dir) {
+        Ok(result) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!(
+                        "{}: author review",
+                        if result.ok { "ok" } else { "issues" }
+                    );
+                    println!("  case_dir: {}", result.case_dir.display());
+                    if let Some(state) = &result.state {
+                        println!("  state: {}", state.state.as_str());
+                        println!("  template: {}", state.template);
+                        println!("  name: {}", state.name);
+                        println!("  experimental: {}", state.experimental);
+                    }
+                    if let Some(d) = &result.task_digest {
+                        println!("  task_digest: {d}");
+                    }
+                    if let Some(d) = &result.contract_digest {
+                        println!("  contract_digest: {d}");
+                    }
+                    println!(
+                        "  capability_snapshot_digest: {}",
+                        result.capability_snapshot_digest
+                    );
+                    if let Some(adm) = &result.admission {
+                        println!(
+                            "  admission: leaf={} target={} admitted={} tier={}",
+                            adm.leaf,
+                            adm.target,
+                            adm.admitted,
+                            adm.tier.as_deref().unwrap_or("-")
+                        );
+                    }
+                    if result.issues.is_empty() {
+                        println!("  issues: (none)");
+                    } else {
+                        println!("  issues:");
+                        for issue in &result.issues {
+                            println!("    - {issue}");
+                        }
+                    }
+                }
+                OutputFormat::Json => {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
+                            format!(r#"{{"ok":false,"error":"{e}"}}"#)
+                        })
+                    );
+                }
+            }
+            if result.ok {
+                VaaExitCode::Success.as_std()
+            } else {
+                VaaExitCode::InvalidInput.as_std()
+            }
+        }
+        Err(error) => {
+            eprintln!("error: author review failed: {error}");
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
+}
+
+fn author_lock_command(case_dir: &Path, experimental: bool, format: OutputFormat) -> ExitCode {
+    match vaa::author_lock(case_dir, experimental) {
+        Ok(result) => {
+            match format {
+                OutputFormat::Terminal => {
+                    println!("ok: author case locked");
+                    println!("  case_dir: {}", result.case_dir.display());
+                    println!("  acceptance: {}", result.acceptance);
+                    println!("  experimental: {}", result.state.experimental);
+                    println!("  marker: {}", result.locked_marker.display());
+                    println!(
+                        "  note: agents must not lock — this CLI path is human authority only"
+                    );
+                }
+                OutputFormat::Json => {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&result).unwrap_or_else(|e| {
+                            format!(r#"{{"ok":false,"error":"{e}"}}"#)
+                        })
+                    );
+                }
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(error) => {
+            eprintln!("error: author lock failed: {error}");
+            VaaExitCode::InvalidInput.as_std()
+        }
+    }
 }
 
 fn repair_verify_command(path: &Path, format: OutputFormat) -> ExitCode {

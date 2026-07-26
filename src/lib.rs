@@ -7,6 +7,7 @@
     clippy::too_many_lines
 )]
 
+pub mod author;
 pub mod build;
 pub mod cache;
 pub mod candidate;
@@ -25,6 +26,12 @@ pub mod search;
 pub mod semasm;
 pub mod task;
 
+pub use author::{
+    abi_for_target, author_init, author_lock, author_review, is_known_template, load_author_state,
+    load_catalog, task_id_for, template_meta, AdmissionSummary, AuthorCaseState, AuthorError,
+    AuthorState, InitResult, LockResult, ReviewResult, TemplateMeta, AUTHOR_STATE_FILE,
+    AUTHOR_TEMPLATES_DIR, DEFAULT_AUTHOR_ASSEMBLER, LOCKED_MARKER_FILE,
+};
 pub use build::{
     check_reproducible, compare_canonical, nasm_format_for_target, probe_container_runtime,
     remap_host_args_to_container, reproducible_build_check, tool_digest, BuildManifest,
