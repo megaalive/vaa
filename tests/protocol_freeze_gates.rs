@@ -251,6 +251,83 @@ fn harness_loop_result_fixtures_match_schema() {
     }
 }
 
+/// The agent leaf allowlist may only name leaves that actually exist on disk
+/// and that `scripts/corpus_sweep.py` would discover (one non-budget task, one
+/// contract, a wrong + repaired candidate). This stops the allowlist — and any
+/// skill that trusts it — from silently inventing shapes VAA cannot verify.
+#[test]
+fn agent_leaf_allowlist_only_names_discoverable_leaves() {
+    let allowlist = read_json("schemas/agent-leaf-allowlist.json");
+    assert_eq!(allowlist["schema_version"], Value::from("0.1"));
+    assert_eq!(allowlist["kind"], Value::from("agent_leaf_allowlist"));
+
+    let leaves = allowlist["leaves"]
+        .as_array()
+        .expect("allowlist.leaves is an array");
+    assert!(!leaves.is_empty(), "allowlist must not be empty");
+
+    for leaf in leaves {
+        let name = leaf["name"].as_str().expect("leaf.name is a string");
+        let ctx = format!("allowlist leaf `{name}`");
+
+        // Paths bind to real task/contract files.
+        for key in ["task", "contract"] {
+            let rel = leaf[key]
+                .as_str()
+                .unwrap_or_else(|| panic!("{ctx}: `{key}` is a string"));
+            assert!(
+                root().join(rel).is_file(),
+                "{ctx}: {key} path `{rel}` does not exist on disk"
+            );
+        }
+
+        // profile_note / strict_verified_ok stay honest and consistent.
+        let profile = leaf["profile_note"].as_str().unwrap_or_else(|| {
+            panic!("{ctx}: profile_note is a string");
+        });
+        assert!(
+            profile == "verified" || profile == "verified_under_preconditions",
+            "{ctx}: unexpected profile_note `{profile}`"
+        );
+        let strict = leaf["strict_verified_ok"]
+            .as_bool()
+            .unwrap_or_else(|| panic!("{ctx}: strict_verified_ok is a bool"));
+        assert!(
+            !strict || profile == "verified",
+            "{ctx}: strict_verified_ok=true requires profile_note `verified`"
+        );
+
+        // corpus_sweep discovery predicate: the leaf dir must hold exactly one
+        // non-budget task, one contract, and both candidates.
+        let task_rel = leaf["task"].as_str().unwrap();
+        let leaf_dir = root()
+            .join(task_rel)
+            .parent()
+            .expect("task path has a parent leaf dir")
+            .to_path_buf();
+        let mut tasks = 0usize;
+        let mut contracts = 0usize;
+        for entry in std::fs::read_dir(&leaf_dir).expect("read leaf dir").flatten() {
+            let fname = entry.file_name().to_string_lossy().into_owned();
+            if fname.ends_with(".vaa.toml") && !fname.contains("budget") {
+                tasks += 1;
+            } else if fname.ends_with(".sem.toml") {
+                contracts += 1;
+            }
+        }
+        assert_eq!(tasks, 1, "{ctx}: expected exactly one non-budget task in {leaf_dir:?}");
+        assert_eq!(contracts, 1, "{ctx}: expected exactly one contract in {leaf_dir:?}");
+        assert!(
+            leaf_dir.join("01_wrong.asm").is_file(),
+            "{ctx}: missing 01_wrong.asm (corpus_sweep would skip this leaf)"
+        );
+        assert!(
+            leaf_dir.join("02_repaired.asm").is_file(),
+            "{ctx}: missing 02_repaired.asm (corpus_sweep would skip this leaf)"
+        );
+    }
+}
+
 /// One classification vocabulary across protocols: the loop result must not
 /// invent classes or next actions that `HarnessSubmitResult` cannot produce.
 #[test]

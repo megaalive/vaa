@@ -6,6 +6,23 @@
 
 VAA is a small, fail-closed controller that will turn a constrained task specification into assembly candidates, collect evidence from [SemASM](https://github.com/megaalive/semasm) and the native toolchain, and return an evidence bundle.
 
+> **Honesty charter.** Before wiring an agent or citing what VAA "proves", read
+> [`docs/HONESTY.md`](docs/HONESTY.md). Short version: agents propose, SemASM
+> verifies; controllers parse **stdout JSON only**; work is limited to the leaf
+> allowlist ([`schemas/agent-leaf-allowlist.json`](schemas/agent-leaf-allowlist.json));
+> `verified_under_preconditions` ≠ `verified`; dry-runs ≠ evidence. VAA is a
+> local CLI + project skill — **not an MCP product**.
+
+## For agents
+
+Drive VAA through the project skill
+[`.cursor/skills/vaa-harness/SKILL.md`](.cursor/skills/vaa-harness/SKILL.md)
+(Codex: see [`AGENTS.md`](AGENTS.md)), backed by the reference adapter
+[`scripts/agent_harness_adapter.py`](scripts/agent_harness_adapter.py). The skill
+operates **only** on allowlisted leaves and declines anything else. Copy-paste a
+happy path and a decline path from [`docs/agent-playbook.md`](docs/agent-playbook.md).
+Bounds are fixed by [`docs/HONESTY.md`](docs/HONESTY.md); there is no MCP server.
+
 ## What works today
 
 | Capability | Status |
@@ -26,7 +43,7 @@ VAA is a small, fail-closed controller that will turn a constrained task specifi
 | `vaa inspect <artifact>` | Available — ELF/PE/MachO analysis |
 | `vaa sandbox status` | Available via `vaa status` |
 | `vaa repair …` | Available — repair packet export/verify/rules |
-| `vaa harness prepare\|submit\|resume\|status` | Available — agent façade (direct + generator-repair); NASM supported, GAS reserved/fail-closed; submit can seal (`--run-base`/`--run-dir`) |
+| `vaa harness prepare\|submit\|resume\|status` | Available — agent façade (direct + generator-repair); NASM (x86_64 Win64/SysV) + GAS (AArch64) CI-proven, RISC-V64 GAS dialect-only/fail-closed, GAS-on-x86_64 fail-closed; submit can seal (`--run-base`/`--run-dir`) |
 | Model generation / repair | **Fixture adapter** + opt-in **`--live`** (`live-model` feature) |
 | Assemble / link / sandbox execute | **Via toolchain on PATH** |
 | SemASM discovery | `SEMASM_BIN` (file or dir; fail-closed if invalid), else PATH scan |

@@ -30,7 +30,9 @@ coverage/
 /fuzz/artifacts/
 /fuzz/coverage/
 
-.cursor/
+.cursor/*
+# …but the committed agent skill is a shipped deliverable.
+!.cursor/skills/
 
 
 # Python bytecode

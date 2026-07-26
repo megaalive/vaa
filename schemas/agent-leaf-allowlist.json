@@ -1,0 +1,91 @@
+{
+  "schema_version": "0.1",
+  "kind": "agent_leaf_allowlist",
+  "description": "Leaves an agent skill is permitted to drive through `vaa harness`. Anything not listed here is declined (see docs/HONESTY.md). Each leaf is discovered by scripts/corpus_sweep.py; the protocol-freeze gate enforces that every entry exists on disk and appears in corpus_sweep --list.",
+  "profile_notes": {
+    "verified": "SemASM reaches unconditional `verified`; may be called plainly verified.",
+    "verified_under_preconditions": "SemASM reaches VUP; report as VUP, never plain verified. Requires --allow-under-preconditions."
+  },
+  "leaves": [
+    {
+      "name": "max_i64",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/max_i64/max_i64.vaa.toml",
+      "contract": "fixtures/run/max_i64/max_i64.sem.toml",
+      "profile_note": "verified",
+      "strict_verified_ok": true
+    },
+    {
+      "name": "sum_i64",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/sum_i64/sum_i64.vaa.toml",
+      "contract": "fixtures/run/sum_i64/sum_i64.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    },
+    {
+      "name": "count_byte",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/count_byte/count_byte.vaa.toml",
+      "contract": "fixtures/run/count_byte/count_byte.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    },
+    {
+      "name": "count_byte_linux",
+      "target": "x86_64-unknown-linux-gnu",
+      "task": "fixtures/run/count_byte_linux/count_byte.vaa.toml",
+      "contract": "fixtures/run/count_byte_linux/count_byte.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    },
+    {
+      "name": "find_first_byte",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/find_first_byte/find_first_byte.vaa.toml",
+      "contract": "fixtures/run/find_first_byte/find_first_byte.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    },
+    {
+      "name": "find_last_byte",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/find_last_byte/find_last_byte.vaa.toml",
+      "contract": "fixtures/run/find_last_byte/find_last_byte.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    },
+    {
+      "name": "memcmp",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/memcmp/memcmp.vaa.toml",
+      "contract": "fixtures/run/memcmp/memcmp.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    },
+    {
+      "name": "memcpy",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/memcpy/memcpy.vaa.toml",
+      "contract": "fixtures/run/memcpy/memcpy.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    },
+    {
+      "name": "memset",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/memset/memset.vaa.toml",
+      "contract": "fixtures/run/memset/memset.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    },
+    {
+      "name": "replace_byte",
+      "target": "x86_64-pc-windows-msvc",
+      "task": "fixtures/run/replace_byte/replace_byte.vaa.toml",
+      "contract": "fixtures/run/replace_byte/replace_byte.sem.toml",
+      "profile_note": "verified_under_preconditions",
+      "strict_verified_ok": false
+    }
+  ]
+}

@@ -4,6 +4,12 @@ Thin CLI loop for agents that either edit assembly directly or repair a generato
 SemASM remains the verifier; VAA owns task lock, budgets, path policy, seals,
 and session resume. Agents are proposers only.
 
+> **Read the charter first:** [`docs/HONESTY.md`](HONESTY.md) is the canonical
+> claim boundary — parse stdout JSON only, stay inside the leaf allowlist
+> ([`schemas/agent-leaf-allowlist.json`](../schemas/agent-leaf-allowlist.json)),
+> `verified_under_preconditions` ≠ `verified`, dry-runs ≠ evidence. For a
+> copy-paste happy/decline path see [`docs/agent-playbook.md`](agent-playbook.md).
+
 ## Modes
 
 | Mode | Agent edits | Authority packet | Success |
@@ -18,10 +24,12 @@ invariants stay locked.
 
 | Flavor | Status | Candidate file |
 |---|---|---|
-| `nasm` | Supported for x86_64 Win64 / SysV | `candidate.asm` |
-| `gas` | Supported for AArch64 / RISC-V Linux | `candidate.S` |
+| `nasm` | Supported for x86_64 Win64 / SysV (CI-proven) | `candidate.asm` |
+| `gas` | AArch64 Linux CI-proven; RISC-V64 dialect-only / capability `Unknown` (fail-closed) | `candidate.S` |
 
 `gas` on x86_64 stays **fail-closed** (SemASM+VAA remain NASM/Intel there).
+RISC-V64 selects the `gas` flavor but has **no agent-verify claim** — it is
+fail-closed until a dedicated gate proves it (see [`docs/HONESTY.md`](HONESTY.md)).
 VAA object-inspect / build / reproducible twin-assemble select `nasm` vs
 `aarch64-linux-gnu-as` / `riscv64-linux-gnu-as` from the flavor+target pair.
 CI job **Agent harness gates (SemASM tip, GAS AArch64)** seals a live
