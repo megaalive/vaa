@@ -1,7 +1,6 @@
-; max_i64 — larger (signed) of a and b.
+; max_i64 — larger (signed) of a and b via cmovg.
 ; Microsoft x64: rcx=a, rdx=b, returns rax.
-; Branch instead of cmov: SemASM's semantic lowering models cmp/jcc/mov,
-; while cmov currently lowers as unknown (require_complete_lowering fails).
+; Requires SemASM tip that models cmov* as OpKind::Select (>= 0ab8004).
 BITS 64
 DEFAULT REL
 
@@ -11,7 +10,5 @@ section .text
 max_i64:
     mov rax, rcx
     cmp rdx, rax
-    jle .done           ; keep a when b <= a
-    mov rax, rdx        ; take b when b > a
-.done:
+    cmovg rax, rdx
     ret

@@ -1,13 +1,13 @@
-# max_i64 corpus leaf (pure scalar, signed branch, no memory)
+# max_i64 corpus leaf (pure scalar, cmov select, no memory)
 
-First leaf with no pointer inputs at all: two i64 scalars in registers, signed
-compare, branch select (SemASM's oracle recognizes this as
-`builtin.pure_int.binary_i64`). The wrong candidate flips the branch and
-returns the minimum. Note: `cmov` is not modeled by SemASM's semantic lowering
-yet, so the repaired candidate deliberately uses `cmp`/`jcc`/`mov`.
+First leaf with no pointer inputs: two i64 scalars, signed compare, `cmovg`
+select. The wrong candidate uses `cmovl` (returns the minimum). SemASM tip
+`>= 0ab8004` models `cmov*` as `OpKind::Select`; earlier tips failed
+`require_complete_lowering` on this shape.
 
 ```bash
 python scripts/corpus_sweep.py --leaf max_i64
+python scripts/corpus_sweep.py --strict-verified --leaf max_i64
 ```
 
 Requires `semasm` on PATH and Win64 assemble/link tools.
