@@ -36,31 +36,34 @@ response, and finish with sealed evidence.
 
 ## Releases
 
-### Release A — Capability-driven authoring (current)
+### Release A — Capability-driven authoring (**delivered**)
 
 1. Capability Admission Registry (SemASM export + VAA freeze digest)
 2. Canonical Agent Work Packet (envelope vNext)
 3. Target Authoring Profile
 4. Repair Feedback v1 (`feedback.json` + extended submit JSON)
 
-**Landed in VAA (A3–A6):**
+**Landed:**
 
-- Frozen SemASM snapshot at
+- SemASM: `semasm capabilities --format json` + admission entries + digest;
+  `semasm target profile <target>`.
+- VAA: frozen snapshot
   [`fixtures/semasm/capabilities-snapshot.json`](../fixtures/semasm/capabilities-snapshot.json)
   (`CAPABILITY_SNAPSHOT_DIGEST`); `admit_leaf` + admission tiers in
   `src/semasm/admission.rs`. Skill allowlist remains the skill gate until
   admission fully replaces it; freeze gate requires matching `leaf_names`.
-- Prepare writes both `agent-envelope.json` and `work-packet.json` (same
+- Prepare writes `agent-envelope.json` and `work-packet.json` (same
   content), plus `target-profile.json` (live SemASM profile or embedded
-  Win64/SysV/AArch64 fallback) and records digests on the envelope.
-- Submit writes `feedback.json` (Repair Feedback v1 fields on
-  `HarnessSubmitResult`).
+  fallback) and records digests on the envelope.
+- Submit writes `feedback.json` (Repair Feedback v1 on `HarnessSubmitResult`).
 
-Claim when gates are green:
+**Claim (gates green):**
 
 > Agents discover supported authoring/acceptance level from one capability
 > snapshot, receive one work packet + target profile, and repair from one
-> structured feedback document — without duplicated leaf/ABI tables in skills.
+> structured feedback document — without duplicated ABI tables in skills.
+> Leaf-name allowlist remains the skill decline gate pending full admission
+> cutover.
 
 ### Release B — Fluent repair loop
 
