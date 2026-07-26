@@ -153,3 +153,37 @@ only. It performs no verification and must never be used to claim evidence.
   stay identical between the submit-result and loop-result schemas.
 - The reference adapter is linted and dry-run in the `adapter-reference` CI job
   (`scripts/ruff.toml`, pinned ruff), so controller-facing drift fails in CI.
+
+## Corpus sweep (regression net)
+
+The pinned gates exercise `count_byte` only. `scripts/corpus_sweep.py` runs the
+whole `fixtures/run/` leaf corpus (memcpy, memset, memcmp, find_*, replace_byte,
+count_byte) through a live SemASM, host-filtered by task target — Win64 leaves on
+Windows, SysV on Linux. A leaf passes when the wrong candidate is not accepted,
+the repaired one reaches `accepted` (VerifiedUnderPreconditions counts only with
+`--allow-under-preconditions`, matching each task profile), and the seal chain
+verifies.
+
+```text
+python scripts/corpus_sweep.py            # sweep host-appropriate leaves
+python scripts/corpus_sweep.py --list     # discovery only
+python scripts/corpus_sweep.py --strict-verified   # reject under-preconditions
+```
+
+The `corpus-sweep.yml` workflow runs this nightly against the pinned tip
+(`workflow_dispatch` accepts a `semasm_ref` such as `main` for early warning).
+
+## SemASM tip pin
+
+`SEMASM_TIP_SHA` is duplicated in `ci.yml` and `corpus-sweep.yml`; the single
+`scripts/bump_semasm_tip.py` reads/checks/rewrites both. The `adapter-reference`
+job runs `--check` so the pins cannot drift. `semasm-tip-bump.yml` resolves
+SemASM `main`, runs the Win64/SysV/GAS-AArch64 harness gates against that exact
+commit, and only if all pass opens a reviewable PR bumping the tip — it never
+pushes to `main`.
+
+The **pack** pin (`SEMASM_PACK_SHA`, and `integrations/*/stack.lock.toml`) is
+deliberately out of this loop: it tracks the Phase-E-stable SemASM for the
+HlaX64/EchoAsm suites. Bumping it to tip requires per-suite
+`allow_verified_under_preconditions` decisions for memory leaves plus updates to
+the inline suite-aggregation asserts, so it stays a separate, human-gated change.

@@ -54,6 +54,8 @@ jobs:
         run: ruff check --config scripts/ruff.toml scripts/
       - name: Dry-run adapter loops against stub CLI
         run: python scripts/tests/harness_adapter_dryrun.py
+      - name: SemASM tip pin agrees across workflows
+        run: python scripts/bump_semasm_tip.py --check
 
   # Agent harness gates: live SemASM tip so the prepare/submit/seal loop and
   # structured agent_failure envelopes are exercised end-to-end. These tests

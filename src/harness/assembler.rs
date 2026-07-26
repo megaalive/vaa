@@ -131,6 +131,10 @@ fn is_x86_64_target(target: &str) -> bool {
     t.contains("x86_64") || t == "win64" || t == "elf64" || t == "sysv64"
 }
 
+// Dialect wiring only: which `as` speaks this target's syntax. This is NOT a
+// claim that VAA can agent-verify the target end-to-end. AArch64 is proven by
+// the GAS harness gate; riscv64 stays fail-closed at the capability layer
+// (`TargetCapabilities::for_target` → Unknown) until a proving gate exists.
 fn is_gas_native_target(target: &str) -> bool {
     let t = target.to_ascii_lowercase();
     t.contains("aarch64") || t.contains("riscv64")

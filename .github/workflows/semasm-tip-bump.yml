@@ -1,0 +1,177 @@
+name: SemASM tip bump
+
+# Fail-closed auto-bump: resolve SemASM main, run the tip acceptance gates
+# (Win64 + SysV + GAS AArch64) against that exact commit, and only if ALL pass
+# open a reviewable PR bumping SEMASM_TIP_SHA. Never pushes to main; a human
+# merges. The pack pin (SEMASM_PACK_SHA) is out of scope and untouched.
+
+on:
+  schedule:
+    # Mondays 19:00 UTC (~02:00 WIB Tue).
+    - cron: "0 19 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  CARGO_TERM_COLOR: always
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  resolve:
+    name: Resolve SemASM main
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.rev.outputs.sha }}
+    steps:
+      - name: Resolve main HEAD
+        id: rev
+        run: |
+          SHA=$(git ls-remote https://github.com/megaalive/semasm.git refs/heads/main | cut -f1)
+          if [ -z "$SHA" ]; then echo "could not resolve semasm main" >&2; exit 1; fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "SemASM main = $SHA" >> "$GITHUB_STEP_SUMMARY"
+
+  probe-win64:
+    name: Probe main (Win64)
+    needs: resolve
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          ref: ${{ needs.resolve.outputs.sha }}
+      - run: choco install nasm llvm --no-progress -y
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+      - working-directory: semasm
+        run: cargo build -p semasm-cli --release
+      - name: Put semasm on PATH
+        shell: pwsh
+        run: |
+          $bin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          if (-not (Test-Path (Join-Path $bin "semasm.exe"))) { throw "semasm.exe missing" }
+          echo $bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          semasm --version
+      - name: Harness gates against main
+        shell: pwsh
+        env:
+          VAA_REQUIRE_SEMASM: "1"
+        run: |
+          ./scripts/ci-gate-sign-setup.ps1
+          cargo test --test agent_harness_gates -- --nocapture
+
+  probe-sysv:
+    name: Probe main (SysV)
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          ref: ${{ needs.resolve.outputs.sha }}
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm lld qemu-user binutils
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+      - working-directory: semasm
+        run: cargo build -p semasm-cli --release
+      - name: Put semasm on PATH
+        run: |
+          echo "${GITHUB_WORKSPACE}/semasm/target/release" >> "$GITHUB_PATH"
+          "${GITHUB_WORKSPACE}/semasm/target/release/semasm" --version
+      - name: Harness gates against main
+        env:
+          VAA_REQUIRE_SEMASM: "1"
+        run: |
+          chmod +x scripts/ci-gate-sign-setup.sh
+          # shellcheck disable=SC1091
+          source ./scripts/ci-gate-sign-setup.sh
+          cargo test --test agent_harness_gates -- --nocapture
+
+  probe-gas-aarch64:
+    name: Probe main (GAS AArch64)
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          ref: ${{ needs.resolve.outputs.sha }}
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils-aarch64-linux-gnu qemu-user nasm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+      - working-directory: semasm
+        run: cargo build -p semasm-cli --release
+      - name: Put semasm on PATH
+        run: |
+          echo "${GITHUB_WORKSPACE}/semasm/target/release" >> "$GITHUB_PATH"
+          "${GITHUB_WORKSPACE}/semasm/target/release/semasm" --version
+      - name: GAS AArch64 harness gate against main
+        env:
+          VAA_REQUIRE_SEMASM: "1"
+          VAA_REQUIRE_GAS_AARCH64: "1"
+        run: |
+          chmod +x scripts/ci-gate-sign-setup.sh
+          # shellcheck disable=SC1091
+          source ./scripts/ci-gate-sign-setup.sh
+          cargo test --test agent_harness_gates harness_submit_gas_aarch64 -- --nocapture
+
+  open-pr:
+    name: Open bump PR
+    needs: [resolve, probe-win64, probe-sysv, probe-gas-aarch64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Bump pins to main SHA
+        run: python scripts/bump_semasm_tip.py --sha "${{ needs.resolve.outputs.sha }}"
+      - name: Open PR if the pin changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+        run: |
+          if git diff --quiet; then
+            echo "Pin already at $SHA; no PR needed." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          BRANCH="bot/bump-semasm-tip-${SHA:0:12}"
+          if gh pr list --head "$BRANCH" --state open --json number --jq 'length' | grep -qv '^0$'; then
+            echo "PR for $BRANCH already open." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -am "ci(pin): bump SEMASM_TIP_SHA to ${SHA:0:12} (gates green on main)"
+          git push --force-with-lease -u origin "$BRANCH"
+          gh pr create \
+            --title "ci(pin): bump SemASM tip to ${SHA:0:12}" \
+            --body "Automated bump: SemASM main \`$SHA\` passed the Win64, SysV, and GAS AArch64 harness gates. Pack pin (SEMASM_PACK_SHA) is unchanged. Review and merge to adopt." \
+            --base main \
+            --head "$BRANCH"

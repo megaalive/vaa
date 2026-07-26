@@ -1,0 +1,149 @@
+name: Corpus sweep
+
+# Broad regression detector: run the whole fixtures/run leaf corpus (not just
+# the pinned count_byte gate) through a live SemASM. Catches a SemASM tip or
+# corpus regression across memcpy/memset/find_*/memcmp/replace_byte earlier
+# than the narrow gates. Separate workflow so the nightly cron does not drag
+# the full CI matrix along.
+
+on:
+  schedule:
+    # 18:20 UTC daily (~01:20 WIB) — off-peak, after typical pushes.
+    - cron: "20 18 * * *"
+  workflow_dispatch:
+    inputs:
+      semasm_ref:
+        description: "SemASM ref to sweep (default: pinned tip; use 'main' for early warning)"
+        required: false
+        default: ""
+
+env:
+  CARGO_TERM_COLOR: always
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  # Canonical pin lives in ci.yml (env.SEMASM_TIP_SHA); keep in sync on bump.
+  SEMASM_TIP_SHA: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+
+jobs:
+  corpus-sweep-win64:
+    name: Corpus sweep (SemASM tip, Win64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v6
+
+      - name: Resolve SemASM ref
+        id: ref
+        shell: pwsh
+        run: |
+          $r = "${{ inputs.semasm_ref }}"
+          if ([string]::IsNullOrWhiteSpace($r)) { $r = "${{ env.SEMASM_TIP_SHA }}" }
+          echo "value=$r" >> $env:GITHUB_OUTPUT
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          ref: ${{ steps.ref.outputs.value }}
+
+      - name: Install NASM and LLVM (lld-link)
+        run: choco install nasm llvm --no-progress -y
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Build VAA CLI
+        run: cargo build --release --bin vaa
+
+      - name: Put semasm and vaa on PATH
+        shell: pwsh
+        run: |
+          $semasmBin = Join-Path $env:GITHUB_WORKSPACE "semasm\target\release"
+          $vaaBin = Join-Path $env:GITHUB_WORKSPACE "target\release"
+          if (-not (Test-Path (Join-Path $semasmBin "semasm.exe"))) { throw "semasm.exe missing" }
+          if (-not (Test-Path (Join-Path $vaaBin "vaa.exe"))) { throw "vaa.exe missing" }
+          echo $semasmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo $vaaBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$semasmBin;$vaaBin;$env:PATH"
+          semasm --version
+          vaa --version
+
+      - name: Sweep Win64 leaves
+        shell: pwsh
+        run: python scripts/corpus_sweep.py
+
+  corpus-sweep-sysv:
+    name: Corpus sweep (SemASM tip, SysV)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v6
+
+      - name: Resolve SemASM ref
+        id: ref
+        run: |
+          R="${{ inputs.semasm_ref }}"
+          if [ -z "$R" ]; then R="${{ env.SEMASM_TIP_SHA }}"; fi
+          echo "value=$R" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          ref: ${{ steps.ref.outputs.value }}
+
+      - name: Install NASM, LLVM (ld.lld), and qemu-user
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm lld qemu-user binutils
+          command -v qemu-x86_64
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Build VAA CLI
+        run: cargo build --release --bin vaa
+
+      - name: Put semasm and vaa on PATH
+        run: |
+          echo "${GITHUB_WORKSPACE}/semasm/target/release" >> "$GITHUB_PATH"
+          echo "${GITHUB_WORKSPACE}/target/release" >> "$GITHUB_PATH"
+          export PATH="${GITHUB_WORKSPACE}/semasm/target/release:${GITHUB_WORKSPACE}/target/release:$PATH"
+          semasm --version
+          vaa --version
+
+      - name: Sweep SysV leaves
+        run: python scripts/corpus_sweep.py

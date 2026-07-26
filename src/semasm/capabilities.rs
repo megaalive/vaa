@@ -285,6 +285,25 @@ mod tests {
     }
 
     #[test]
+    fn riscv64_is_fail_closed_until_proven() {
+        // The assembler knows riscv64's `as`, but no gate proves agent-verify
+        // for it, so the capability snapshot must refuse riscv64 tasks.
+        let caps = TargetCapabilities::for_target("riscv64gc-unknown-linux-gnu");
+        assert_eq!(caps.decode, CapabilityLevel::Unknown);
+        assert_eq!(caps.lower, CapabilityLevel::Unknown);
+
+        let mut task = sample_task();
+        task.target = "riscv64gc-unknown-linux-gnu".to_owned();
+        let result = match_task_requirements(&task, &caps);
+        assert!(!result.compatible, "riscv64 must be rejected until proven");
+        assert!(
+            result.missing.iter().any(|m| m.contains("not recognized")),
+            "missing={:?}",
+            result.missing
+        );
+    }
+
+    #[test]
     fn capability_match_rejects_insufficient_lower() {
         let task = sample_task();
         let mut caps = TargetCapabilities::for_target("x86_64-unknown-linux-gnu");
