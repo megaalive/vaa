@@ -45,11 +45,24 @@ def load_work_packet(workspace: Path) -> dict[str, Any] | None:
 def vaa_command() -> list[str]:
     """CLI to spawn: `VAA_BIN` if set, else `vaa` from PATH.
 
-    `VAA_BIN` is parsed shell-style, so paths containing spaces or backslashes
-    must be single-quoted (`VAA_BIN="'C:\\tools\\vaa.exe'"`).
+    Bare Windows paths (``D:\\…\\vaa.exe``) are used as a single argv entry —
+    posix ``shlex`` would treat backslashes as escapes. Multi-token values from
+    the hermetic dry-run (``shlex.quote(python) + shlex.quote(stub)``) still
+    parse with posix ``shlex``.
     """
     raw = os.environ.get("VAA_BIN", "").strip()
-    return shlex.split(raw) if raw else ["vaa"]
+    if not raw:
+        return ["vaa"]
+    as_path = Path(raw)
+    if as_path.is_file():
+        return [str(as_path)]
+    try:
+        parts = shlex.split(raw, posix=True)
+    except ValueError:
+        parts = []
+    if parts:
+        return parts
+    return shlex.split(raw, posix=False) or ["vaa"]
 
 
 def run_vaa(args: list[str], timeout: float | None = None) -> dict[str, Any]:
