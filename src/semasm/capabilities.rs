@@ -52,29 +52,22 @@ impl TargetCapabilities {
     #[must_use]
     pub fn for_target(target: &str) -> Self {
         match target {
-            // Agent-verify golden path is exercised in VAA Gate-1/2 CI (Win64)
-            // and SemASM e2e (SysV). Snapshot must not under-claim Supported
-            // levels required by locked tasks with require_* = true.
-            "x86_64-unknown-linux-gnu" | "x86_64-pc-windows-msvc" => Self {
-                target_id: target.to_owned(),
-                decode: CapabilityLevel::Supported,
-                lower: CapabilityLevel::Supported,
-                abi_check: CapabilityLevel::Supported,
-                object_inspect: CapabilityLevel::Supported,
-                assemble: CapabilityLevel::Supported,
-                link: CapabilityLevel::Supported,
-                sandbox_run: CapabilityLevel::Supported,
-            },
-            "aarch64-unknown-linux-gnu" => Self {
-                target_id: target.to_owned(),
-                decode: CapabilityLevel::Partial,
-                lower: CapabilityLevel::Partial,
-                abi_check: CapabilityLevel::Partial,
-                object_inspect: CapabilityLevel::Supported,
-                assemble: CapabilityLevel::Supported,
-                link: CapabilityLevel::Supported,
-                sandbox_run: CapabilityLevel::Supported,
-            },
+            // Agent-verify golden path is exercised in VAA Gate-1/2 CI (Win64),
+            // SemASM e2e (SysV), and the SemASM-tip GAS AArch64 harness job.
+            // Snapshot must not under-claim Supported levels required by locked
+            // tasks with require_* = true.
+            "x86_64-unknown-linux-gnu" | "x86_64-pc-windows-msvc" | "aarch64-unknown-linux-gnu" => {
+                Self {
+                    target_id: target.to_owned(),
+                    decode: CapabilityLevel::Supported,
+                    lower: CapabilityLevel::Supported,
+                    abi_check: CapabilityLevel::Supported,
+                    object_inspect: CapabilityLevel::Supported,
+                    assemble: CapabilityLevel::Supported,
+                    link: CapabilityLevel::Supported,
+                    sandbox_run: CapabilityLevel::Supported,
+                }
+            }
             _ => Self {
                 target_id: target.to_owned(),
                 decode: CapabilityLevel::Unknown,
@@ -264,6 +257,25 @@ mod tests {
         assert_eq!(caps.decode, CapabilityLevel::Supported);
         assert_eq!(caps.assemble, CapabilityLevel::Supported);
         assert_eq!(caps.sandbox_run, CapabilityLevel::Supported);
+    }
+
+    #[test]
+    fn aarch64_capabilities_support_gas_harness_gate() {
+        let caps = TargetCapabilities::for_target("aarch64-unknown-linux-gnu");
+        assert_eq!(caps.decode, CapabilityLevel::Supported);
+        assert_eq!(caps.lower, CapabilityLevel::Supported);
+        assert_eq!(caps.abi_check, CapabilityLevel::Supported);
+        assert_eq!(caps.object_inspect, CapabilityLevel::Supported);
+        assert_eq!(caps.sandbox_run, CapabilityLevel::Supported);
+        let mut task = sample_task();
+        task.target = "aarch64-unknown-linux-gnu".to_owned();
+        task.verification.require_behavioral_tests = true;
+        let result = match_task_requirements(&task, &caps);
+        assert!(
+            result.compatible,
+            "insufficient={:?} missing={:?}",
+            result.insufficient, result.missing
+        );
     }
 
     #[test]
