@@ -207,7 +207,7 @@ jobs:
         run: cargo test --features pkcs11 softhsm_live_round_trip -- --nocapture
 
   # Gate-1: live SemASM Incomplete smoke (count_byte Win64, no --allow-execution).
-  # This is NOT a Verified vertical slice Ã¢â‚¬â€ see docs/progress.md.
+  # This is NOT a Verified vertical slice - see docs/progress.md.
   semasm-gate1:
     name: Gate-1 SemASM Incomplete (Win64)
     runs-on: windows-latest
@@ -894,7 +894,7 @@ jobs:
           if-no-files-found: error
 
   # Gate-1 Linux: live SemASM Incomplete smoke (count_byte/sysv64, no --allow-execution).
-  # VAA+SemASM smoke on the pinned SemASM SHA Ã¢â‚¬â€ not a claim SemASM Linux is upstream CI-verified.
+  # VAA+SemASM smoke on the pinned SemASM SHA - not a claim SemASM Linux is upstream CI-verified.
   semasm-gate1-linux:
     name: Gate-1 SemASM Incomplete (Linux)
     runs-on: ubuntu-latest
