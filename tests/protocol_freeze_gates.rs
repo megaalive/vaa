@@ -307,7 +307,10 @@ fn agent_leaf_allowlist_only_names_discoverable_leaves() {
             .to_path_buf();
         let mut tasks = 0usize;
         let mut contracts = 0usize;
-        for entry in std::fs::read_dir(&leaf_dir).expect("read leaf dir").flatten() {
+        for entry in std::fs::read_dir(&leaf_dir)
+            .expect("read leaf dir")
+            .flatten()
+        {
             let fname = entry.file_name().to_string_lossy().into_owned();
             if fname.ends_with(".vaa.toml") && !fname.contains("budget") {
                 tasks += 1;
@@ -315,8 +318,14 @@ fn agent_leaf_allowlist_only_names_discoverable_leaves() {
                 contracts += 1;
             }
         }
-        assert_eq!(tasks, 1, "{ctx}: expected exactly one non-budget task in {leaf_dir:?}");
-        assert_eq!(contracts, 1, "{ctx}: expected exactly one contract in {leaf_dir:?}");
+        assert_eq!(
+            tasks, 1,
+            "{ctx}: expected exactly one non-budget task in {leaf_dir:?}"
+        );
+        assert_eq!(
+            contracts, 1,
+            "{ctx}: expected exactly one contract in {leaf_dir:?}"
+        );
         assert!(
             leaf_dir.join("01_wrong.asm").is_file(),
             "{ctx}: missing 01_wrong.asm (corpus_sweep would skip this leaf)"
