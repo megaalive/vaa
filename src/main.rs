@@ -332,6 +332,11 @@ enum Commands {
         #[command(subcommand)]
         command: HarnessCommands,
     },
+    /// Fluent agent surface (`serve` NDJSON / `idioms` catalog).
+    Agent {
+        #[command(subcommand)]
+        command: AgentCommands,
+    },
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -359,6 +364,48 @@ impl From<AssemblerArg> for vaa::AssemblerFlavor {
             AssemblerArg::Gas => vaa::AssemblerFlavor::Gas,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum VerifyLevelArg {
+    /// Static gates only — never execution, never seal. Success ≠ acceptance.
+    Fast,
+    /// Verify with optional `--allow-execution`; never seal.
+    Full,
+    /// Seal path — requires `--allow-execution` and `--run-base`/`--run-dir`.
+    Seal,
+}
+
+impl From<VerifyLevelArg> for vaa::VerifyLevel {
+    fn from(value: VerifyLevelArg) -> Self {
+        match value {
+            VerifyLevelArg::Fast => vaa::VerifyLevel::Fast,
+            VerifyLevelArg::Full => vaa::VerifyLevel::Full,
+            VerifyLevelArg::Seal => vaa::VerifyLevel::Seal,
+        }
+    }
+}
+
+#[derive(Debug, Subcommand)]
+enum AgentCommands {
+    /// NDJSON stdio session loop for a case directory (protocol on stdout only).
+    Serve {
+        /// Case directory containing `task.vaa.toml` + `contract.sem.toml`.
+        #[arg(long)]
+        case: PathBuf,
+        /// Required for Release B — NDJSON over stdin/stdout.
+        #[arg(long)]
+        stdio: bool,
+    },
+    /// List verified idiom catalog entries (guidance only — not acceptance).
+    Idioms {
+        /// Target triple filter.
+        #[arg(long)]
+        target: String,
+        /// Optional leaf / shape filter (`max_i64`, `count_byte`, …).
+        #[arg(long)]
+        shape: Option<String>,
+    },
 }
 
 #[allow(clippy::large_enum_variant)] // transient CLI parse type; Prepare carries many fields
@@ -465,6 +512,10 @@ enum HarnessCommands {
         /// Optional idempotency / run key.
         #[arg(long)]
         idempotency_key: Option<String>,
+        /// Submit verify depth (`fast` / `full` / `seal`). Default: seal when
+        /// `--run-base`/`--run-dir` set, else full. Explicit value overrides.
+        #[arg(long, value_enum)]
+        level: Option<VerifyLevelArg>,
         /// Output format (default json).
         #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
         format: OutputFormat,
@@ -1486,6 +1537,7 @@ fn run_cli() -> ExitCode {
                 timeout,
                 assembler,
                 idempotency_key,
+                level,
                 format,
             } => harness_submit_command(HarnessSubmitCli {
                 mode,
@@ -1509,11 +1561,18 @@ fn run_cli() -> ExitCode {
                 timeout,
                 assembler: assembler.into(),
                 idempotency_key: idempotency_key.as_deref(),
+                level: level.map(Into::into),
                 format,
             }),
             HarnessCommands::Resume { run_dir, format }
             | HarnessCommands::Status { run_dir, format } => {
                 harness_resume_command(&run_dir, format)
+            }
+        },
+        Commands::Agent { command } => match command {
+            AgentCommands::Serve { case, stdio } => agent_serve_command(&case, stdio),
+            AgentCommands::Idioms { target, shape } => {
+                agent_idioms_command(&target, shape.as_deref())
             }
         },
     }
@@ -1525,7 +1584,7 @@ fn print_status() {
     println!("maturity: {MATURITY}");
     println!("form: local CLI (single binary crate + library modules)");
     println!("task schema: {TASK_SCHEMA_VERSION}");
-    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch, repair, harness");
+    println!("commands: version, status, validate, doctor, capabilities, verify, run, ingest, evidence, generate, build, cache, inspect, generator, generator-run, suite, patch, repair, harness, agent");
     println!("default mode: verify-only (run=fixture; ingest=external; live LLM opt-in)");
     println!(
         "model adapter: fixture default; --live needs --features live-model + VAA_MODEL_API_KEY"
@@ -2890,6 +2949,7 @@ struct HarnessSubmitCli<'a> {
     timeout: u64,
     assembler: vaa::AssemblerFlavor,
     idempotency_key: Option<&'a str>,
+    level: Option<vaa::VerifyLevel>,
     format: OutputFormat,
 }
 
@@ -2918,6 +2978,7 @@ fn harness_submit_command(cli: HarnessSubmitCli<'_>) -> ExitCode {
                 timeout_secs: cli.timeout,
                 assembler: cli.assembler,
                 idempotency_key: cli.idempotency_key.map(str::to_owned),
+                level: cli.level,
             })
         }
         HarnessModeArg::GeneratorRepair => {
@@ -3026,6 +3087,30 @@ fn harness_resume_command(run_dir: &Path, format: OutputFormat) -> ExitCode {
             VaaExitCode::ToolFailure.as_std()
         }
     }
+}
+
+fn agent_serve_command(case: &Path, stdio: bool) -> ExitCode {
+    if !stdio {
+        eprintln!("error: Release B requires --stdio (NDJSON over stdin/stdout)");
+        return VaaExitCode::InvalidInput.as_std();
+    }
+    match vaa::serve_stdio(case) {
+        Ok(()) => VaaExitCode::Success.as_std(),
+        Err(error) => {
+            eprintln!("error: agent serve failed: {error}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
+fn agent_idioms_command(target: &str, shape: Option<&str>) -> ExitCode {
+    let catalog = vaa::catalog_for(target, shape);
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&catalog)
+            .unwrap_or_else(|e| format!(r#"{{"ok":false,"error":"{e}"}}"#))
+    );
+    VaaExitCode::Success.as_std()
 }
 
 fn repair_verify_command(path: &Path, format: OutputFormat) -> ExitCode {

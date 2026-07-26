@@ -147,6 +147,8 @@ def loop_direct(ns: argparse.Namespace) -> dict[str, Any]:
             submit_args.append("--allow-execution")
         if ns.allow_under_preconditions:
             submit_args.append("--allow-under-preconditions")
+        if getattr(ns, "level", None):
+            submit_args.extend(["--level", ns.level])
         if run_dir:
             submit_args.extend(["--run-dir", run_dir])
         else:
@@ -370,6 +372,11 @@ def main() -> int:
     p_sub.add_argument("--run-dir")
     p_sub.add_argument("--run-base")
     p_sub.add_argument("--idempotency-key")
+    p_sub.add_argument(
+        "--level",
+        choices=["fast", "full", "seal"],
+        help="Submit verify depth (fast never seals / never enables execution)",
+    )
 
     p_gsub = sub.add_parser("submit-generator")
     p_gsub.add_argument("--repair-packet", required=True)
@@ -404,6 +411,11 @@ def main() -> int:
     p_loop.add_argument("--allow-execution", action="store_true")
     p_loop.add_argument("--allow-under-preconditions", action="store_true")
     p_loop.add_argument("--timeout", type=int, default=120)
+    p_loop.add_argument(
+        "--level",
+        choices=["fast", "full", "seal"],
+        help="Optional submit --level passthrough (default: seal via --run-base)",
+    )
 
     p_loop_gen = sub.add_parser(
         "loop-generator",
@@ -499,6 +511,8 @@ def main() -> int:
             args.extend(["--run-base", ns.run_base])
         if ns.idempotency_key:
             args.extend(["--idempotency-key", ns.idempotency_key])
+        if ns.level:
+            args.extend(["--level", ns.level])
         return emit(run_vaa(args, timeout=float(ns.timeout) + 60.0))
     if ns.cmd == "submit-generator":
         args = [

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IdiomCatalog",
+  "description": "VAA verified idiom catalog v0 — guidance snippets for agent authoring. NOT acceptance authority; SemASM sealed evidence decides verified/accepted.",
+  "type": "object",
+  "required": ["schema_version", "note", "idioms"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "note": { "type": "string" },
+    "idioms": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "idiom_id",
+          "target",
+          "dialect",
+          "snippet",
+          "evidence_level"
+        ],
+        "properties": {
+          "idiom_id": { "type": "string", "minLength": 1 },
+          "target": { "type": "string", "minLength": 1 },
+          "dialect": { "type": "string", "minLength": 1 },
+          "snippet": { "type": "string" },
+          "evidence_level": {
+            "type": "string",
+            "enum": ["verified_in_ci", "guidance"]
+          },
+          "known_limits": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "semantic_effects": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "shapes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

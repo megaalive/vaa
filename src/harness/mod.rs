@@ -8,7 +8,9 @@
 pub mod assembler;
 pub mod envelope;
 pub mod feedback;
+pub mod idioms;
 pub mod session;
+pub mod stdio_serve;
 pub mod target_profile;
 pub mod template;
 
@@ -22,10 +24,18 @@ pub use feedback::{
     FailureDetail, FailureLocation, HarnessNextAction, HarnessOutcomeClass, HarnessSubmitResult,
     HARNESS_SUBMIT_SCHEMA_VERSION,
 };
+pub use idioms::{
+    catalog_for, embedded_catalog, select_idioms, write_idioms_json, IdiomCatalog, IdiomEntry,
+    IdiomEvidenceLevel, IDIOM_CATALOG_SCHEMA_VERSION,
+};
 pub use session::{
-    prepare_direct_nasm, prepare_generator_repair, resume_status, submit_direct_nasm,
-    submit_generator_repair, HarnessError, PrepareDirectRequest, PrepareGeneratorRequest,
-    SubmitDirectRequest, SubmitGeneratorRequest,
+    enforce_level_honesty, prepare_direct_nasm, prepare_generator_repair, resolve_verify_policy,
+    resume_status, submit_direct_nasm, submit_generator_repair, HarnessError, PrepareDirectRequest,
+    PrepareGeneratorRequest, ResolvedVerifyPolicy, SubmitDirectRequest, SubmitGeneratorRequest,
+    VerifyLevel,
+};
+pub use stdio_serve::{
+    parse_request_line, serve_stdio, serve_stdio_with, AgentServeSession, ServeError,
 };
 pub use target_profile::{
     embedded_profile, resolve_target_profile, write_target_profile, ResolvedTargetProfile,

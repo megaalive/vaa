@@ -55,6 +55,8 @@ After `prepare`, the workspace also contains:
   (`schemas/agent-envelope.schema.json`)
 - `target-profile.json` — ABI / dialect authoring profile (live SemASM or
   embedded fallback); **do not hardcode ABI** — read this file
+- `idioms.json` — ≤5 selected idiom snippets for the target / leaf
+  (**guidance only** — not acceptance authority; see idiom catalog below)
 - `prompt.md` — bounded human/agent brief (remaining attempts, assembler, verify)
 - `candidate.asm` (or `.S`) — writable in direct mode
 - `semasm-packet.json` — best-effort SemASM packet when SemASM is on PATH
@@ -76,12 +78,12 @@ vaa harness prepare --mode generator-repair \
 # Verify-only (no seal):
 vaa harness submit --mode direct-nasm \
   --task … --contract … --source candidate.asm \
-  [--allow-execution] [--allow-under-preconditions] [--timeout 120]
+  [--level fast|full] [--allow-execution] [--allow-under-preconditions] [--timeout 120]
 
 # Seal into a new or existing run:
 vaa harness submit --mode direct-nasm \
   --task … --contract … --source candidate.asm \
-  --allow-execution --run-base .vaa/runs
+  --allow-execution --run-base .vaa/runs [--level seal]
 # or --run-dir <existing-run> to append the next candidate index
 
 vaa harness submit --mode generator-repair \
@@ -92,11 +94,44 @@ vaa harness submit --mode generator-repair \
 
 vaa harness resume --run-dir <run>
 vaa harness status --run-dir <run>
+
+# Fluent agent surface (Release B):
+vaa agent serve --stdio --case <case-dir>
+vaa agent idioms --target x86_64-pc-windows-msvc [--shape max_i64]
 ```
+
+### Submit levels (`--level`)
+
+| Level | Execution | Seal | Meaning |
+|---|---|---|---|
+| `fast` | never | never | Static gates only (assemble/object/decode/lower/ABI). **Fast success ≠ acceptance.** Evidence stays incomplete / execution_denied / static — never promote. |
+| `full` | if `--allow-execution` | never | Current verify path; behavioral when execution allowed. |
+| `seal` | required | required | Needs `--allow-execution` + `--run-base`/`--run-dir`; existing seal path. |
+
+**Default** (no `--level`): if `--run-base`/`--run-dir` is set → seal behavior as today;
+otherwise full/static as today. Explicit `--level` always overrides.
 
 Stdout is one JSON document (default `--format json`). Stderr is human noise —
 controllers must parse stdout alone. `status`/`resume` expose `events.jsonl`,
 evidence dir, seal cursor, and recent events — not human logs as decision truth.
+
+### `vaa agent serve --stdio`
+
+NDJSON request/response over stdin/stdout for one case directory
+(`task.vaa.toml` + `contract.sem.toml`). Workspace is `case/.vaa-agent`.
+
+Methods: `session.start`, `candidate.submit` (`path`, `level`), `feedback.get`,
+`session.status`, `session.finish`. Responses are `{id, result}` or
+`{id, error: {code, message}}`. **Stdout carries protocol JSON lines only**;
+stderr may log diagnostics. Duplicate request ids return the cached response.
+
+### Idiom catalog (guidance only)
+
+`vaa agent idioms --target <t> [--shape <leaf>]` prints selected idioms as JSON
+(`schemas/idiom-catalog.json`). Snippets (`win64_preserve_rbx_v1`,
+`x86_signed_max_cmov_v1`, …) reduce common authoring mistakes — they are **not**
+acceptance authority. Prepare may write `idioms.json` (≤5 entries) into the
+workspace for the same reason.
 
 ### Submit outcome classes
 

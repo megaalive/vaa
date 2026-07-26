@@ -22,6 +22,7 @@ use crate::harness::feedback::{
     classify_outcome, enrich_repair_feedback, HarnessNextAction, HarnessOutcomeClass,
     HarnessSubmitResult, HARNESS_SUBMIT_SCHEMA_VERSION,
 };
+use crate::harness::idioms::write_idioms_json;
 use crate::harness::target_profile::write_target_profile;
 use crate::process::{ProcessConfig, ProcessRunner};
 use crate::run::{
@@ -67,6 +68,140 @@ pub struct PrepareGeneratorRequest {
     pub target: String,
 }
 
+/// Submit verify depth for direct-assembly harness loops.
+///
+/// Honesty: [`VerifyLevel::Fast`] never enables execution and never seals.
+/// Fast success is static-only and is **not** acceptance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VerifyLevel {
+    /// Assemble / object / decode / lower / ABI path without `--allow-execution`.
+    /// Never seals; never claims behavioral verified acceptance.
+    Fast,
+    /// Current verify; behavioral when `allow_execution` is set. No seal.
+    Full,
+    /// Requires `allow_execution` + `run_base`/`run_dir`; existing seal path.
+    Seal,
+}
+
+impl VerifyLevel {
+    /// Stable snake_case label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Fast => "fast",
+            Self::Full => "full",
+            Self::Seal => "seal",
+        }
+    }
+
+    /// Parse a CLI / NDJSON level string.
+    #[must_use]
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "fast" => Some(Self::Fast),
+            "full" => Some(Self::Full),
+            "seal" => Some(Self::Seal),
+            _ => None,
+        }
+    }
+}
+
+/// Resolved execution / seal policy after applying [`VerifyLevel`] rules.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedVerifyPolicy {
+    pub level: VerifyLevel,
+    pub allow_execution: bool,
+    pub run_dir: Option<PathBuf>,
+    pub run_base: Option<PathBuf>,
+}
+
+/// Resolve submit level defaults and honesty constraints.
+///
+/// Default (no explicit level): `--run-base`/`--run-dir` → seal-as-today;
+/// otherwise full/static as today. Explicit `--level` overrides.
+///
+/// Explicit `seal` requires `--allow-execution` and a run path. Default
+/// seal-from-run preserves historical optional `allow_execution`.
+pub fn resolve_verify_policy(
+    explicit_level: Option<VerifyLevel>,
+    allow_execution: bool,
+    run_dir: Option<PathBuf>,
+    run_base: Option<PathBuf>,
+) -> Result<ResolvedVerifyPolicy, HarnessError> {
+    let has_run = run_dir.is_some() || run_base.is_some();
+    let level = explicit_level.unwrap_or(if has_run {
+        VerifyLevel::Seal
+    } else {
+        VerifyLevel::Full
+    });
+
+    match level {
+        VerifyLevel::Fast => Ok(ResolvedVerifyPolicy {
+            level,
+            allow_execution: false,
+            run_dir: None,
+            run_base: None,
+        }),
+        VerifyLevel::Full => Ok(ResolvedVerifyPolicy {
+            level,
+            allow_execution,
+            run_dir: None,
+            run_base: None,
+        }),
+        VerifyLevel::Seal => {
+            if explicit_level == Some(VerifyLevel::Seal) && !allow_execution {
+                return Err(HarnessError::Message(
+                    "verify level seal requires --allow-execution".into(),
+                ));
+            }
+            if !has_run {
+                return Err(HarnessError::Message(
+                    "verify level seal requires --run-base or --run-dir".into(),
+                ));
+            }
+            Ok(ResolvedVerifyPolicy {
+                level,
+                allow_execution,
+                run_dir,
+                run_base,
+            })
+        }
+    }
+}
+
+/// Belt-and-suspenders honesty: Fast/Full never retain seals; Fast never
+/// keeps a false Accepted over incomplete / execution_denied evidence.
+pub fn enforce_level_honesty(level: VerifyLevel, result: &mut HarnessSubmitResult) {
+    match level {
+        VerifyLevel::Fast => {
+            result.seal_digest = None;
+            result.run_dir = None;
+            result.run_id = None;
+            result.candidate_index = None;
+            result.candidate_dir = None;
+            let status = result.evidence_status.to_ascii_lowercase();
+            let incomplete_like = status == "incomplete"
+                || status == "execution_denied"
+                || status.contains("incomplete")
+                || status.contains("execution_denied");
+            if incomplete_like && matches!(result.class, HarnessOutcomeClass::Accepted) {
+                result.class = HarnessOutcomeClass::IncompleteCoverage;
+                result.next_action = HarnessNextAction::OptInExecution;
+                result.may_auto_retry = false;
+                result.message = format!(
+                    "fast level: refused to promote {} to accepted ({})",
+                    result.evidence_status, result.message
+                );
+            }
+        }
+        VerifyLevel::Full => {
+            result.seal_digest = None;
+        }
+        VerifyLevel::Seal => {}
+    }
+}
+
 /// Inputs for `submit` in direct-assembly mode.
 #[derive(Debug, Clone)]
 pub struct SubmitDirectRequest {
@@ -82,6 +217,9 @@ pub struct SubmitDirectRequest {
     pub timeout_secs: u64,
     pub assembler: AssemblerFlavor,
     pub idempotency_key: Option<String>,
+    /// Explicit submit level (`fast` / `full` / `seal`). `None` → default
+    /// (seal when run paths set, else full).
+    pub level: Option<VerifyLevel>,
 }
 
 /// Inputs for `submit` in generator-repair mode.
@@ -178,6 +316,11 @@ pub fn prepare_direct_nasm(req: &PrepareDirectRequest) -> Result<AgentEnvelope, 
         .exists()
         .then(|| packet_path.display().to_string());
     let (profile_path, profile_digest) = write_target_profile(&req.workspace, &task.target)?;
+    let _ = write_idioms_json(
+        &req.workspace,
+        &task.target,
+        Some(task.entry.symbol.as_str()),
+    );
     let feedback_path = req.workspace.join("feedback.json");
     let work_packet_path = req.workspace.join("work-packet.json");
 
@@ -323,6 +466,18 @@ pub fn prepare_generator_repair(
 
 /// Submit a direct-assembly candidate through SemASM (optional ingest/seal).
 pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResult, HarnessError> {
+    let policy = resolve_verify_policy(
+        req.level,
+        req.allow_execution,
+        req.run_dir.clone(),
+        req.run_base.clone(),
+    )?;
+    let mut req = req.clone();
+    req.allow_execution = policy.allow_execution;
+    req.run_dir = policy.run_dir.clone();
+    req.run_base = policy.run_base.clone();
+    req.level = Some(policy.level);
+
     let locked = load_locked_task(&req.task).map_err(|e| HarnessError::Task(e.to_string()))?;
     let target = locked.task().target.clone();
     req.assembler
@@ -335,7 +490,8 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
 
     // Seal path: create/open run dir and verify_candidate_and_seal.
     if req.run_dir.is_some() || req.run_base.is_some() {
-        let mut result = submit_direct_with_seal(req, &locked, &source_bytes, &candidate_digest)?;
+        let mut result = submit_direct_with_seal(&req, &locked, &source_bytes, &candidate_digest)?;
+        enforce_level_honesty(policy.level, &mut result);
         persist_feedback(&mut result, feedback_dir.as_deref())?;
         return Ok(result);
     }
@@ -350,6 +506,7 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
             req.assembler,
             req.allow_under_preconditions,
         );
+        enforce_level_honesty(policy.level, &mut result);
         persist_feedback(&mut result, feedback_dir.as_deref())?;
         return Ok(result);
     };
@@ -380,8 +537,9 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
                 raw_status: Some(report.raw_status),
                 exit_code: exit as u8,
                 message: format!(
-                    "semasm status mapped to {}",
-                    evidence_status_label(report.outcome)
+                    "semasm status mapped to {} (level={})",
+                    evidence_status_label(report.outcome),
+                    policy.level.as_str()
                 ),
                 failure_code: None,
                 candidate_digest: Some(candidate_digest),
@@ -434,6 +592,7 @@ pub fn submit_direct_nasm(req: &SubmitDirectRequest) -> Result<HarnessSubmitResu
             }
         }
     };
+    enforce_level_honesty(policy.level, &mut result);
     persist_feedback(&mut result, feedback_dir.as_deref())?;
     Ok(result)
 }
@@ -1033,5 +1192,94 @@ fn evidence_status_label(status: EvidenceStatus) -> &'static str {
         EvidenceStatus::Violated => "violated",
         EvidenceStatus::Incomplete => "incomplete",
         EvidenceStatus::Failed => "failed",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::exit_code::ExitCode;
+
+    #[test]
+    fn fast_strips_execution_and_seal_paths() {
+        let policy = resolve_verify_policy(
+            Some(VerifyLevel::Fast),
+            true,
+            Some(PathBuf::from("/tmp/run")),
+            Some(PathBuf::from("/tmp/base")),
+        )
+        .expect("fast resolves");
+        assert_eq!(policy.level, VerifyLevel::Fast);
+        assert!(!policy.allow_execution);
+        assert!(policy.run_dir.is_none());
+        assert!(policy.run_base.is_none());
+    }
+
+    #[test]
+    fn full_keeps_execution_but_never_seals() {
+        let policy = resolve_verify_policy(
+            Some(VerifyLevel::Full),
+            true,
+            Some(PathBuf::from("/tmp/run")),
+            Some(PathBuf::from("/tmp/base")),
+        )
+        .expect("full resolves");
+        assert!(policy.allow_execution);
+        assert!(policy.run_dir.is_none());
+        assert!(policy.run_base.is_none());
+    }
+
+    #[test]
+    fn explicit_seal_requires_allow_execution() {
+        let err = resolve_verify_policy(
+            Some(VerifyLevel::Seal),
+            false,
+            None,
+            Some(PathBuf::from("/tmp/base")),
+        )
+        .expect_err("seal without execution");
+        assert!(err.to_string().contains("allow-execution"));
+    }
+
+    #[test]
+    fn default_with_run_base_is_seal_as_today() {
+        let policy = resolve_verify_policy(None, false, None, Some(PathBuf::from("/tmp/base")))
+            .expect("default seal");
+        assert_eq!(policy.level, VerifyLevel::Seal);
+        assert!(!policy.allow_execution); // historical optional execution
+        assert!(policy.run_base.is_some());
+    }
+
+    #[test]
+    fn fast_honesty_clears_seal_and_refuses_false_accepted() {
+        let mut result = HarnessSubmitResult {
+            schema_version: HARNESS_SUBMIT_SCHEMA_VERSION.to_owned(),
+            class: HarnessOutcomeClass::Accepted,
+            next_action: HarnessNextAction::Done,
+            evidence_status: "incomplete".into(),
+            raw_status: Some("execution_denied".into()),
+            exit_code: ExitCode::Success as u8,
+            message: "should not accept".into(),
+            failure_code: None,
+            candidate_digest: Some("sha256:dead".into()),
+            run_dir: Some("/tmp/run".into()),
+            run_id: Some("r1".into()),
+            candidate_index: Some(0),
+            candidate_dir: Some("/tmp/run/c0000".into()),
+            seal_digest: Some("sha256:seal".into()),
+            patch_evidence_path: None,
+            assembler: Some("nasm".into()),
+            may_auto_retry: false,
+            failure: None,
+            counterexample: None,
+            candidate_delta: None,
+            repair_focus: None,
+            feedback_path: None,
+        };
+        enforce_level_honesty(VerifyLevel::Fast, &mut result);
+        assert!(result.seal_digest.is_none());
+        assert!(result.run_dir.is_none());
+        assert_eq!(result.class, HarnessOutcomeClass::IncompleteCoverage);
+        assert!(!matches!(result.class, HarnessOutcomeClass::Accepted));
     }
 }

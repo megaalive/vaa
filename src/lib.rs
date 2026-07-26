@@ -78,13 +78,16 @@ pub use generator::{
     PATCH_EVIDENCE_SCHEMA_VERSION, STACK_LOCK_SCHEMA_VERSION, SUITE_SCHEMA_VERSION,
 };
 pub use harness::{
-    classify_outcome, default_allowed_operations, enrich_repair_feedback, prepare_direct_nasm,
-    prepare_generator_repair, resume_status, stage_for_failure_code, submit_direct_nasm,
-    submit_generator_repair, AgentBudget, AgentCommands, AgentDigests, AgentEnvelope, AgentMode,
-    AssemblerFlavor, CandidateDelta, FailureDetail, FailureLocation, HarnessConfig, HarnessError,
-    HarnessNextAction, HarnessOutcomeClass, HarnessSubmitResult, HarnessTemplate,
-    PrepareDirectRequest, PrepareGeneratorRequest, ResolvedTargetProfile, SubmitDirectRequest,
-    SubmitGeneratorRequest, AGENT_ENVELOPE_SCHEMA_VERSION, HARNESS_SUBMIT_SCHEMA_VERSION,
+    catalog_for, classify_outcome, default_allowed_operations, enrich_repair_feedback,
+    prepare_direct_nasm, prepare_generator_repair, resolve_verify_policy, resume_status,
+    select_idioms, serve_stdio, stage_for_failure_code, submit_direct_nasm,
+    submit_generator_repair, write_idioms_json, AgentBudget, AgentCommands, AgentDigests,
+    AgentEnvelope, AgentMode, AssemblerFlavor, CandidateDelta, FailureDetail, FailureLocation,
+    HarnessConfig, HarnessError, HarnessNextAction, HarnessOutcomeClass, HarnessSubmitResult,
+    HarnessTemplate, IdiomCatalog, IdiomEntry, IdiomEvidenceLevel, PrepareDirectRequest,
+    PrepareGeneratorRequest, ResolvedTargetProfile, ResolvedVerifyPolicy, SubmitDirectRequest,
+    SubmitGeneratorRequest, VerifyLevel, AGENT_ENVELOPE_SCHEMA_VERSION,
+    HARNESS_SUBMIT_SCHEMA_VERSION, IDIOM_CATALOG_SCHEMA_VERSION,
 };
 pub use inspect::{ArtifactInfo, ArtifactInspector};
 #[cfg(feature = "live-model")]

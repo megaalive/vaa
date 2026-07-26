@@ -65,11 +65,19 @@ response, and finish with sealed evidence.
 > Leaf-name allowlist remains the skill decline gate pending full admission
 > cutover.
 
-### Release B — Fluent repair loop
+### Release B — Fluent repair loop (**delivered**)
 
-- `vaa agent serve --stdio`
-- Submit levels: `fast` → `full` → `seal` (fast never upgrades evidence)
-- Small verified idiom catalog (guidance only)
+- `vaa agent serve --stdio --case <dir>` — NDJSON session
+  (`session.start` / `candidate.submit` / `feedback.get` / `session.status` /
+  `session.finish`); stdout protocol-only
+- Submit levels: `fast` → `full` → `seal` via `--level`
+  (**fast never upgrades evidence**; fast success ≠ acceptance)
+- Idiom catalog v0 (`vaa agent idioms`, prepare writes `idioms.json`) —
+  guidance only, not acceptance authority
+
+**Landed:** `VerifyLevel` on harness submit + adapter `--level`;
+`src/harness/stdio_serve.rs`; `src/harness/idioms.rs` +
+`schemas/idiom-catalog.json`.
 
 ### Release C — Authoring cases
 
