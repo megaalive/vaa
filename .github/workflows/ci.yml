@@ -9,6 +9,11 @@ on:
 env:
   CARGO_TERM_COLOR: always
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  # Single source for agent-harness / Gate-1/2 SemASM tip (not the HlaX64 pack pin).
+  SEMASM_TIP_SHA: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+  # Pack pin: last known Phase-E-stable SemASM for HlaX64/EchoAsm suites.
+  SEMASM_PACK_SHA: 67cba2a17683c71d96543a84b645c12364482bee
+  HLAX64_PIN_SHA: 0778aad3bd8bb5394252755367de00e52618bde8
 
 jobs:
   check:
@@ -47,8 +52,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
-          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+          # Pin: SemASM tip (see env.SEMASM_TIP_SHA).
+          ref: ${{ env.SEMASM_TIP_SHA }}
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -106,8 +111,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
-          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+          # Pin: SemASM tip (see env.SEMASM_TIP_SHA).
+          ref: ${{ env.SEMASM_TIP_SHA }}
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -152,6 +157,62 @@ jobs:
           # shellcheck disable=SC1091
           source ./scripts/ci-gate-sign-setup.sh
           cargo test --test agent_harness_gates -- --nocapture
+
+  # GAS AArch64 harness: SemASM tip + cross-as + qemu (candidate.S path).
+  agent-harness-gates-gas-aarch64:
+    name: Agent harness gates (SemASM tip, GAS AArch64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VAA
+        uses: actions/checkout@v6
+
+      - name: Checkout SemASM
+        uses: actions/checkout@v6
+        with:
+          repository: megaalive/semasm
+          path: semasm
+          # Pin: SemASM tip (see env.SEMASM_TIP_SHA).
+          ref: ${{ env.SEMASM_TIP_SHA }}
+
+      - name: Install cross-as, qemu-user, and NASM (repro helpers)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils-aarch64-linux-gnu qemu-user nasm
+          command -v aarch64-linux-gnu-as
+          command -v qemu-aarch64
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            semasm
+
+      - name: Build SemASM CLI
+        working-directory: semasm
+        run: cargo build -p semasm-cli --release
+
+      - name: Put semasm on PATH
+        run: |
+          SEMASM_BIN="${GITHUB_WORKSPACE}/semasm/target/release"
+          test -x "${SEMASM_BIN}/semasm"
+          echo "${SEMASM_BIN}" >> "$GITHUB_PATH"
+          export PATH="${SEMASM_BIN}:$PATH"
+          command -v semasm
+          semasm --version
+
+      - name: GAS AArch64 harness seal gate
+        env:
+          VAA_REQUIRE_SEMASM: "1"
+          VAA_REQUIRE_GAS_AARCH64: "1"
+        run: |
+          chmod +x scripts/ci-gate-sign-setup.sh
+          # shellcheck disable=SC1091
+          source ./scripts/ci-gate-sign-setup.sh
+          cargo test --test agent_harness_gates harness_submit_gas_aarch64 -- --nocapture
 
   # P8-F: fail-closed parser fuzz smoke (not a security certification).
   fuzz:
@@ -220,8 +281,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
-          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+          # Pin: SemASM tip (see env.SEMASM_TIP_SHA).
+          ref: ${{ env.SEMASM_TIP_SHA }}
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -297,8 +358,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
-          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+          # Pin: SemASM tip (see env.SEMASM_TIP_SHA).
+          ref: ${{ env.SEMASM_TIP_SHA }}
 
       - name: Install NASM and LLVM (lld-link)
         run: choco install nasm llvm --no-progress -y
@@ -368,8 +429,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: 67cba2a17683c71d96543a84b645c12364482bee
+          # Pin: pack SemASM (see env.SEMASM_PACK_SHA / stack.lock.toml).
+          ref: ${{ env.SEMASM_PACK_SHA }}
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -377,7 +438,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml (distinct IRâ†’NASM map lines).
-          ref: 0778aad3bd8bb5394252755367de00e52618bde8
+          ref: ${{ env.HLAX64_PIN_SHA }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -907,8 +968,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
-          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+          # Pin: SemASM tip (see env.SEMASM_TIP_SHA).
+          ref: ${{ env.SEMASM_TIP_SHA }}
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -986,8 +1047,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: SemASM tip bb21689 (agent_failure envelopes + task-packet schema regen).
-          ref: bb216895a18cbc32cba636aa20f4ddbc5cd0beb2
+          # Pin: SemASM tip (see env.SEMASM_TIP_SHA).
+          ref: ${{ env.SEMASM_TIP_SHA }}
 
       - name: Install NASM, LLVM (ld.lld), and qemu-user
         run: |
@@ -1061,8 +1122,8 @@ jobs:
         with:
           repository: megaalive/semasm
           path: semasm
-          # Pin: match integrations/hlax64/stack.lock.toml (Phase E pure-int oracles).
-          ref: 67cba2a17683c71d96543a84b645c12364482bee
+          # Pin: pack SemASM (see env.SEMASM_PACK_SHA / stack.lock.toml).
+          ref: ${{ env.SEMASM_PACK_SHA }}
 
       - name: Checkout HlaX64
         uses: actions/checkout@v6
@@ -1070,7 +1131,7 @@ jobs:
           repository: megaalive/hlax64
           path: hlax64
           # Pin: match integrations/hlax64/stack.lock.toml (distinct IRâ†’NASM map lines).
-          ref: 0778aad3bd8bb5394252755367de00e52618bde8
+          ref: ${{ env.HLAX64_PIN_SHA }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5

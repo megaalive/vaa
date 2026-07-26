@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use super::pipeline::{BuildOutcome, BuildPipeline, PipelineConfig};
 use crate::evidence::sha256_digest_prefixed;
 use crate::process::{ProcessConfig, ProcessRunner};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 
 /// Canonical snapshot used for reproducibility comparison.
@@ -219,19 +219,23 @@ pub fn reproducible_build_check(source_path: &Path, target: &str) -> (bool, Stri
     if std::fs::create_dir_all(&dir_a).is_err() || std::fs::create_dir_all(&dir_b).is_err() {
         return (false, "repro temp dirs failed".into());
     }
-    let fmt = crate::nasm_format_for_target(target);
+    let flavor = if source_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case("S"))
+        || crate::harness::AssemblerFlavor::Gas.is_supported_for(target)
+    {
+        crate::harness::AssemblerFlavor::Gas
+    } else {
+        crate::harness::AssemblerFlavor::Nasm
+    };
+    let tool = flavor.as_str();
     let obj_a = dir_a.join("c.o");
     let obj_b = dir_b.join("c.o");
     let run = |out: &Path| {
         let cfg = ProcessConfig {
-            program: PathBuf::from("nasm"),
-            args: vec![
-                "-f".to_owned(),
-                fmt.to_owned(),
-                "-o".to_owned(),
-                out.to_string_lossy().to_string(),
-                source_path.to_string_lossy().to_string(),
-            ],
+            program: flavor.default_program(target),
+            args: flavor.assemble_args(source_path, out, target),
             timeout: Duration::from_secs(60),
             max_output_bytes: 1_048_576,
             ..ProcessConfig::default()
@@ -252,7 +256,7 @@ pub fn reproducible_build_check(source_path: &Path, target: &str) -> (bool, Stri
                         (
                             true,
                             format!(
-                                "twin assemble matched ({da}; COFF timestamp normalized on windows)"
+                                "twin assemble matched ({da}; flavor={tool}; COFF timestamp normalized on windows)"
                             ),
                         )
                     } else {
@@ -263,12 +267,12 @@ pub fn reproducible_build_check(source_path: &Path, target: &str) -> (bool, Stri
             }
         }
         (Ok(oa), _) if oa.exit_code != Some(0) => {
-            (false, format!("first nasm failed: {}", oa.stderr.trim()))
+            (false, format!("first {tool} failed: {}", oa.stderr.trim()))
         }
         (_, Ok(ob)) if ob.exit_code != Some(0) => {
-            (false, format!("second nasm failed: {}", ob.stderr.trim()))
+            (false, format!("second {tool} failed: {}", ob.stderr.trim()))
         }
-        (Err(e), _) | (_, Err(e)) => (false, format!("nasm invoke failed: {e}")),
+        (Err(e), _) | (_, Err(e)) => (false, format!("{tool} invoke failed: {e}")),
         _ => (false, "twin assemble failed".into()),
     };
     let _ = std::fs::remove_dir_all(&tmp);

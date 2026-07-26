@@ -25,6 +25,21 @@ fn semasm_required() -> bool {
     std::env::var_os("VAA_REQUIRE_SEMASM").is_some_and(|v| v != "0")
 }
 
+fn gas_aarch64_required() -> bool {
+    std::env::var_os("VAA_REQUIRE_GAS_AARCH64").is_some_and(|v| v != "0")
+}
+
+fn gas_aarch64_toolchain_available() -> bool {
+    Command::new("aarch64-linux-gnu-as")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success())
+        && Command::new("qemu-aarch64")
+            .arg("--version")
+            .output()
+            .is_ok_and(|o| o.status.success())
+}
+
 fn tmp(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(format!(
         "{prefix}-{}-{}",
@@ -775,6 +790,139 @@ fn harness_budget_exhausted_refuses_reseal() {
     let status_json: serde_json::Value =
         serde_json::from_str(String::from_utf8_lossy(&status.stdout).trim()).expect("status json");
     assert_eq!(status_json["next_candidate_index"], 1, "{status_json}");
+
+    let _ = std::fs::remove_dir_all(&run_base);
+}
+
+#[test]
+#[allow(clippy::too_many_lines)]
+fn harness_submit_gas_aarch64_wrong_then_repaired_with_seal() {
+    if !cfg!(target_os = "linux") {
+        eprintln!("skipping GAS AArch64 seal gate on non-Linux host");
+        return;
+    }
+    if !semasm_available() {
+        assert!(
+            !semasm_required() && !gas_aarch64_required(),
+            "SemASM required for GAS AArch64 gate but unavailable"
+        );
+        eprintln!("skipping GAS AArch64 seal gate: semasm unavailable");
+        return;
+    }
+    if !gas_aarch64_toolchain_available() {
+        assert!(
+            !gas_aarch64_required(),
+            "VAA_REQUIRE_GAS_AARCH64 is set but aarch64-linux-gnu-as/qemu-aarch64 unavailable"
+        );
+        eprintln!("skipping GAS AArch64 seal gate: cross-as/qemu unavailable");
+        return;
+    }
+
+    let run_base = tmp("vaa-harness-gas-a64-seal");
+    let task = root().join("fixtures/run/gas_aarch64/task.vaa.toml");
+    let contract = root().join("fixtures/run/gas_aarch64/contract.sem.toml");
+    let wrong = root().join("fixtures/run/gas_aarch64/01_wrong.S");
+    let repaired = root().join("fixtures/run/gas_aarch64/02_repaired.S");
+
+    let wrong_out = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "submit",
+            "--mode",
+            "direct",
+            "--assembler",
+            "gas",
+            "--task",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            wrong.to_str().unwrap(),
+            "--allow-execution",
+            "--run-base",
+            run_base.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("submit wrong gas aarch64");
+    let wrong_stdout = String::from_utf8_lossy(&wrong_out.stdout);
+    let wrong_json: serde_json::Value =
+        serde_json::from_str(wrong_stdout.trim()).unwrap_or_else(|_| {
+            panic!(
+                "expected JSON for wrong GAS AArch64; got: {wrong_stdout}\nstderr={}",
+                String::from_utf8_lossy(&wrong_out.stderr)
+            )
+        });
+    let class = wrong_json["class"].as_str().unwrap_or_default();
+    if class == "toolchain_retryable" {
+        assert!(
+            !gas_aarch64_required(),
+            "GAS AArch64 toolchain retryable under require: {wrong_json}"
+        );
+        let _ = std::fs::remove_dir_all(&run_base);
+        return;
+    }
+    assert!(
+        matches!(
+            class,
+            "violated_repairable" | "failed" | "incomplete_coverage" | "accepted"
+        ),
+        "unexpected class={class} {wrong_json}"
+    );
+    assert_eq!(wrong_json["assembler"], "gas");
+    let run_dir = wrong_json["run_dir"]
+        .as_str()
+        .expect("sealed submit must return run_dir")
+        .to_owned();
+
+    let ok_out = Command::new(vaa_bin())
+        .args([
+            "harness",
+            "submit",
+            "--mode",
+            "direct",
+            "--assembler",
+            "gas",
+            "--task",
+            task.to_str().unwrap(),
+            "--contract",
+            contract.to_str().unwrap(),
+            "--source",
+            repaired.to_str().unwrap(),
+            "--allow-execution",
+            "--allow-under-preconditions",
+            "--run-dir",
+            &run_dir,
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("submit repaired gas aarch64");
+    let ok_stdout = String::from_utf8_lossy(&ok_out.stdout);
+    let ok_json: serde_json::Value = serde_json::from_str(ok_stdout.trim()).unwrap_or_else(|_| {
+        panic!(
+            "expected JSON for repaired GAS AArch64; got: {ok_stdout}\nstderr={}",
+            String::from_utf8_lossy(&ok_out.stderr)
+        )
+    });
+    assert_eq!(
+        ok_json["class"], "accepted",
+        "repaired GAS AArch64 not accepted: {ok_json}"
+    );
+    assert_eq!(ok_json["assembler"], "gas");
+    assert_eq!(ok_json["candidate_index"], 1);
+
+    let chain = Command::new(vaa_bin())
+        .args(["evidence", "verify-chain", &run_dir])
+        .output()
+        .expect("verify-chain");
+    assert!(
+        chain.status.success(),
+        "verify-chain failed: stdout={}\nstderr={}",
+        String::from_utf8_lossy(&chain.stdout),
+        String::from_utf8_lossy(&chain.stderr)
+    );
 
     let _ = std::fs::remove_dir_all(&run_base);
 }

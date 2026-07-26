@@ -1,4 +1,6 @@
 # EchoAsm pack — stack lock (exact pins only).
+# Pack SemASM pin stays aligned with HlaX64 (Phase-E-stable). Tip for agent
+# harness lives in CI env SEMASM_TIP_SHA, not here.
 schema_version = "0.1"
 
 [vaa]

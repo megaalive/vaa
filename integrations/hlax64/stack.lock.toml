@@ -1,5 +1,10 @@
 # HlaX64 instance pack — stack lock (exact pins only).
 # Floating refs (`main`, `latest`) are rejected by `vaa generator validate-lock`.
+#
+# SemASM pack pin tracks the last Phase-E-stable SHA used by hlax64-bridge CI.
+# Agent-harness / Gate-1/2 tip is separate (see .github/workflows/ci.yml
+# SEMASM_TIP_SHA). Do not bump [semasm] to tip without re-validating suite
+# aggregation for VerifiedUnderPreconditions on buffer leaves.
 schema_version = "0.1"
 
 [vaa]

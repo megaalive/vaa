@@ -22,8 +22,10 @@ invariants stay locked.
 | `gas` | Supported for AArch64 / RISC-V Linux | `candidate.S` |
 
 `gas` on x86_64 stays **fail-closed** (SemASM+VAA remain NASM/Intel there).
-VAA object-inspect / build pipeline select `nasm` vs `aarch64-linux-gnu-as` /
-`riscv64-linux-gnu-as` from the flavor+target pair.
+VAA object-inspect / build / reproducible twin-assemble select `nasm` vs
+`aarch64-linux-gnu-as` / `riscv64-linux-gnu-as` from the flavor+target pair.
+CI job **Agent harness gates (SemASM tip, GAS AArch64)** seals a live
+wrong→repaired `.S` loop with SemASM tip + qemu-aarch64.
 
 ## Case kit layout
 
@@ -109,11 +111,19 @@ accepted / budget / policy:
 python scripts/agent_harness_adapter.py loop-direct \
   --task fixtures/run/count_byte/count_byte.vaa.toml \
   --contract fixtures/run/count_byte/count_byte.sem.toml \
-  --workspace .vaa/harness/demo \
-  --run-base .vaa/runs \
+  --workspace .vaa/harness/demo --run-base .vaa/runs \
   --allow-execution --allow-under-preconditions \
   --candidate fixtures/run/count_byte/01_wrong.asm \
   --candidate fixtures/run/count_byte/02_repaired.asm
+```
+
+Generator-repair rehearsal (policy block → accepted patch evidence):
+
+```text
+python scripts/agent_harness_adapter.py loop-generator \
+  --repair-packet fixtures/repair/hlax64-stack-balance-win64-live-worktree/repair-packet.json \
+  --workspace .vaa/harness/gen-demo \
+  --suite-evidence fixtures/repair/echoasm-passthrough/suite-evidence.accepted.json
 ```
 
 ## Protocol freeze

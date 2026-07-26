@@ -5,6 +5,8 @@ Controllers must treat stderr as noise. Supports:
   - one-shot prepare / submit / status helpers
   - deterministic `loop-direct` that applies a sequence of candidate sources
     (wrong → repaired) until accepted / budget / policy / hard failure
+  - deterministic `loop-generator` that rehearses policy-block then accepted
+    patch evidence (no LLM, no live generator rebuild)
 
 This is intentionally not an SDK and does not call an LLM.
 """
@@ -183,6 +185,134 @@ def loop_direct(ns: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def loop_generator(ns: argparse.Namespace) -> dict[str, Any]:
+    """Deterministic generator-repair loop: policy reject, then accepted patch."""
+    workspace = Path(ns.workspace)
+    workspace.mkdir(parents=True, exist_ok=True)
+
+    envelope = run_vaa(
+        [
+            "harness",
+            "prepare",
+            "--mode",
+            "generator-repair",
+            "--repair-packet",
+            ns.repair_packet,
+            "--workspace",
+            str(workspace),
+            "--target",
+            ns.target,
+            "--format",
+            "json",
+        ]
+    )
+
+    steps: list[dict[str, Any]] = []
+
+    # Attempt 1: mutate an authority path → policy_blocked.
+    blocked = run_vaa(
+        [
+            "harness",
+            "submit",
+            "--mode",
+            "generator-repair",
+            "--repair-packet",
+            ns.repair_packet,
+            "--workspace",
+            str(workspace),
+            "--changed-file",
+            ns.forbidden_path,
+            "--patched-revision",
+            ns.blocked_revision,
+            "--suite-evidence",
+            ns.suite_evidence,
+            "--format",
+            "json",
+        ]
+    )
+    steps.append(
+        {
+            "index": 0,
+            "kind": "forbidden_path",
+            "changed_file": ns.forbidden_path,
+            "class": blocked.get("class"),
+            "failure_code": blocked.get("failure_code"),
+            "exit_code": blocked.get("_vaa_exit_code"),
+        }
+    )
+    if blocked.get("class") != "policy_blocked":
+        return {
+            "schema_version": "0.1",
+            "kind": "agent_harness_loop",
+            "mode": "generator_repair",
+            "envelope": {
+                "task_id": envelope.get("task_id"),
+                "target": envelope.get("target"),
+                "mode": envelope.get("mode"),
+            },
+            "steps": steps,
+            "final": {
+                "class": blocked.get("class"),
+                "failure_code": blocked.get("failure_code"),
+                "exit_code": blocked.get("_vaa_exit_code"),
+            },
+            "_vaa_exit_code": blocked.get("_vaa_exit_code", 1),
+        }
+
+    # Attempt 2: allowed generator path + suite evidence → accepted.
+    accepted = run_vaa(
+        [
+            "harness",
+            "submit",
+            "--mode",
+            "generator-repair",
+            "--repair-packet",
+            ns.repair_packet,
+            "--workspace",
+            str(workspace),
+            "--changed-file",
+            ns.allowed_path,
+            "--patched-revision",
+            ns.accepted_revision,
+            "--suite-evidence",
+            ns.suite_evidence,
+            "--format",
+            "json",
+        ]
+    )
+    steps.append(
+        {
+            "index": 1,
+            "kind": "allowed_patch",
+            "changed_file": ns.allowed_path,
+            "class": accepted.get("class"),
+            "failure_code": accepted.get("failure_code"),
+            "patch_evidence_path": accepted.get("patch_evidence_path"),
+            "exit_code": accepted.get("_vaa_exit_code"),
+        }
+    )
+
+    return {
+        "schema_version": "0.1",
+        "kind": "agent_harness_loop",
+        "mode": "generator_repair",
+        "envelope": {
+            "task_id": envelope.get("task_id"),
+            "target": envelope.get("target"),
+            "mode": envelope.get("mode"),
+        },
+        "steps": steps,
+        "final": {
+            "class": accepted.get("class"),
+            "next_action": accepted.get("next_action"),
+            "failure_code": accepted.get("failure_code"),
+            "patch_evidence_path": accepted.get("patch_evidence_path"),
+            "exit_code": accepted.get("_vaa_exit_code"),
+        },
+        "_vaa_exit_code": accepted.get("_vaa_exit_code", 0),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -246,6 +376,27 @@ def main() -> int:
     p_loop.add_argument("--allow-execution", action="store_true")
     p_loop.add_argument("--allow-under-preconditions", action="store_true")
     p_loop.add_argument("--timeout", type=int, default=120)
+
+    p_loop_gen = sub.add_parser(
+        "loop-generator",
+        help="Deterministic generator-repair loop: forbidden path then accepted patch",
+    )
+    p_loop_gen.add_argument("--repair-packet", required=True)
+    p_loop_gen.add_argument("--workspace", required=True)
+    p_loop_gen.add_argument("--suite-evidence", required=True)
+    p_loop_gen.add_argument(
+        "--forbidden-path",
+        default="integrations/hlax64/cases/stack_local_i64/task.vaa.toml",
+        help="Authority path that must be policy_blocked",
+    )
+    p_loop_gen.add_argument(
+        "--allowed-path",
+        default="src/HlaX64.Backend.Nasm/Emit.cs",
+        help="Generator path allowed by the repair packet policy",
+    )
+    p_loop_gen.add_argument("--blocked-revision", default="git:deadbeef")
+    p_loop_gen.add_argument("--accepted-revision", default="git:cafebabe")
+    p_loop_gen.add_argument("--target", default="x86_64-pc-windows-msvc")
 
     ns = parser.parse_args()
     if ns.cmd == "prepare-direct":
@@ -351,6 +502,8 @@ def main() -> int:
         return emit(run_vaa(args))
     if ns.cmd == "loop-direct":
         return emit(loop_direct(ns))
+    if ns.cmd == "loop-generator":
+        return emit(loop_generator(ns))
     return emit(
         run_vaa(["harness", "status", "--run-dir", ns.run_dir, "--format", "json"])
     )
