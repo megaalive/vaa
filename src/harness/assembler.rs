@@ -37,6 +37,22 @@ impl AssemblerFlavor {
         }
     }
 
+    /// Choose assembler from target triple / label (never from file extension alone).
+    ///
+    /// Mapping: x86_64 Win64/SysV → NASM; AArch64/RV64 Linux → GAS.
+    pub fn for_target(target: &str) -> Result<Self, String> {
+        if is_x86_64_target(target) {
+            Ok(Self::Nasm)
+        } else if is_gas_native_target(target) {
+            Ok(Self::Gas)
+        } else {
+            Err(format!(
+                "no default assembler mapping for target `{target}` \
+                 (expected x86_64 → nasm, or aarch64/riscv64 → gas)"
+            ))
+        }
+    }
+
     /// True when this flavor matches SemASM's dialect for `target`.
     #[must_use]
     pub fn is_supported_for(self, target: &str) -> bool {
@@ -154,6 +170,27 @@ fn gas_program_for_target(target: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn for_target_maps_x86_nasm_and_gas_natives() {
+        assert_eq!(
+            AssemblerFlavor::for_target("x86_64-pc-windows-msvc").unwrap(),
+            AssemblerFlavor::Nasm
+        );
+        assert_eq!(
+            AssemblerFlavor::for_target("x86_64-unknown-linux-gnu").unwrap(),
+            AssemblerFlavor::Nasm
+        );
+        assert_eq!(
+            AssemblerFlavor::for_target("aarch64-unknown-linux-gnu").unwrap(),
+            AssemblerFlavor::Gas
+        );
+        assert_eq!(
+            AssemblerFlavor::for_target("riscv64gc-unknown-linux-gnu").unwrap(),
+            AssemblerFlavor::Gas
+        );
+        assert!(AssemblerFlavor::for_target("wasm32-unknown-unknown").is_err());
+    }
 
     #[test]
     fn nasm_x86_supported_gas_x86_closed() {
