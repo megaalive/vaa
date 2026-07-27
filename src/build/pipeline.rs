@@ -243,16 +243,14 @@ pub fn resolve_output_binary_path(preferred: &Path) -> (PathBuf, Option<String>)
             }
             let stem = preferred
                 .file_stem()
-                .map(|s| s.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "out".to_owned());
+                .map_or_else(|| "out".to_owned(), |s| s.to_string_lossy().into_owned());
             let ext = preferred
                 .extension()
                 .map(|s| format!(".{}", s.to_string_lossy()))
                 .unwrap_or_default();
             let stamp = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis())
-                .unwrap_or(0);
+                .map_or(0, |d| d.as_millis());
             let alt = preferred.with_file_name(format!("{stem}-{stamp}{ext}"));
             (alt, Some("OUTPUT_LOCKED".to_owned()))
         }

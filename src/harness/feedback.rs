@@ -152,7 +152,7 @@ pub const HARNESS_SUBMIT_SCHEMA_VERSION: &str = "0.1";
 pub fn stage_for_failure_code(code: &str) -> Option<&'static str> {
     Some(match code {
         "TOOLCHAIN_INCOMPLETE" | "TIMEOUT" => "toolchain",
-        "SCRATCH_IO" | "CONTRACT_IO" | "SOURCE_IO" | "HARNESS_IO" => "io",
+        "SCRATCH_IO" | "CONTRACT_IO" | "SOURCE_IO" | "HARNESS_IO" | "OUTPUT_LOCKED" => "io",
         "ASSEMBLE_ERROR"
         | "ASSEMBLE_HARNESS_ERROR"
         | "ASSEMBLE_FAILED"
@@ -166,10 +166,11 @@ pub fn stage_for_failure_code(code: &str) -> Option<&'static str> {
         "SUITE_REQUIRED" => "suite",
         "BUDGET_EXHAUSTED" => "budget",
         "POLICY_BLOCK" | "FORBIDDEN_PATH" => "policy",
-        "HOSTED_SMOKE_FAILED" => "hosted",
-        "OUTPUT_LOCKED" => "io",
-        "DISPATCH_FALLTHROUGH" | "MULTI_LINE_READ" => "hosted",
-        "RIP_INDEX" | "STACK_ALIGN_CALL" | "STACK_BALANCE_RET" | "SHADOW_SPACE_MISSING"
+        "HOSTED_SMOKE_FAILED" | "DISPATCH_FALLTHROUGH" | "MULTI_LINE_READ" => "hosted",
+        "RIP_INDEX"
+        | "STACK_ALIGN_CALL"
+        | "STACK_BALANCE_RET"
+        | "SHADOW_SPACE_MISSING"
         | "CALLER_SAVED" => "lint",
         _ => return None,
     })
@@ -307,7 +308,10 @@ fn classify_failure_code(code: &str) -> (HarnessOutcomeClass, HarnessNextAction,
             ExitCode::SecurityBlock,
         ),
         // Asm lint codes from SemASM findings (hosted or leaf repair).
-        "RIP_INDEX" | "STACK_ALIGN_CALL" | "STACK_BALANCE_RET" | "SHADOW_SPACE_MISSING"
+        "RIP_INDEX"
+        | "STACK_ALIGN_CALL"
+        | "STACK_BALANCE_RET"
+        | "SHADOW_SPACE_MISSING"
         | "CALLER_SAVED" => (
             HarnessOutcomeClass::ViolatedRepairable,
             HarnessNextAction::EditCandidate,

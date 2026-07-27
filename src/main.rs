@@ -1806,10 +1806,7 @@ fn validate_command(path: &std::path::Path, format: OutputFormat, show_digest: b
     match load_locked_task(path) {
         Ok(locked) => {
             let task = locked.task();
-            let suggested = if matches!(
-                task.artifact_kind,
-                vaa::ArtifactKind::HostedProgram
-            ) {
+            let suggested = if matches!(task.artifact_kind, vaa::ArtifactKind::HostedProgram) {
                 let mut args = vaa::suggested_win64_linker_args(&task.capabilities.imports);
                 if args.is_empty()
                     && (task.target.contains("linux")
@@ -1828,10 +1825,7 @@ fn validate_command(path: &std::path::Path, format: OutputFormat, show_digest: b
                     println!("  schema_version: {}", task.schema_version);
                     println!("  target: {}", task.target);
                     println!("  artifact_kind: {:?}", task.artifact_kind);
-                    println!(
-                        "  entry: {} ({})",
-                        task.entry.symbol, task.entry.abi
-                    );
+                    println!("  entry: {} ({})", task.entry.symbol, task.entry.abi);
                     println!("  tests: {}", task.tests.len());
                     if show_digest {
                         println!("  digest: {}", locked.digest().prefixed());
@@ -4976,7 +4970,7 @@ fn build_command(
             output_dir: output_dir.to_path_buf(),
             target: target.to_owned(),
             linker_path: vaa::default_linker_for_target(target),
-            extra_ld_args: linker_args.to_vec(),
+            extra_ld_args: linker_args.clone(),
             ..PipelineConfig::default()
         };
         return match vaa::check_reproducible(&config) {
@@ -5063,7 +5057,7 @@ fn build_command(
         output_dir: output_dir.to_path_buf(),
         target: target.to_owned(),
         linker_path: vaa::default_linker_for_target(target),
-        extra_ld_args: linker_args.to_vec(),
+        extra_ld_args: linker_args.clone(),
         container,
         object_only,
         ..PipelineConfig::default()
@@ -5136,9 +5130,7 @@ fn build_command(
     } else {
         Vec::new()
     };
-    let lint_errors = lint_findings
-        .iter()
-        .any(|f| f.severity == "error");
+    let lint_errors = lint_findings.iter().any(|f| f.severity == "error");
     if lint && lint_fatal && lint_errors {
         match format {
             OutputFormat::Terminal => {
@@ -5212,7 +5204,9 @@ fn build_command(
                     println!("  run_path: {}", run.display());
                 }
                 if let Some(code) = &outcome.failure_code {
-                    println!("  note: {code} — preferred output path was locked; used stamped run_path");
+                    println!(
+                        "  note: {code} — preferred output path was locked; used stamped run_path"
+                    );
                 }
                 if let Some(d) = &outcome.manifest.assembler_digest {
                     println!("  assembler_digest: {d}");
@@ -5246,7 +5240,10 @@ fn build_command(
             if let Some(obj) = body.as_object_mut() {
                 obj.insert("seal_claim".into(), serde_json::json!(false));
                 if lint {
-                    obj.insert("lint".into(), serde_json::to_value(&lint_findings).unwrap_or_default());
+                    obj.insert(
+                        "lint".into(),
+                        serde_json::to_value(&lint_findings).unwrap_or_default(),
+                    );
                 }
             }
             println!("{body}");
@@ -5316,7 +5313,9 @@ fn hosted_check_command(
             match regex::Regex::new(re) {
                 Ok(rx) => (rx.is_match(&stdout), "regex"),
                 Err(e) => {
-                    checks.push(serde_json::json!({"pattern": pat, "ok": false, "error": e.to_string()}));
+                    checks.push(
+                        serde_json::json!({"pattern": pat, "ok": false, "error": e.to_string()}),
+                    );
                     all_ok = false;
                     continue;
                 }

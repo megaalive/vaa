@@ -43,10 +43,7 @@ pub fn lint_nasm_source(source: &str, target: &str) -> Vec<SourceLintFinding> {
         }
         // Soft note for SysV: live counter in rsi/edi across call is a common bug;
         // full CALLER_SAVED needs SemASM analyze — emit advisory when both appear.
-        if sysv
-            && (trimmed.contains("call ") || trimmed.contains("syscall"))
-            && idx > 0
-        {
+        if sysv && (trimmed.contains("call ") || trimmed.contains("syscall")) && idx > 0 {
             // Look back a few lines for esi/edi counters — advisory only.
             let prior: Vec<&str> = source.lines().take(idx).collect();
             let window = prior
