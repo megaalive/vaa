@@ -53,7 +53,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 
 | ID | Tool | Leaf focus | Hosted focus | Status | Progress notes |
 |---|---|---|---|---|---|
-| T01 | `wc`-lite (bytes/lines/LF) | `count_byte` / line-count buffer | argv path, `CreateFile`/`ReadFile`, print counts | `friction_logged` | 2026-07-27: file/`sample.txt`+stdin slice works (`bytes`/`lines`); leaf VUP; argv path → T01b. Log: [t01-wc-lite.md](t01-wc-lite.md) |
+| T01 | `wc`-lite (bytes/lines/LF) | `count_byte` / line-count buffer | argv path, `CreateFile`/`ReadFile`, print counts | `done_enough` | 2026-07-27: argv+`sample.txt`+stdin; leaf VUP; AV from stack misalign fixed in scratch. [t01-wc-lite.md](t01-wc-lite.md) |
 | T02 | `head` / `tail` | find-nth-LF / slice-by-offset | file I/O + byte budget | `planned` | After T01 |
 | T03 | `uniq` consecutive | memcmp window / equal-run | streaming buffer policy | `planned` | |
 | T04 | hexdump | nibble encode leaf | format loop, width flags | `planned` | |
@@ -107,3 +107,4 @@ When starting `Txx`:
 |---|---|
 | 2026-07-27 | Initial plan captured from post-E05 discussion (Tier A–C + 6-week sequence) |
 | 2026-07-27 | T01 cicil-1: `sample.txt`/stdin wc-lite + `count_byte` VUP; friction [t01-wc-lite.md](t01-wc-lite.md); argv deferred T01b |
+| 2026-07-27 | T01 cicil-2: `GetCommandLineA` argv path; Win64 stack-align AV noted; status `done_enough` |

@@ -35,6 +35,8 @@ does not get behavioral seals from the allowlisted admission snapshot.
   [exercises/e03-writefile-win64.md](exercises/e03-writefile-win64.md)).
   Local builds forward Windows SDK discovery env (`SystemRoot`,
   `ProgramFiles(x86)`, optional `LIB`) so `lld-link` can find Kits libs.
+- Win64 hosted asm: keep **16-byte stack alignment** before `call` (odd number of
+  pushes + wrong `sub rsp` → AV). See [exercises/t01-wc-lite.md](exercises/t01-wc-lite.md).
 - Multi-object programs (hosted main + leaf `.o`): assemble the leaf first, then
   `vaa build main.asm … --extra-object path/to/leaf.o --linker-arg …` (see
   [exercises/e04-line-loop-win64.md](exercises/e04-line-loop-win64.md)).
