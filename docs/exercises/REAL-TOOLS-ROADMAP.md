@@ -54,19 +54,19 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 | ID | Tool | Leaf focus | Hosted focus | Status | Progress notes |
 |---|---|---|---|---|---|
 | T01 | `wc`-lite (bytes/lines/LF) | `count_byte` / line-count buffer | argv path, `CreateFile`/`ReadFile`, print counts | `done_enough` | 2026-07-27: argv+`sample.txt`+stdin; leaf VUP; AV from stack misalign fixed in scratch. [t01-wc-lite.md](t01-wc-lite.md) |
-| T02 | `head` / `tail` | find-nth-LF / slice-by-offset | file I/O + byte budget | `friction_logged` | 2026-07-27: cicil-2 argv N + `tail.exe`; `find_nth_lf` UNSUPPORTED_SHAPE. [t02-head.md](t02-head.md) |
-| T03 | `uniq` consecutive | memcmp window / equal-run | streaming buffer policy | `friction_logged` | 2026-07-27: cicil-2 ignore CR before LF; `equal_run` UNSUPPORTED_SHAPE. [t03-uniq.md](t03-uniq.md) |
+| T02 | `head` / `tail` | find-nth-LF / slice-by-offset | file I/O + byte budget | `friction_logged` | 2026-07-27: D4 `CHUNK=64`+carry stream; cicil-2 argv N + `tail.exe`; `find_nth_lf` UNSUPPORTED_SHAPE. [t02-head.md](t02-head.md) |
+| T03 | `uniq` consecutive | memcmp window / equal-run | streaming buffer policy | `friction_logged` | 2026-07-27: D4 multi-chunk carry+prev spill; cicil-2 CR/LF; `equal_run` UNSUPPORTED_SHAPE. [t03-uniq.md](t03-uniq.md) |
 | T04 | hexdump | nibble encode leaf | format loop, width flags | `friction_logged` | 2026-07-27: cicil-2 argv width 1..32; `nibble_to_hex` UNSUPPORTED_SHAPE+admit decline. [t04-hexdump.md](t04-hexdump.md) |
-| T05 | `xor` / `crc32` filter | pure-int or buffer transform | stdin→stdout pipeline | `friction_logged` | 2026-07-27: cicil-2 argv key hex; `xor_u8`/`xor_bytes` UNSUPPORTED_SHAPE. [t05-xor.md](t05-xor.md) |
+| T05 | `xor` / `crc32` filter | pure-int or buffer transform | stdin→stdout pipeline | `friction_logged` | 2026-07-27: D5 `crc32` admit decline+UNSUPPORTED_SHAPE; cicil-2 argv key; `xor_*` declined. [t05-xor.md](t05-xor.md) |
 
 ## Tier B — tools people use more often
 
 | ID | Tool | Why it matures VAA/SemASM | Status | Progress notes |
 |---|---|---|---|---|
 | T06 | path join / basename (Win, length-bounded) | string/buffer contracts, VUP honesty | `friction_logged` | 2026-07-27: T06b join+basename; `find_last_byte` VUP; `basename` UNSUPPORTED_SHAPE. [t06-path.md](t06-path.md) |
-| T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `friction_logged` | 2026-07-27: T07b `[section]`+key; `memcmp`/`find_first_byte` VUP; `ini_lookup` UNSUPPORTED_SHAPE. [t07-ini-lookup.md](t07-ini-lookup.md) |
-| T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `friction_logged` | 2026-07-27: T08b multi `${NAME}` loop; `find_first_byte` VUP. [t08-env-subst.md](t08-env-subst.md) |
-| T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `friction_logged` | 2026-07-27: string+bare-value key extract (T09c); minify (T09b) skipped; `json_get` UNSUPPORTED_SHAPE. [t09-json-get.md](t09-json-get.md) |
+| T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `friction_logged` | 2026-07-27: T07b `[section]`+key; D2 quoted values; `memcmp`/`find_first_byte` VUP; `ini_lookup` UNSUPPORTED_SHAPE. [t07-ini-lookup.md](t07-ini-lookup.md) |
+| T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `friction_logged` | 2026-07-27: T08b multi `${NAME}`; T08c/D1 `replace_byte` CR→LF; both leaves VUP. [t08-env-subst.md](t08-env-subst.md) |
+| T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `friction_logged` | 2026-07-27: T09c bare values + T09b/D3 minify argv; `json_get` UNSUPPORTED_SHAPE. [t09-json-get.md](t09-json-get.md) |
 | T10 | diff hunk stats (line-oriented; no full Myers) | E04 line-loop → useful metric tool | `planned` | |
 
 ## Tier C — pick 2–3 around real workflow (optional)
@@ -103,19 +103,18 @@ When starting `Txx`:
 
 ## Open deepen backlog (tracked debt — do not drop)
 
-Items left after cicil-2. **Still in scope** unless moved to non-goals.
-Scratch under `.vaa-exercises/`; log progress on the linked friction file + flip
-the checkbox here when done.
+Originally left after cicil-2 so debt would not vanish into per-file checkboxes.
+**D1–D5 all paid 2026-07-27.** Keep the table as a ledger (struck rows = done).
 
-| ID | Item | Why still open | Home |
+| ID | Item | Status | Home |
 |---|---|---|---|
-| D1 | `replace_byte` compose (e.g. CR→LF before subst) | T08b shipped multi-`${}`; compose is polish | [t08-env-subst.md](t08-env-subst.md) |
-| D2 | Quoted INI values (`key="a=b"`) | T07b shipped `[section]`; quotes = more grammar | [t07-ini-lookup.md](t07-ini-lookup.md) |
-| D3 | JSON minify (whitespace outside strings) | T09c shipped bare values; minify needs in-string state | [t09-json-get.md](t09-json-get.md) |
-| D4 | Streaming multi-chunk (partial line / prev spill) | Affects T02/T03/T01-class readers; not argv deepen | [t02-head.md](t02-head.md), [t03-uniq.md](t03-uniq.md) |
-| D5 | `crc32` / rolling checksum leaf pressure | Likely new SemASM shape/oracle — tool alone ≠ admit | [t05-xor.md](t05-xor.md) |
+| ~~D1~~ | ~~`replace_byte` compose (CR→LF before subst)~~ | **Done** — admitted VUP + multi-subst | [t08-env-subst.md](t08-env-subst.md) |
+| ~~D2~~ | ~~Quoted INI values (`key="a=b"`)~~ | **Done** — `demo title` → `hello=world` | [t07-ini-lookup.md](t07-ini-lookup.md) |
+| ~~D3~~ | ~~JSON minify (whitespace outside strings)~~ | **Done** — `minify` argv mode | [t09-json-get.md](t09-json-get.md) |
+| ~~D4~~ | ~~Streaming multi-chunk (partial line / prev spill)~~ | **Done** — `CHUNK=64`+carry (T02/T03) | [t02-head.md](t02-head.md), [t03-uniq.md](t03-uniq.md) |
+| ~~D5~~ | ~~`crc32` / rolling checksum leaf pressure~~ | **Done** — admit decline + `UNSUPPORTED_SHAPE` | [t05-xor.md](t05-xor.md) |
 
-Suggested order when picking this up: **D1 → D2 → D3 → D4 → D5**.
+No open deepen debt from this list.
 
 ## Changelog (roadmap doc)
 
@@ -136,3 +135,5 @@ Suggested order when picking this up: **D1 → D2 → D3 → D4 → D5**.
 | 2026-07-27 | T09c: bare numeric/bool values; T09b minify skipped; T16c multi-digit col + T16b light quotes |
 | 2026-07-27 | T02/T03/T04/T05 cicil-2: argv N+tail, CR/LF uniq, argv width, argv xor key |
 | 2026-07-27 | Open deepen backlog D1–D5 captured (replace_byte, quoted INI, JSON minify, multi-chunk, crc32) |
+| 2026-07-27 | D4 paid: T02/T03 streaming `CHUNK=64` + carry/prev spill; D5 paid: `crc32` admit decline + `UNSUPPORTED_SHAPE` |
+| 2026-07-27 | D1–D3 paid: `replace_byte` compose, quoted INI, JSON minify — backlog D1–D5 clear |

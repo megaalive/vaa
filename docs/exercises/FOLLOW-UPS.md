@@ -39,12 +39,12 @@ Status after the ladder close-out. Prefer bounded fixes; keep non-goals closed.
 Everyday utilities (not hello-world): track and update progress in
 [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md).
 
-**Open deepen debt (D1–D5)** lives in that roadmap’s
-[Open deepen backlog](REAL-TOOLS-ROADMAP.md#open-deepen-backlog-tracked-debt--do-not-drop)
-section — not only in per-tool friction checkboxes — so it is not forgotten:
+**Deepen debt D1–D5** (ledger in
+[Open deepen backlog](REAL-TOOLS-ROADMAP.md#open-deepen-backlog-tracked-debt--do-not-drop)):
+**all paid 2026-07-27.**
 
-1. `replace_byte` compose (T08)
-2. Quoted INI values (T07)
-3. JSON minify (T09)
-4. Streaming multi-chunk (T02/T03/…)
-5. `crc32` leaf pressure (T05)
+1. ~~`replace_byte` compose (T08)~~ — **done** (D1)
+2. ~~Quoted INI values (T07)~~ — **done** (D2)
+3. ~~JSON minify (T09)~~ — **done** (D3)
+4. ~~Streaming multi-chunk (T02/T03)~~ — **done** (D4)
+5. ~~`crc32` leaf pressure (T05)~~ — **done** (D5)

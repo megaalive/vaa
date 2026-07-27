@@ -51,20 +51,19 @@ See [`SUMMARY.md`](SUMMARY.md), [`FOLLOW-UPS.md`](FOLLOW-UPS.md),
 
 Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 (T01 `wc`-lite → … → Tier C picks). Same method; higher everyday utility.
-Remaining cicil deepenings are listed there as **Open deepen backlog (D1–D5)**
-so they stay visible debt, not lost checkboxes.
+**Deepen backlog D1–D5 is paid** (ledger kept struck in the roadmap) — not lost debt.
 
 | Logged | Summary |
 |---|---|
 | [T01](t01-wc-lite.md) | wc-lite via `count_byte` VUP; argv+file+stdin; tool not sealed |
-| [T02](t02-head.md) | cicil-2: `head`/`tail` + argv N; `find_nth_lf` UNSUPPORTED_SHAPE |
-| [T03](t03-uniq.md) | cicil-2: ignore CR before LF; `equal_run` UNSUPPORTED_SHAPE |
+| [T02](t02-head.md) | D4 stream `CHUNK=64`+carry; cicil-2 argv N/`tail`; `find_nth_lf` declined |
+| [T03](t03-uniq.md) | D4 multi-chunk carry+prev; cicil-2 CR/LF; `equal_run` UNSUPPORTED_SHAPE |
 | [T04](t04-hexdump.md) | cicil-2: argv width; `nibble_to_hex` UNSUPPORTED_SHAPE |
-| [T05](t05-xor.md) | cicil-2: argv hex key; `xor_u8`/`xor_bytes` UNSUPPORTED_SHAPE |
+| [T05](t05-xor.md) | D5 `crc32` admit decline+UNSUPPORTED_SHAPE; cicil-2 argv xor key |
 | [T06](t06-path.md) | cicil-2: basename + path_join; `basename` UNSUPPORTED_SHAPE |
-| [T07](t07-ini-lookup.md) | cicil-2: `[section]`+key; `ini_lookup` UNSUPPORTED_SHAPE |
-| [T08](t08-env-subst.md) | cicil-2: multi `${NAME}` loop; `find_first_byte` VUP |
-| [T09](t09-json-get.md) | cicil-2: string+bare numeric/bool; minify skipped; `json_get` decline |
+| [T07](t07-ini-lookup.md) | D2 quoted values + `[section]`; `ini_lookup` UNSUPPORTED_SHAPE |
+| [T08](t08-env-subst.md) | D1 `replace_byte` CR→LF + multi `${}`; leaves VUP |
+| [T09](t09-json-get.md) | D3 minify + bare values; `json_get` decline |
 | [T16](t16-csv-cut.md) | cicil-2: col 0–99 + light quotes; `csv_cut` UNSUPPORTED_SHAPE |
 
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).
