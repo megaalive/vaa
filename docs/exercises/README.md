@@ -51,6 +51,8 @@ See [`SUMMARY.md`](SUMMARY.md), [`FOLLOW-UPS.md`](FOLLOW-UPS.md),
 
 Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 (T01 `wc`-lite → … → Tier C picks). Same method; higher everyday utility.
+Remaining cicil deepenings are listed there as **Open deepen backlog (D1–D5)**
+so they stay visible debt, not lost checkboxes.
 
 | Logged | Summary |
 |---|---|

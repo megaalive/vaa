@@ -101,6 +101,22 @@ When starting `Txx`:
 - Weakening `UNSUPPORTED_SHAPE` so parsers “pass”
 - Claiming “tool verified” from leaf verify + exit code
 
+## Open deepen backlog (tracked debt — do not drop)
+
+Items left after cicil-2. **Still in scope** unless moved to non-goals.
+Scratch under `.vaa-exercises/`; log progress on the linked friction file + flip
+the checkbox here when done.
+
+| ID | Item | Why still open | Home |
+|---|---|---|---|
+| D1 | `replace_byte` compose (e.g. CR→LF before subst) | T08b shipped multi-`${}`; compose is polish | [t08-env-subst.md](t08-env-subst.md) |
+| D2 | Quoted INI values (`key="a=b"`) | T07b shipped `[section]`; quotes = more grammar | [t07-ini-lookup.md](t07-ini-lookup.md) |
+| D3 | JSON minify (whitespace outside strings) | T09c shipped bare values; minify needs in-string state | [t09-json-get.md](t09-json-get.md) |
+| D4 | Streaming multi-chunk (partial line / prev spill) | Affects T02/T03/T01-class readers; not argv deepen | [t02-head.md](t02-head.md), [t03-uniq.md](t03-uniq.md) |
+| D5 | `crc32` / rolling checksum leaf pressure | Likely new SemASM shape/oracle — tool alone ≠ admit | [t05-xor.md](t05-xor.md) |
+
+Suggested order when picking this up: **D1 → D2 → D3 → D4 → D5**.
+
 ## Changelog (roadmap doc)
 
 | Date | Note |
@@ -119,3 +135,4 @@ When starting `Txx`:
 | 2026-07-27 | T16 cicil-1: CSV column cut; `csv_cut` UNSUPPORTED_SHAPE; [t16-csv-cut.md](t16-csv-cut.md) |
 | 2026-07-27 | T09c: bare numeric/bool values; T09b minify skipped; T16c multi-digit col + T16b light quotes |
 | 2026-07-27 | T02/T03/T04/T05 cicil-2: argv N+tail, CR/LF uniq, argv width, argv xor key |
+| 2026-07-27 | Open deepen backlog D1–D5 captured (replace_byte, quoted INI, JSON minify, multi-chunk, crc32) |
