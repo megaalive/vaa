@@ -14,7 +14,7 @@ pub const ADMISSION_SOURCE: &str = "fixtures/semasm/capabilities-snapshot.json";
 /// Digest pinned from SemASM `capabilities --format json` at freeze time.
 /// Must match the `digest` field inside [`ADMISSION_SOURCE`].
 pub const CAPABILITY_SNAPSHOT_DIGEST: &str =
-    "sha256:94bda0b92b69d12360e757451478b07c7fdcff317a50e7f3f8d3677f33d13e05";
+    "sha256:9e1a4cc47219d1d87a97e1c6960cbf6970bd70bfc09dec8e11fa6a63f6ea644c";
 
 const SNAPSHOT_JSON: &str = include_str!("../../fixtures/semasm/capabilities-snapshot.json");
 
@@ -195,6 +195,13 @@ mod tests {
             map_acceptance_level("verified", true),
             AdmissionTier::SealedAcceptance
         );
+    }
+
+    #[test]
+    fn admit_max_i64_linux_nasm() {
+        let entry = admit_leaf("max_i64", "x86_64-unknown-linux-gnu", "nasm")
+            .expect("max_i64 must be admitted on Linux after S8 snapshot update");
+        assert_eq!(entry.snapshot.acceptance_level, "verified");
     }
 
     #[test]

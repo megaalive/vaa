@@ -77,3 +77,28 @@ Schema 0.1 is fail-closed (`deny_unknown_fields`):
 
 `vaa validate` now appends hints for these common mistakes. See
 [`task-schema.md`](task-schema.md) and [`schemas/task.vaa.schema.json`](../schemas/task.vaa.schema.json).
+
+## 6. Hosted error / lint vocabulary (S5)
+
+Stable codes for agents (never seals):
+
+| Code | Emitter | Meaning |
+|---|---|---|
+| `HOSTED_SMOKE_FAILED` | `vaa hosted-check` | session check failed |
+| `OUTPUT_LOCKED` | `vaa build` (Windows) | output PE locked; use stamped `run_path` |
+| `RIP_INDEX` | SemASM lint / `vaa build --lint` | `[rel sym+reg]` class AV |
+| `STACK_ALIGN_CALL` / `SHADOW_SPACE_MISSING` | SemASM ABI | Win64/SysV call-site ABI |
+| `CALLER_SAVED` | SemASM lint (SysV) | volatile used across call/syscall clobber |
+| `DISPATCH_FALLTHROUGH` / `MULTI_LINE_READ` | reserved hosted | dispatch miss / pipe line-split |
+
+See SemASM `docs/CONTROLLER_PROTOCOL.md`. Do **not** map these to `verified`.
+
+## 7. Linux hosted recipe (WSL)
+
+1. `vaa validate` leaf + hosted tasks (keep `network = false` even if sockets used).
+2. `semasm agent verify` each leaf (`--target x86_64-unknown-linux-gnu --allow-execution`).
+3. `nasm -f elf64` + `ld` (or `vaa build` with Linux target) for freestanding `_start`.
+4. `vaa hosted-check` / local smoke with absolute Unix paths.
+
+SysV note: do not keep loop counters in `RSI`/`RDI`/`RDX` across `call`/`syscall`
+(`CALLER_SAVED`). RIP+index addressing is invalid (`RIP_INDEX`).

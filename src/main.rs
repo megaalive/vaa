@@ -273,8 +273,36 @@ enum Commands {
         /// Assemble to an object only; skip the linker (leaf clinic / SemASM object path).
         #[arg(long, default_value_t = false)]
         object_only: bool,
+        /// Run source heuristic lints (`RIP_INDEX`, advisory `CALLER_SAVED`).
+        #[arg(long, default_value_t = false)]
+        lint: bool,
+        /// With `--lint`, treat error-severity findings as build failure.
+        #[arg(long, default_value_t = false)]
+        lint_fatal: bool,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
+        format: OutputFormat,
+    },
+    /// Run a hosted binary against a stdin session (integration smoke; not a seal).
+    #[command(name = "hosted-check")]
+    HostedCheck {
+        /// Optional task TOML (for metadata only).
+        #[arg(long)]
+        task: Option<PathBuf>,
+        /// Built binary / PE to run.
+        #[arg(long)]
+        bin: PathBuf,
+        /// Session file fed to stdin (commands + args).
+        #[arg(long)]
+        session: PathBuf,
+        /// Substring or regex checks (repeatable). Prefix with `re:` for regex.
+        #[arg(long = "expect", value_name = "PATTERN")]
+        expect: Vec<String>,
+        /// Expected process exit code (optional).
+        #[arg(long)]
+        expect_exit: Option<i32>,
+        /// Output format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
         format: OutputFormat,
     },
     /// Local content-addressed cache utilities (PR-020).
@@ -1327,6 +1355,8 @@ fn run_cli() -> ExitCode {
             linker_args,
             extra_objects,
             object_only,
+            lint,
+            lint_fatal,
             format,
         } => build_command(
             &source,
@@ -1346,6 +1376,23 @@ fn run_cli() -> ExitCode {
             &linker_args,
             &extra_objects,
             object_only,
+            lint,
+            lint_fatal,
+            format,
+        ),
+        Commands::HostedCheck {
+            task,
+            bin,
+            session,
+            expect,
+            expect_exit,
+            format,
+        } => hosted_check_command(
+            task.as_deref(),
+            &bin,
+            &session,
+            &expect,
+            expect_exit,
             format,
         ),
         Commands::Cache { command } => match command {
@@ -1763,7 +1810,15 @@ fn validate_command(path: &std::path::Path, format: OutputFormat, show_digest: b
                 task.artifact_kind,
                 vaa::ArtifactKind::HostedProgram
             ) {
-                vaa::suggested_win64_linker_args(&task.capabilities.imports)
+                let mut args = vaa::suggested_win64_linker_args(&task.capabilities.imports);
+                if args.is_empty()
+                    && (task.target.contains("linux")
+                        || task.target.contains("gnu")
+                        || task.target == "elf64")
+                {
+                    args = vaa::suggested_linux_linker_args(&task.entry.symbol);
+                }
+                args
             } else {
                 Vec::new()
             };
@@ -4895,6 +4950,8 @@ fn build_command(
     linker_args: &[String],
     extra_objects: &[PathBuf],
     object_only: bool,
+    lint: bool,
+    lint_fatal: bool,
     format: OutputFormat,
 ) -> ExitCode {
     if object_only && (!linker_args.is_empty() || !extra_objects.is_empty()) {
@@ -5036,7 +5093,8 @@ fn build_command(
                 let _ = std::fs::create_dir_all(output_dir);
                 let stem = source.file_stem().and_then(|s| s.to_str()).unwrap_or("out");
                 let object_path = output_dir.join(format!("{stem}.o"));
-                let binary_path = output_dir.join(format!("{stem}.bin"));
+                let ext = vaa::binary_extension_for_target(target);
+                let binary_path = output_dir.join(format!("{stem}.{ext}"));
                 if std::fs::write(&object_path, &arts.object).is_ok() {
                     if let Some(bin) = arts.binary {
                         let _ = std::fs::write(&binary_path, bin);
@@ -5046,6 +5104,7 @@ fn build_command(
                             println!("Build cache hit");
                             println!("  object: {}", object_path.display());
                             println!("  binary: {}", binary_path.display());
+                            println!("  run_path: {}", binary_path.display());
                         }
                         OutputFormat::Json => {
                             println!(
@@ -5055,6 +5114,8 @@ fn build_command(
                                     "cache_hit": true,
                                     "object": object_path,
                                     "binary": binary_path,
+                                    "run_path": binary_path,
+                                    "seal_claim": false,
                                 })
                             );
                         }
@@ -5066,6 +5127,47 @@ fn build_command(
     }
 
     let outcome = BuildPipeline::build(&config);
+
+    let lint_findings = if lint {
+        match std::fs::read_to_string(source) {
+            Ok(text) => vaa::lint_nasm_source(&text, target),
+            Err(_) => Vec::new(),
+        }
+    } else {
+        Vec::new()
+    };
+    let lint_errors = lint_findings
+        .iter()
+        .any(|f| f.severity == "error");
+    if lint && lint_fatal && lint_errors {
+        match format {
+            OutputFormat::Terminal => {
+                eprintln!("lint failed (--lint-fatal)");
+                for f in &lint_findings {
+                    eprintln!(
+                        "  {} [{}]{}: {}",
+                        f.code,
+                        f.severity,
+                        f.line.map(|n| format!(":{n}")).unwrap_or_default(),
+                        f.message
+                    );
+                }
+            }
+            OutputFormat::Json => {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "success": false,
+                        "failure_code": lint_findings.iter().find(|f| f.severity == "error").map(|f| f.code.clone()),
+                        "lint": lint_findings,
+                        "seal_claim": false,
+                        "manifest": outcome.manifest,
+                    })
+                );
+            }
+        }
+        return VaaExitCode::Violated.as_std();
+    }
 
     if use_cache && !object_only && outcome.success {
         if let (Ok(source_bytes), Ok(object_bytes)) = (
@@ -5106,11 +5208,28 @@ fn build_command(
                     println!("  object: {}", outcome.manifest.object_path.display());
                     println!("  binary: {}", outcome.manifest.binary_path.display());
                 }
+                if let Some(run) = &outcome.manifest.run_path {
+                    println!("  run_path: {}", run.display());
+                }
+                if let Some(code) = &outcome.failure_code {
+                    println!("  note: {code} — preferred output path was locked; used stamped run_path");
+                }
                 if let Some(d) = &outcome.manifest.assembler_digest {
                     println!("  assembler_digest: {d}");
                 }
                 if let Some(d) = &outcome.manifest.linker_digest {
                     println!("  linker_digest: {d}");
+                }
+                if lint {
+                    for f in &lint_findings {
+                        println!(
+                            "  lint {} [{}]{}: {}",
+                            f.code,
+                            f.severity,
+                            f.line.map(|n| format!(":{n}")).unwrap_or_default(),
+                            f.message
+                        );
+                    }
                 }
             } else {
                 eprintln!("Build failed");
@@ -5123,7 +5242,13 @@ fn build_command(
             }
         }
         OutputFormat::Json => {
-            let body = serde_json::to_value(&outcome).unwrap_or_default();
+            let mut body = serde_json::to_value(&outcome).unwrap_or_default();
+            if let Some(obj) = body.as_object_mut() {
+                obj.insert("seal_claim".into(), serde_json::json!(false));
+                if lint {
+                    obj.insert("lint".into(), serde_json::to_value(&lint_findings).unwrap_or_default());
+                }
+            }
             println!("{body}");
         }
     }
@@ -5132,6 +5257,117 @@ fn build_command(
         VaaExitCode::Success.as_std()
     } else {
         VaaExitCode::ToolFailure.as_std()
+    }
+}
+
+fn hosted_check_command(
+    _task: Option<&Path>,
+    bin: &Path,
+    session: &Path,
+    expect: &[String],
+    expect_exit: Option<i32>,
+    format: OutputFormat,
+) -> ExitCode {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    let session_bytes = match std::fs::read(session) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("error: cannot read session: {e}");
+            return VaaExitCode::InvalidInput.as_std();
+        }
+    };
+    if !bin.exists() {
+        eprintln!("error: binary not found: {}", bin.display());
+        return VaaExitCode::InvalidInput.as_std();
+    }
+
+    let mut child = match Command::new(bin)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("error: spawn failed: {e}");
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+    if let Some(mut stdin) = child.stdin.take() {
+        let _ = stdin.write_all(&session_bytes);
+    }
+    let output = match child.wait_with_output() {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("error: wait failed: {e}");
+            return VaaExitCode::ToolFailure.as_std();
+        }
+    };
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    let code = output.status.code();
+
+    let mut checks: Vec<serde_json::Value> = Vec::new();
+    let mut all_ok = true;
+    for pat in expect {
+        let (ok, kind) = if let Some(re) = pat.strip_prefix("re:") {
+            match regex::Regex::new(re) {
+                Ok(rx) => (rx.is_match(&stdout), "regex"),
+                Err(e) => {
+                    checks.push(serde_json::json!({"pattern": pat, "ok": false, "error": e.to_string()}));
+                    all_ok = false;
+                    continue;
+                }
+            }
+        } else {
+            (stdout.contains(pat), "substring")
+        };
+        if !ok {
+            all_ok = false;
+        }
+        checks.push(serde_json::json!({"pattern": pat, "kind": kind, "ok": ok}));
+    }
+    if let Some(want) = expect_exit {
+        let ok = code == Some(want);
+        if !ok {
+            all_ok = false;
+        }
+        checks.push(serde_json::json!({"expect_exit": want, "observed": code, "ok": ok}));
+    }
+
+    let status = if all_ok { "passed" } else { "failed" };
+    let body = serde_json::json!({
+        "kind": "hosted_smoke",
+        "status": status,
+        "seal_claim": false,
+        "bin": bin,
+        "session": session,
+        "exit_code": code,
+        "checks": checks,
+        "code": if all_ok { serde_json::Value::Null } else { serde_json::json!("HOSTED_SMOKE_FAILED") },
+        "stdout_len": stdout.len(),
+        "stderr_len": stderr.len(),
+    });
+
+    match format {
+        OutputFormat::Json => println!("{body}"),
+        OutputFormat::Terminal => {
+            println!("hosted-check: {status} (seal_claim=false)");
+            for c in &checks {
+                println!("  {c}");
+            }
+            if !all_ok {
+                eprintln!("HOSTED_SMOKE_FAILED");
+            }
+        }
+    }
+
+    if all_ok {
+        VaaExitCode::Success.as_std()
+    } else {
+        VaaExitCode::Violated.as_std()
     }
 }
 

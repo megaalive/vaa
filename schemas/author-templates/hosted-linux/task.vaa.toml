@@ -1,0 +1,54 @@
+schema_version = "0.1"
+task_id = "__TASK_ID__"
+artifact_kind = "hosted-program"
+target = "__TARGET__"
+
+[entry]
+symbol = "_start"
+abi = "sysv"
+
+[output]
+kind = "i64"
+
+[behavior]
+summary = "Hosted Linux freestanding stub (_start + raw syscalls). NOT SemASM-verified as a whole. Keep counters out of RSI/RDI across call/syscall (CALLER_SAVED). Keep network=false even if sockets used at runtime."
+
+[capabilities]
+syscalls = ["read", "write", "exit"]
+imports = []
+heap = false
+filesystem = false
+network = false
+environment = false
+clock = false
+random = false
+
+[memory]
+max_stack_bytes = 8192
+allow_global_writable = true
+allow_self_modifying_code = false
+
+[instructions]
+required_features = ["x86-64-baseline"]
+forbidden_mnemonics = []
+allow_unknown_semantics = false
+
+[verification]
+require_complete_lowering = false
+require_abi_check = false
+require_object_inspection = false
+require_behavioral_tests = false
+require_reproducible_build = false
+
+[budgets]
+max_candidates = 1
+max_repairs_per_candidate = 0
+max_wall_time_seconds = 120
+max_model_tokens = 8000
+max_no_progress_iterations = 1
+
+[delivery]
+include_source = true
+include_object = true
+include_binary = true
+include_evidence = false

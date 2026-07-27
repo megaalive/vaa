@@ -17,6 +17,9 @@ pub struct BuildManifest {
     pub source_path: PathBuf,
     pub object_path: PathBuf,
     pub binary_path: PathBuf,
+    /// Path ready to execute (may differ from `binary_path` when lock-stamped).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_path: Option<PathBuf>,
     pub assembler_args: Vec<String>,
     pub linker_args: Vec<String>,
     pub assembler_digest: Option<String>,
@@ -32,6 +35,9 @@ pub struct BuildOutcome {
     pub linker_stdout: String,
     pub linker_stderr: String,
     pub exit_code: Option<i32>,
+    /// Machine-readable failure when set (`OUTPUT_LOCKED`, …).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_code: Option<String>,
 }
 
 /// Optional container wrap for assemble/link (C2 Scaffold — not hardened isolation).
@@ -195,6 +201,64 @@ pub fn suggested_win64_linker_args(imports: &[String]) -> Vec<String> {
     ]
 }
 
+/// Suggest ELF link args for freestanding Linux hosted programs (`_start`).
+#[must_use]
+pub fn suggested_linux_linker_args(entry_symbol: &str) -> Vec<String> {
+    if entry_symbol == "_start" {
+        vec!["-nostdlib".to_owned(), "-static".to_owned()]
+    } else {
+        Vec::new()
+    }
+}
+
+/// Binary / PE extension for a build target.
+#[must_use]
+pub fn binary_extension_for_target(target: &str) -> &'static str {
+    match nasm_format_for_target(target) {
+        "win64" | "win32" => "exe",
+        _ => "bin",
+    }
+}
+
+/// Choose an output path; on Windows PE lock, fall back to a stamped name.
+#[must_use]
+pub fn resolve_output_binary_path(preferred: &Path) -> (PathBuf, Option<String>) {
+    if !preferred.exists() {
+        return (preferred.to_path_buf(), None);
+    }
+    // Probe writability by opening truncate on Windows; if locked, stamp.
+    match std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(preferred)
+    {
+        Ok(_) => (preferred.to_path_buf(), None),
+        Err(e) => {
+            let locked = e.kind() == std::io::ErrorKind::PermissionDenied
+                || e.raw_os_error() == Some(32) // Win32 ERROR_SHARING_VIOLATION
+                || format!("{e}").to_ascii_lowercase().contains("being used");
+            if !locked {
+                return (preferred.to_path_buf(), None);
+            }
+            let stem = preferred
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "out".to_owned());
+            let ext = preferred
+                .extension()
+                .map(|s| format!(".{}", s.to_string_lossy()))
+                .unwrap_or_default();
+            let stamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis())
+                .unwrap_or(0);
+            let alt = preferred.with_file_name(format!("{stem}-{stamp}{ext}"));
+            (alt, Some("OUTPUT_LOCKED".to_owned()))
+        }
+    }
+}
+
 pub struct BuildPipeline;
 
 /// Map a VAA/SemASM target label to a NASM `-f` output format.
@@ -223,24 +287,16 @@ pub fn nasm_format_for_target(target: &str) -> &str {
 impl BuildPipeline {
     #[must_use]
     pub fn build(config: &PipelineConfig) -> BuildOutcome {
-        let object_name = format!(
-            "{}.o",
-            config
-                .source_path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-        );
-        let binary_name = format!(
-            "{}.bin",
-            config
-                .source_path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-        );
+        let stem = config
+            .source_path
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy();
+        let object_name = format!("{stem}.o");
+        let ext = binary_extension_for_target(&config.target);
+        let preferred_binary = config.output_dir.join(format!("{stem}.{ext}"));
+        let (binary_path, lock_code) = resolve_output_binary_path(&preferred_binary);
         let object_path = config.output_dir.join(&object_name);
-        let binary_path = config.output_dir.join(&binary_name);
 
         let mut as_args = config.assembler_flavor.assemble_args(
             &config.source_path,
@@ -282,7 +338,8 @@ impl BuildPipeline {
                     linker: config.linker_path.to_string_lossy().to_string(),
                     source_path: config.source_path.clone(),
                     object_path,
-                    binary_path,
+                    binary_path: binary_path.clone(),
+                    run_path: None,
                     assembler_args: as_cfg.args,
                     linker_args: Vec::new(),
                     assembler_digest,
@@ -293,6 +350,7 @@ impl BuildPipeline {
                 linker_stdout: String::new(),
                 linker_stderr: String::new(),
                 exit_code: None,
+                failure_code: lock_code.clone(),
             };
         }
 
@@ -304,7 +362,8 @@ impl BuildPipeline {
                     linker: "none".to_owned(),
                     source_path: config.source_path.clone(),
                     object_path,
-                    binary_path,
+                    binary_path: binary_path.clone(),
+                    run_path: Some(binary_path.clone()),
                     assembler_args: as_cfg.args,
                     linker_args: Vec::new(),
                     assembler_digest,
@@ -315,6 +374,7 @@ impl BuildPipeline {
                 linker_stdout: String::new(),
                 linker_stderr: String::new(),
                 exit_code: Some(0),
+                failure_code: lock_code.clone(),
             };
         }
 
@@ -366,7 +426,8 @@ impl BuildPipeline {
                 linker: linker_path.to_string_lossy().to_string(),
                 source_path: config.source_path.clone(),
                 object_path,
-                binary_path,
+                binary_path: binary_path.clone(),
+                run_path: if ld_ok { Some(binary_path) } else { None },
                 assembler_args: as_cfg.args,
                 linker_args: ld_cfg.args,
                 assembler_digest,
@@ -377,6 +438,7 @@ impl BuildPipeline {
             linker_stdout: ld_stdout,
             linker_stderr: ld_stderr,
             exit_code: ld_code,
+            failure_code: lock_code,
         }
     }
 }

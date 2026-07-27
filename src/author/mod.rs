@@ -51,6 +51,14 @@ const TEMPLATE_TASK: &[(&str, &str)] = &[
         "dual-buffer",
         include_str!("../../schemas/author-templates/dual-buffer/task.vaa.toml"),
     ),
+    (
+        "hosted-win64",
+        include_str!("../../schemas/author-templates/hosted-win64/task.vaa.toml"),
+    ),
+    (
+        "hosted-linux",
+        include_str!("../../schemas/author-templates/hosted-linux/task.vaa.toml"),
+    ),
 ];
 
 const TEMPLATE_CONTRACT: &[(&str, &str)] = &[
@@ -77,6 +85,14 @@ const TEMPLATE_CONTRACT: &[(&str, &str)] = &[
     (
         "dual-buffer",
         include_str!("../../schemas/author-templates/dual-buffer/contract.sem.toml"),
+    ),
+    (
+        "hosted-win64",
+        include_str!("../../schemas/author-templates/hosted-win64/contract.sem.toml"),
+    ),
+    (
+        "hosted-linux",
+        include_str!("../../schemas/author-templates/hosted-linux/contract.sem.toml"),
     ),
 ];
 
@@ -687,9 +703,11 @@ mod tests {
     #[test]
     fn catalog_lists_six_templates() {
         let cat = load_catalog();
-        assert_eq!(cat.len(), 6);
+        assert_eq!(cat.len(), 8);
         assert!(template_meta("pure-int-binary").unwrap().known_ci_shape);
         assert!(!template_meta("pure-int-ternary").unwrap().known_ci_shape);
+        assert!(!template_meta("hosted-win64").unwrap().known_ci_shape);
+        assert!(!template_meta("hosted-linux").unwrap().known_ci_shape);
     }
 
     #[test]

@@ -160,6 +160,11 @@ impl SemasmDoctor {
         details.push(format!(
             "semasm version {version_str} capability_schema {schema_version}"
         ));
+        details.push(
+            "note: VAA admit uses fixtures/semasm/capabilities-snapshot.json (not live caps alone); \
+             hosted REPL is never admitted — use hosted-check / build --lint"
+                .to_owned(),
+        );
 
         let version = SemasmVersion {
             version: version_str,

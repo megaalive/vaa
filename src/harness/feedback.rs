@@ -166,6 +166,11 @@ pub fn stage_for_failure_code(code: &str) -> Option<&'static str> {
         "SUITE_REQUIRED" => "suite",
         "BUDGET_EXHAUSTED" => "budget",
         "POLICY_BLOCK" | "FORBIDDEN_PATH" => "policy",
+        "HOSTED_SMOKE_FAILED" => "hosted",
+        "OUTPUT_LOCKED" => "io",
+        "DISPATCH_FALLTHROUGH" | "MULTI_LINE_READ" => "hosted",
+        "RIP_INDEX" | "STACK_ALIGN_CALL" | "STACK_BALANCE_RET" | "SHADOW_SPACE_MISSING"
+        | "CALLER_SAVED" => "lint",
         _ => return None,
     })
 }
@@ -289,6 +294,24 @@ fn classify_failure_code(code: &str) -> (HarnessOutcomeClass, HarnessNextAction,
             HarnessOutcomeClass::PolicyBlocked,
             HarnessNextAction::StopPolicy,
             ExitCode::SecurityBlock,
+        ),
+        // Hosted integration — never a leaf seal; agent should repair I/O / paths.
+        "HOSTED_SMOKE_FAILED" | "DISPATCH_FALLTHROUGH" | "MULTI_LINE_READ" => (
+            HarnessOutcomeClass::ViolatedRepairable,
+            HarnessNextAction::EditCandidate,
+            ExitCode::Violated,
+        ),
+        "OUTPUT_LOCKED" => (
+            HarnessOutcomeClass::PolicyBlocked,
+            HarnessNextAction::StopPolicy,
+            ExitCode::SecurityBlock,
+        ),
+        // Asm lint codes from SemASM findings (hosted or leaf repair).
+        "RIP_INDEX" | "STACK_ALIGN_CALL" | "STACK_BALANCE_RET" | "SHADOW_SPACE_MISSING"
+        | "CALLER_SAVED" => (
+            HarnessOutcomeClass::ViolatedRepairable,
+            HarnessNextAction::EditCandidate,
+            ExitCode::Violated,
         ),
         _ => (
             HarnessOutcomeClass::Failed,

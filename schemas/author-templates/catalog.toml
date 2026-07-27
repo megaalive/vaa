@@ -30,3 +30,13 @@ summary = "Buffer write leaf (memset / replace_byte-like)"
 name = "dual-buffer"
 known_ci_shape = true
 summary = "Dual-buffer leaf (memcmp / memcpy-like)"
+
+[[templates]]
+name = "hosted-win64"
+known_ci_shape = false
+summary = "Hosted Win64 console stub (mainCRTStartup; not SemASM-verified)"
+
+[[templates]]
+name = "hosted-linux"
+known_ci_shape = false
+summary = "Hosted Linux freestanding stub (_start; not SemASM-verified)"

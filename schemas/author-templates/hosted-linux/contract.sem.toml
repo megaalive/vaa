@@ -1,0 +1,22 @@
+# Placeholder contract for hosted Linux scaffold.
+# Do NOT seal the REPL. Verify SysV leaves with semasm agent verify separately.
+schema_version = "0.5"
+routine = "__NAME___leaf_stub"
+target = "__TARGET__"
+
+[function]
+abi = "__ABI__"
+[function.params]
+a = "i64"
+[function.returns]
+result = "i64"
+
+[requires]
+
+[ensures]
+true
+
+[[vectors]]
+name = "stub"
+a = 0
+expected = 0
