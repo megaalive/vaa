@@ -55,9 +55,9 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 |---|---|---|---|---|---|
 | T01 | `wc`-lite (bytes/lines/LF) | `count_byte` / line-count buffer | argv path, `CreateFile`/`ReadFile`, print counts | `done_enough` | 2026-07-27: argv+`sample.txt`+stdin; leaf VUP; AV from stack misalign fixed in scratch. [t01-wc-lite.md](t01-wc-lite.md) |
 | T02 | `head` / `tail` | find-nth-LF / slice-by-offset | file I/O + byte budget | `friction_logged` | 2026-07-27: `head` N=10 via `find_first_byte` VUP; `find_nth_lf` UNSUPPORTED_SHAPE. [t02-head.md](t02-head.md) |
-| T03 | `uniq` consecutive | memcmp window / equal-run | streaming buffer policy | `planned` | |
+| T03 | `uniq` consecutive | memcmp window / equal-run | streaming buffer policy | `friction_logged` | 2026-07-27: adjacent uniq via find/memcmp/memcpy VUP; `equal_run` UNSUPPORTED_SHAPE. [t03-uniq.md](t03-uniq.md) |
 | T04 | hexdump | nibble encode leaf | format loop, width flags | `friction_logged` | 2026-07-27: fixed-width dump works; `nibble_to_hex` UNSUPPORTED_SHAPE+admit decline. [t04-hexdump.md](t04-hexdump.md) |
-| T05 | `xor` / `crc32` filter | pure-int or buffer transform | stdin→stdout pipeline | `planned` | |
+| T05 | `xor` / `crc32` filter | pure-int or buffer transform | stdin→stdout pipeline | `friction_logged` | 2026-07-27: xor KEY via `xor_u8` link+run; `xor_u8`/`xor_bytes` UNSUPPORTED_SHAPE. [t05-xor.md](t05-xor.md) |
 
 ## Tier B — tools people use more often
 
@@ -112,3 +112,5 @@ When starting `Txx`:
 | 2026-07-27 | T08 cicil-1: env-subst one `${NAME}` + `find_first_byte` VUP; [t08-env-subst.md](t08-env-subst.md) |
 | 2026-07-27 | T07 cicil-1: flat INI lookup + dual-buffer `ini_lookup` UNSUPPORTED_SHAPE; [t07-ini-lookup.md](t07-ini-lookup.md) |
 | 2026-07-27 | T02 cicil-1: `head` 10 lines + `find_nth_lf` UNSUPPORTED_SHAPE; [t02-head.md](t02-head.md) |
+| 2026-07-27 | T03 cicil-1: consecutive `uniq` + `equal_run` UNSUPPORTED_SHAPE; [t03-uniq.md](t03-uniq.md) |
+| 2026-07-27 | T05 cicil-1: xor filter + `xor_u8`/`xor_bytes` UNSUPPORTED_SHAPE; [t05-xor.md](t05-xor.md) |

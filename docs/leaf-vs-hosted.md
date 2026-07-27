@@ -17,9 +17,10 @@ SemASM synthesizes behavioral vectors for **recognized leaf shapes**:
 recognized token. Full REPL loops with `GetStdHandle` / `ReadFile` are **not**
 an admitted leaf.
 
-Real-tools pressure (T02/T04/T07): dual-buffer parse (`ini_lookup`), nibble
-encode (`nibble_to_hex`), and `find_nth_lf` (`ptr+len+n`) are useful for tools
-but currently fail closed at SemASM synthesis — compose admitted scans
+Real-tools pressure (T02/T04/T05/T07): dual-buffer parse (`ini_lookup`), nibble
+encode (`nibble_to_hex`), `find_nth_lf` (`ptr+len+n`), and binary `xor_*`
+(arity matches pure-int binary but name ∉ `add_*/sub_*/min_*/max_*`) are useful
+for tools but currently fail closed at SemASM synthesis — compose admitted scans
 (`find_first_byte`, `memcmp`, `count_byte`) in the hosted loop instead of
 weakening `UNSUPPORTED_SHAPE`.
 
