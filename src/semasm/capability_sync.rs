@@ -157,15 +157,16 @@ pub fn diff_snapshots(
 /// Pretty-print a sync diff to a string.
 #[must_use]
 pub fn format_diff(diff: &CapabilitySyncDiff) -> String {
+    use std::fmt::Write as _;
     let mut out = String::new();
-    out.push_str(&format!("old_digest: {}\n", diff.old_digest));
-    out.push_str(&format!("new_digest: {}\n", diff.new_digest));
+    let _ = writeln!(out, "old_digest: {}", diff.old_digest);
+    let _ = writeln!(out, "new_digest: {}", diff.new_digest);
     out.push_str("\nadded:\n");
     if diff.added.is_empty() {
         out.push_str("  none\n");
     } else {
         for line in &diff.added {
-            out.push_str(&format!("  {line}\n"));
+            let _ = writeln!(out, "  {line}");
         }
     }
     out.push_str("\nchanged:\n");
@@ -173,7 +174,7 @@ pub fn format_diff(diff: &CapabilitySyncDiff) -> String {
         out.push_str("  none\n");
     } else {
         for line in &diff.changed {
-            out.push_str(&format!("  {line}\n"));
+            let _ = writeln!(out, "  {line}");
         }
     }
     out.push_str("\nremoved:\n");
@@ -181,7 +182,7 @@ pub fn format_diff(diff: &CapabilitySyncDiff) -> String {
         out.push_str("  none\n");
     } else {
         for line in &diff.removed {
-            out.push_str(&format!("  {line}\n"));
+            let _ = writeln!(out, "  {line}");
         }
     }
     out

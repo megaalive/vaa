@@ -180,7 +180,7 @@ pub fn parse_objective_toml(raw: &str) -> Result<Objective, OptimizeError> {
     let mut objective: Objective =
         toml::from_str(raw).map_err(|e| OptimizeError::msg(format!("objective TOML: {e}")))?;
     if objective.schema_version == OBJECTIVE_SCHEMA_VERSION_LEGACY {
-        objective.schema_version = OBJECTIVE_SCHEMA_VERSION.to_owned();
+        objective.schema_version = OBJECTIVE_SCHEMA_VERSION.into();
     }
     validate_objective(&objective)?;
     Ok(objective)
@@ -331,7 +331,6 @@ fn compare_candidates(
         // Secondary only ranks when both sides have the metric; never invent ties from missing.
         match (metric_value(a, *metric), metric_value(b, *metric)) {
             (Some(x), Some(y)) if x != y => return x.cmp(&y),
-            (Some(_), Some(_)) => {}
             _ => {}
         }
     }

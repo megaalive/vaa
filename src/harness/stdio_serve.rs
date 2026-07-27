@@ -309,9 +309,7 @@ impl AgentServeSession {
                 Some(VerifyLevel::parse(s).ok_or_else(|| (-32602, format!("invalid level: {s}")))?)
             }
         };
-        let level_label = level
-            .map(|l| l.as_str().to_owned())
-            .unwrap_or_else(|| "default_seal".into());
+        let level_label = level.map_or_else(|| "default_seal".into(), |l| l.as_str().to_owned());
 
         let source_bytes = std::fs::read(&source).map_err(|e| (-32002, e.to_string()))?;
         let source_digest = sha256_digest_prefixed(&source_bytes);
@@ -431,10 +429,13 @@ fn error_response(id: &str, code: i32, message: &str) -> Value {
 fn generate_session_id() -> String {
     let mut bytes = [0u8; 16];
     rand::thread_rng().fill_bytes(&mut bytes);
-    format!(
-        "sess-{}",
-        bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
-    )
+    let mut out = String::with_capacity(5 + 32);
+    out.push_str("sess-");
+    for b in bytes {
+        use std::fmt::Write as _;
+        let _ = write!(out, "{b:02x}");
+    }
+    out
 }
 
 #[must_use]
