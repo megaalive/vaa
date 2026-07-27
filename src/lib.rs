@@ -36,8 +36,9 @@ pub use author::{
 pub use build::{
     check_reproducible, compare_canonical, default_linker_for_target, linker_args_for_target,
     nasm_format_for_target, probe_container_runtime, remap_host_args_to_container,
-    reproducible_build_check, tool_digest, BuildManifest, BuildOutcome, BuildPipeline,
-    CanonicalBuildView, ContainerBuildOpts, PipelineConfig, ReproReport, DEFAULT_CONTAINER_IMAGE,
+    reproducible_build_check, suggested_win64_linker_args, tool_digest, BuildManifest, BuildOutcome,
+    BuildPipeline, CanonicalBuildView, ContainerBuildOpts, PipelineConfig, ReproReport,
+    DEFAULT_CONTAINER_IMAGE,
 };
 pub use cache::{
     args_fingerprint, build_cache_key, default_cache_root, may_reuse_build, may_reuse_verification,
@@ -133,7 +134,9 @@ pub use semasm::{
     SemasmStatusDocument, SemasmVerify, SnapshotAdmission, TargetCapabilities, VerifyError,
     VerifyReport, ADMISSION_SOURCE, CAPABILITY_SNAPSHOT_DIGEST, CAPABILITY_SOURCE,
 };
-pub use task::{load_locked_task, load_task_file, LockedTask, Task, TaskError};
+pub use task::{
+    load_locked_task, load_task_file, ArtifactKind, LockedTask, Task, TaskError,
+};
 
 pub const VAA_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATURITY: &str = "experimental";

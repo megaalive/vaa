@@ -67,6 +67,8 @@ pub struct PipelineConfig {
     pub timeout: Duration,
     pub max_output_bytes: u64,
     pub container: Option<ContainerBuildOpts>,
+    /// When true, assemble to an object and skip the link step (leaf object clinic).
+    pub object_only: bool,
 }
 
 impl Default for PipelineConfig {
@@ -83,6 +85,7 @@ impl Default for PipelineConfig {
             timeout: Duration::from_secs(60),
             max_output_bytes: 1_048_576,
             container: None,
+            object_only: false,
         }
     }
 }
@@ -141,7 +144,7 @@ fn windows_link_hint(target: &str, linker: &Path, stderr: &str) -> Option<String
             "PE link needs `/subsystem:console` (or windows) plus usually `/entry:…`. \
              Pass them with repeatable `vaa build --linker-arg …` (and \
              `/DEFAULTLIB:kernel32.lib` for Win32 imports). For a leaf object only, \
-             assemble with NASM and skip the PE link; full PE link belongs to a hosted main.",
+             use `vaa build --object-only` or assemble with NASM and skip the PE link.",
         );
     }
     if stderr_l.contains("kernel32") || stderr_l.contains("unresolved") {
@@ -157,6 +160,39 @@ fn windows_link_hint(target: &str, linker: &Path, stderr: &str) -> Option<String
     } else {
         Some(parts.join(" "))
     }
+}
+
+/// Suggest explicit `vaa build --linker-arg` values for common Win32 import names.
+///
+/// Task `capabilities.imports` stay declarative; this is UX guidance only (E03).
+#[must_use]
+pub fn suggested_win64_linker_args(imports: &[String]) -> Vec<String> {
+    let mut needs_kernel32 = false;
+    for imp in imports {
+        let lower = imp.to_ascii_lowercase();
+        if matches!(
+            lower.as_str(),
+            "getstdhandle"
+                | "readfile"
+                | "writefile"
+                | "exitprocess"
+                | "createfilew"
+                | "createfilea"
+                | "closehandle"
+        ) || lower.contains("kernel32")
+        {
+            needs_kernel32 = true;
+            break;
+        }
+    }
+    if !needs_kernel32 {
+        return Vec::new();
+    }
+    vec![
+        "/subsystem:console".to_owned(),
+        "/entry:mainCRTStartup".to_owned(),
+        "/DEFAULTLIB:kernel32.lib".to_owned(),
+    ]
 }
 
 pub struct BuildPipeline;
@@ -257,6 +293,28 @@ impl BuildPipeline {
                 linker_stdout: String::new(),
                 linker_stderr: String::new(),
                 exit_code: None,
+            };
+        }
+
+        if config.object_only {
+            return BuildOutcome {
+                success: true,
+                manifest: BuildManifest {
+                    assembler: assembler_path.to_string_lossy().to_string(),
+                    linker: "none".to_owned(),
+                    source_path: config.source_path.clone(),
+                    object_path,
+                    binary_path,
+                    assembler_args: as_cfg.args,
+                    linker_args: Vec::new(),
+                    assembler_digest,
+                    linker_digest: None,
+                },
+                assembler_stdout: as_stdout,
+                assembler_stderr: as_stderr,
+                linker_stdout: String::new(),
+                linker_stderr: String::new(),
+                exit_code: Some(0),
             };
         }
 
@@ -552,7 +610,7 @@ mod tests {
         .expect("subsystem hint");
         assert!(hint.contains("/subsystem:console"));
         assert!(hint.contains("--linker-arg"));
-        assert!(hint.contains("leaf object"));
+        assert!(hint.contains("--object-only") || hint.contains("leaf object"));
 
         let ld_hint = windows_link_hint(
             "x86_64-pc-windows-msvc",
@@ -561,6 +619,18 @@ mod tests {
         )
         .expect("ld hint");
         assert!(ld_hint.contains("lld-link"));
+    }
+
+    #[test]
+    fn suggested_win64_linker_args_for_kernel32_imports() {
+        let args = suggested_win64_linker_args(&[
+            "GetStdHandle".into(),
+            "WriteFile".into(),
+            "ExitProcess".into(),
+        ]);
+        assert!(args.iter().any(|a| a.contains("kernel32")));
+        assert!(args.iter().any(|a| a.contains("subsystem")));
+        assert!(suggested_win64_linker_args(&[]).is_empty());
     }
 
     #[test]

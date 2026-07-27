@@ -1,0 +1,34 @@
+# Exercise follow-ups (from E01–E05 friction)
+
+Status after the ladder close-out. Prefer bounded fixes; keep non-goals closed.
+
+## Done in-ladder
+
+| Item | From | Fix |
+|---|---|---|
+| Subsystem PE hint | E02 | `windows_link_hint` |
+| `--linker-arg` | E03 | `vaa build` |
+| Win SDK env for `lld-link` | E03 | `toolchain_subprocess_allowed_env` |
+| `--extra-object` | E04 | `vaa build` |
+| Reject callable + imports | E05 | `validate_task` |
+| Admit decline hint (verify ≠ admit) | E01 | `vaa admit` JSON/terminal |
+
+## Closed this pass
+
+| Item | From | Action |
+|---|---|---|
+| Ladder summary | — | [`SUMMARY.md`](SUMMARY.md) |
+| Verifiable-but-not-admitted inventory | E01 | [`verifiable-vs-admitted.md`](verifiable-vs-admitted.md) |
+| `vaa build --object-only` | E02 | Assemble without PE link |
+| Hosted imports → linker lib map | E03 | Docs + `suggested_win64_linker_args` helper/hint |
+| Capabilities are declarative in 0.1 | E03 #7 | Documented in SUMMARY / leaf-vs-hosted (not asm-enforced) |
+| Multi-source build | E04 | Deferred; `--extra-object` covers the exercised case |
+
+## Remain non-goals / deferred
+
+| Item | Why |
+|---|---|
+| Admit `min_i64` / `increment_i64` / WriteFile / REPL | Honesty: snapshot is intentional, not “whatever verifies” |
+| Full TTY line editing / ReadConsole | Out of leaf scope; E05 sketch is enough |
+| Cross-check `extern` vs `capabilities.imports` | Larger static-analysis feature; keep declarative for now |
+| Auto-pass `/DEFAULTLIB` from task TOML into `vaa build` | Keep linker args explicit; suggestions only |

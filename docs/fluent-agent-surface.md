@@ -150,5 +150,7 @@ response, and finish with sealed evidence.
 - [`optimize.md`](optimize.md) — correctness-preserving selection
 - [`leaf-vs-hosted.md`](leaf-vs-hosted.md) — leaf verify vs REPL/hosted I/O
 - [`exercises/`](exercises/) — maturity ladder + friction logs (scratch under `.vaa-exercises/`)
+- [`exercises/SUMMARY.md`](exercises/SUMMARY.md) — E01–E05 verdict and dual-gate rules
+- [`exercises/verifiable-vs-admitted.md`](exercises/verifiable-vs-admitted.md) — SemASM verify ≠ admit inventory
 - [`agent-playbook.md`](agent-playbook.md) — happy / decline paths
 - SemASM: `docs/fluent-agent-surface.md` (controller-facing pointer)

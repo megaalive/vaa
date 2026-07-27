@@ -69,6 +69,6 @@ vaa build …/main.asm --target x86_64-pc-windows-msvc --output-dir …/out \
 - [x] Tooling: `vaa build --linker-arg` for PE subsystem/entry/import libs
 - [x] Tooling: forward Windows SDK discovery env into assemble/link subprocesses
 - [x] Tooling: reject `callable-function` with non-empty `capabilities.imports` (E05)
-- [ ] Optional: map task imports → suggested linker libs (still explicit)
+- [x] Optional: map task imports → suggested linker libs (still explicit) via `suggested_linker_args` on validate
 - [ ] Non-goal: do not admit WriteFile / REPL into the skill snapshot
 - [x] E04: line loop (orchestration vs leaf seal) → see [e04-line-loop-win64.md](e04-line-loop-win64.md)

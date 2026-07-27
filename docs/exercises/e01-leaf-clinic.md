@@ -54,4 +54,4 @@ vaa validate min_i64.vaa.toml
 - [x] Docs: this friction log; complete ladder E01–E05
 - [x] Tooling: `vaa admit` decline hint (SemASM verify ≠ skill admit)
 - [ ] Non-goal: do not silently admit every SemASM-verifiable name into the snapshot
-- [ ] Optional: inventory “verifiable but not admitted” in docs for authors
+- [x] Optional: inventory “verifiable but not admitted” → [verifiable-vs-admitted.md](verifiable-vs-admitted.md)

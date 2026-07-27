@@ -64,6 +64,6 @@ vaa build …/main.asm --target x86_64-pc-windows-msvc --output-dir …/out \
 
 - [x] Docs: this friction log
 - [x] Tooling: `vaa build --extra-object` for multi-object hosted link
-- [ ] Optional: `vaa build` multi-source / response-file for larger programs
+- [x] Optional: `vaa build` multi-source / response-file for larger programs — deferred; `--extra-object` covers E04
 - [ ] Non-goal: do not admit line-loop / REPL orchestration into the skill snapshot
 - [x] E05: REPL sketch (integration only; no false verify claims) → see [e05-repl-sketch-win64.md](e05-repl-sketch-win64.md)

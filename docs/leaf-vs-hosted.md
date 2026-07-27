@@ -38,9 +38,14 @@ does not get behavioral seals from the allowlisted admission snapshot.
 - Multi-object programs (hosted main + leaf `.o`): assemble the leaf first, then
   `vaa build main.asm … --extra-object path/to/leaf.o --linker-arg …` (see
   [exercises/e04-line-loop-win64.md](exercises/e04-line-loop-win64.md)).
+- Leaf object only: `vaa build leaf.asm --object-only` (skip PE link; E02).
+- `vaa validate` on `hosted-program` with Win32 `imports` may include
+  `suggested_linker_args` (`/subsystem:console`, `/entry:…`,
+  `/DEFAULTLIB:kernel32.lib`). Imports stay declarative in schema 0.1 — not
+  enforced against asm or `filesystem` flags.
 - Leaf object inspection for SemASM often only needs assemble + object; full
   PE link is optional for verify. Linking a leaf alone without `/subsystem:…`
-  fails under `lld-link` — use a thin hosted main for PE (see
+  fails under `lld-link` — use `--object-only` or a thin hosted main for PE (see
   [exercises/e02-hello-leaf-win64.md](exercises/e02-hello-leaf-win64.md)).
 
 ## 4. Orchestration vs leaf seal

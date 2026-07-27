@@ -270,6 +270,9 @@ enum Commands {
         /// hosted main links against a separately assembled leaf object.
         #[arg(long = "extra-object", value_name = "OBJ")]
         extra_objects: Vec<PathBuf>,
+        /// Assemble to an object only; skip the linker (leaf clinic / SemASM object path).
+        #[arg(long, default_value_t = false)]
+        object_only: bool,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -1323,6 +1326,7 @@ fn run_cli() -> ExitCode {
             check_reproducible,
             linker_args,
             extra_objects,
+            object_only,
             format,
         } => build_command(
             &source,
@@ -1341,6 +1345,7 @@ fn run_cli() -> ExitCode {
             check_reproducible,
             &linker_args,
             &extra_objects,
+            object_only,
             format,
         ),
         Commands::Cache { command } => match command {
@@ -1753,37 +1758,61 @@ fn print_status() {
 fn validate_command(path: &std::path::Path, format: OutputFormat, show_digest: bool) -> ExitCode {
     match load_locked_task(path) {
         Ok(locked) => {
+            let task = locked.task();
+            let suggested = if matches!(
+                task.artifact_kind,
+                vaa::ArtifactKind::HostedProgram
+            ) {
+                vaa::suggested_win64_linker_args(&task.capabilities.imports)
+            } else {
+                Vec::new()
+            };
             match format {
                 OutputFormat::Terminal => {
-                    println!("ok: task `{}` is valid", locked.task().task_id);
-                    println!("  schema_version: {}", locked.task().schema_version);
-                    println!("  target: {}", locked.task().target);
-                    println!("  artifact_kind: {:?}", locked.task().artifact_kind);
+                    println!("ok: task `{}` is valid", task.task_id);
+                    println!("  schema_version: {}", task.schema_version);
+                    println!("  target: {}", task.target);
+                    println!("  artifact_kind: {:?}", task.artifact_kind);
                     println!(
                         "  entry: {} ({})",
-                        locked.task().entry.symbol,
-                        locked.task().entry.abi
+                        task.entry.symbol, task.entry.abi
                     );
-                    println!("  tests: {}", locked.task().tests.len());
+                    println!("  tests: {}", task.tests.len());
                     if show_digest {
                         println!("  digest: {}", locked.digest().prefixed());
+                    }
+                    if !suggested.is_empty() {
+                        println!(
+                            "  note: capabilities.imports are declarative; for Win64 PE link try:"
+                        );
+                        for arg in &suggested {
+                            println!("    --linker-arg {arg}");
+                        }
+                        println!(
+                            "  (schema 0.1 does not enforce imports against asm or filesystem flags)"
+                        );
                     }
                 }
                 OutputFormat::Json => {
                     let body = serde_json::json!({
                         "ok": true,
                         "path": path,
-                        "task_id": locked.task().task_id,
-                        "schema_version": locked.task().schema_version,
-                        "target": locked.task().target,
-                        "artifact_kind": locked.task().artifact_kind,
-                        "entry_symbol": locked.task().entry.symbol,
-                        "entry_abi": locked.task().entry.abi,
-                        "test_count": locked.task().tests.len(),
+                        "task_id": task.task_id,
+                        "schema_version": task.schema_version,
+                        "target": task.target,
+                        "artifact_kind": task.artifact_kind,
+                        "entry_symbol": task.entry.symbol,
+                        "entry_abi": task.entry.abi,
+                        "test_count": task.tests.len(),
                         "digest": if show_digest {
                             Some(locked.digest().prefixed())
                         } else {
                             None
+                        },
+                        "suggested_linker_args": if suggested.is_empty() {
+                            None
+                        } else {
+                            Some(suggested)
                         },
                     });
                     println!("{body}");
@@ -4865,8 +4894,18 @@ fn build_command(
     check_reproducible: bool,
     linker_args: &[String],
     extra_objects: &[PathBuf],
+    object_only: bool,
     format: OutputFormat,
 ) -> ExitCode {
+    if object_only && (!linker_args.is_empty() || !extra_objects.is_empty()) {
+        eprintln!("error: --object-only cannot be combined with --linker-arg / --extra-object");
+        return VaaExitCode::InvalidInput.as_std();
+    }
+    if object_only && check_reproducible {
+        eprintln!("error: --object-only cannot be combined with --check-reproducible");
+        return VaaExitCode::InvalidInput.as_std();
+    }
+
     let mut effective_linker_args: Vec<String> = Vec::new();
     for obj in extra_objects {
         effective_linker_args.push(obj.display().to_string());
@@ -4969,11 +5008,12 @@ fn build_command(
         linker_path: vaa::default_linker_for_target(target),
         extra_ld_args: linker_args.to_vec(),
         container,
+        object_only,
         ..PipelineConfig::default()
     };
 
     // Opt-in build cache: restore object/binary when toolchain digests match.
-    if use_cache {
+    if use_cache && !object_only {
         if let Ok(source_bytes) = std::fs::read(source) {
             let source_digest = sha256_digest_prefixed(&source_bytes);
             let as_digest = vaa::tool_digest(Path::new("nasm")).unwrap_or_default();
@@ -5027,7 +5067,7 @@ fn build_command(
 
     let outcome = BuildPipeline::build(&config);
 
-    if use_cache && outcome.success {
+    if use_cache && !object_only && outcome.success {
         if let (Ok(source_bytes), Ok(object_bytes)) = (
             std::fs::read(source),
             std::fs::read(&outcome.manifest.object_path),
@@ -5058,9 +5098,14 @@ fn build_command(
     match format {
         OutputFormat::Terminal => {
             if outcome.success {
-                println!("Build succeeded");
-                println!("  object: {}", outcome.manifest.object_path.display());
-                println!("  binary: {}", outcome.manifest.binary_path.display());
+                if outcome.manifest.linker == "none" {
+                    println!("Build succeeded (object-only)");
+                    println!("  object: {}", outcome.manifest.object_path.display());
+                } else {
+                    println!("Build succeeded");
+                    println!("  object: {}", outcome.manifest.object_path.display());
+                    println!("  binary: {}", outcome.manifest.binary_path.display());
+                }
                 if let Some(d) = &outcome.manifest.assembler_digest {
                     println!("  assembler_digest: {d}");
                 }

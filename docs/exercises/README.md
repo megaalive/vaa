@@ -35,6 +35,8 @@ mkdir -p .vaa-exercises/e02-hello-leaf-win64
 Template for summaries: [`FRICTION.template.md`](FRICTION.template.md).
 
 **Status:** E01–E05 friction logs are committed (scratch under `.vaa-exercises/`).
+See [`SUMMARY.md`](SUMMARY.md), [`FOLLOW-UPS.md`](FOLLOW-UPS.md), and
+[`verifiable-vs-admitted.md`](verifiable-vs-admitted.md).
 
 | Logged | Summary |
 |---|---|
