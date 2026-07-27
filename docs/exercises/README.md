@@ -59,7 +59,10 @@ Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 | [T03](t03-uniq.md) | consecutive `uniq` via find/memcmp/memcpy VUP; `equal_run` UNSUPPORTED_SHAPE |
 | [T04](t04-hexdump.md) | hexdump runs; `nibble_to_hex` UNSUPPORTED_SHAPE (not sealed) |
 | [T05](t05-xor.md) | xor filter runs; `xor_u8`/`xor_bytes` UNSUPPORTED_SHAPE |
+| [T06](t06-path.md) | basename via `find_last_byte` VUP; `basename` UNSUPPORTED_SHAPE |
 | [T07](t07-ini-lookup.md) | flat INI lookup via `memcmp`+`find_first_byte`; `ini_lookup` UNSUPPORTED_SHAPE |
 | [T08](t08-env-subst.md) | env-subst one `${NAME}`; `find_first_byte` VUP; tool not sealed |
+| [T09](t09-json-get.md) | JSON string-key extract; `json_get` UNSUPPORTED_SHAPE |
+| [T16](t16-csv-cut.md) | CSV column cut; `csv_cut` UNSUPPORTED_SHAPE |
 
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).

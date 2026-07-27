@@ -63,10 +63,10 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 
 | ID | Tool | Why it matures VAA/SemASM | Status | Progress notes |
 |---|---|---|---|---|
-| T06 | path join / basename (Win, length-bounded) | string/buffer contracts, VUP honesty | `planned` | |
+| T06 | path join / basename (Win, length-bounded) | string/buffer contracts, VUP honesty | `friction_logged` | 2026-07-27: basename via `find_last_byte` VUP; `basename` UNSUPPORTED_SHAPE. [t06-path.md](t06-path.md) |
 | T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `friction_logged` | 2026-07-27: flat `key=` via `memcmp`+`find_first_byte` VUP; `ini_lookup` UNSUPPORTED_SHAPE. [t07-ini-lookup.md](t07-ini-lookup.md) |
 | T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `friction_logged` | 2026-07-27: one `${NAME}` + `find_first_byte` VUP; [t08-env-subst.md](t08-env-subst.md) |
-| T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `planned` | |
+| T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `friction_logged` | 2026-07-27: string-key extract via memcmp+find; `json_get` UNSUPPORTED_SHAPE. [t09-json-get.md](t09-json-get.md) |
 | T10 | diff hunk stats (line-oriented; no full Myers) | E04 line-loop → useful metric tool | `planned` | |
 
 ## Tier C — pick 2–3 around real workflow (optional)
@@ -78,7 +78,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 | T13 | checksum tree | dir walk hosted + hash leaf (admit only after oracle) | `planned` | |
 | T14 | clipboard / path helper (Win) | hosted-only; build/import UX — **not** skill seal | `planned` | |
 | T15 | HTTP HEAD timer | network capability fail-closed stress | `planned` | Expect decline today |
-| T16 | CSV column cut | delimiter scan leaf + argv hosted | `planned` | |
+| T16 | CSV column cut | delimiter scan leaf + argv hosted | `friction_logged` | 2026-07-27: col cut via `find_first_byte` VUP; `csv_cut` UNSUPPORTED_SHAPE. [t16-csv-cut.md](t16-csv-cut.md) |
 
 ---
 
@@ -114,3 +114,6 @@ When starting `Txx`:
 | 2026-07-27 | T02 cicil-1: `head` 10 lines + `find_nth_lf` UNSUPPORTED_SHAPE; [t02-head.md](t02-head.md) |
 | 2026-07-27 | T03 cicil-1: consecutive `uniq` + `equal_run` UNSUPPORTED_SHAPE; [t03-uniq.md](t03-uniq.md) |
 | 2026-07-27 | T05 cicil-1: xor filter + `xor_u8`/`xor_bytes` UNSUPPORTED_SHAPE; [t05-xor.md](t05-xor.md) |
+| 2026-07-27 | T06 cicil-1: basename + `find_last_byte` VUP; [t06-path.md](t06-path.md) |
+| 2026-07-27 | T09 cicil-1: JSON string-key extract; `json_get` UNSUPPORTED_SHAPE; [t09-json-get.md](t09-json-get.md) |
+| 2026-07-27 | T16 cicil-1: CSV column cut; `csv_cut` UNSUPPORTED_SHAPE; [t16-csv-cut.md](t16-csv-cut.md) |
