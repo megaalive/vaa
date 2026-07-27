@@ -29,6 +29,7 @@ Status after the ladder close-out. Prefer bounded fixes; keep non-goals closed.
 | Item | Why |
 |---|---|
 | Admit `min_i64` / `increment_i64` / WriteFile / REPL | Honesty: snapshot is intentional, not “whatever verifies” |
+| Admit `nibble_to_hex` / `hexdump` from T04 alone | Need oracle + freeze; tool success ≠ admission (see [t04-hexdump.md](t04-hexdump.md)) |
 | Full TTY line editing / ReadConsole | Out of leaf scope; E05 sketch is enough |
 | Cross-check `extern` vs `capabilities.imports` | Larger static-analysis feature; keep declarative for now |
 | Auto-pass `/DEFAULTLIB` from task TOML into `vaa build` | Keep linker args explicit; suggestions only |
