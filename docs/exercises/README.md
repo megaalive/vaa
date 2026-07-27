@@ -68,6 +68,7 @@ Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 | [T11](t11-git-status-porcelain.md) | `git status --porcelain` parse; counts M/A/D; tool not sealed |
 | [T12](t12-log-grepper.md) | chunked log grepper; substring counts with carry overlap |
 | [T13](t13-checksum-tree.md) | bounded checksum tree (top-level files); sum-bytes in 16-hex |
+| [T14](t14-clipboard-path.md) | clipboard/path helper; `cwd`+`clip` modes; hosted-only, not sealed |
 | [T15](t15-http-head-timer.md) | HTTP HEAD timer; `network=true` → `vaa validate` fail-closed; `status=400 ms=32` |
 | [T16](t16-csv-cut.md) | cicil-2: col 0–99 + light quotes; `csv_cut` UNSUPPORTED_SHAPE |
 
