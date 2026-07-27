@@ -29,7 +29,12 @@ does not get behavioral seals from the allowlisted admission snapshot.
 - Target `x86_64-pc-windows-msvc` / `win64` selects NASM `-f win64` and linker
   `lld-link` (not ELF `ld`).
 - Hosted programs that call Win32 APIs need extra linker args such as
-  `/DEFAULTLIB:kernel32.lib` (pass via toolchain extras / manual link today).
+  `/DEFAULTLIB:kernel32.lib`. Pass them explicitly:
+  `vaa build … --linker-arg /subsystem:console --linker-arg /entry:mainCRTStartup
+  --linker-arg /DEFAULTLIB:kernel32.lib` (see
+  [exercises/e03-writefile-win64.md](exercises/e03-writefile-win64.md)).
+  Local builds forward Windows SDK discovery env (`SystemRoot`,
+  `ProgramFiles(x86)`, optional `LIB`) so `lld-link` can find Kits libs.
 - Leaf object inspection for SemASM often only needs assemble + object; full
   PE link is optional for verify. Linking a leaf alone without `/subsystem:…`
   fails under `lld-link` — use a thin hosted main for PE (see

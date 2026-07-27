@@ -139,15 +139,17 @@ fn windows_link_hint(target: &str, linker: &Path, stderr: &str) -> Option<String
     if stderr_l.contains("subsystem must be defined") {
         parts.push(
             "PE link needs `/subsystem:console` (or windows) plus usually `/entry:…`. \
-             For a leaf object only, assemble with NASM and skip `vaa build`'s link step; \
-             full PE link belongs to a hosted main that provides the entry.",
+             Pass them with repeatable `vaa build --linker-arg …` (and \
+             `/DEFAULTLIB:kernel32.lib` for Win32 imports). For a leaf object only, \
+             assemble with NASM and skip the PE link; full PE link belongs to a hosted main.",
         );
     }
     if stderr_l.contains("kernel32") || stderr_l.contains("unresolved") {
         parts.push(
             "Hosted Win64 programs that call GetStdHandle/ReadFile need import libs \
-             (e.g. extra linker args `/DEFAULTLIB:kernel32.lib`). Leaf routines without \
-             imports can link without kernel32.",
+             (e.g. `--linker-arg /DEFAULTLIB:kernel32.lib`). If the lib still cannot be \
+             opened, set `LIB` to the Windows Kits `um\\x64` directory or ensure \
+             SystemRoot/ProgramFiles(x86) are available so `lld-link` can discover the SDK.",
         );
     }
     if parts.is_empty() {
@@ -321,6 +323,45 @@ impl BuildPipeline {
     }
 }
 
+/// Env allowlist for local assemble/link subprocesses.
+///
+/// Narrower than a full shell, but on Windows `lld-link` discovers the Kits
+/// `kernel32.lib` via `SystemRoot` / `ProgramFiles(x86)` (and optional `LIB`).
+/// Clearing those (ProcessRunner default) makes `/DEFAULTLIB:kernel32.lib` fail
+/// even when an interactive shell links fine.
+#[must_use]
+pub fn toolchain_subprocess_allowed_env() -> Vec<String> {
+    let mut vars = vec![
+        "PATH".to_owned(),
+        "HOME".to_owned(),
+        "USER".to_owned(),
+        "USERPROFILE".to_owned(),
+        "TMP".to_owned(),
+        "TEMP".to_owned(),
+        "TMPDIR".to_owned(),
+    ];
+    if cfg!(windows) {
+        vars.extend([
+            "SystemRoot".to_owned(),
+            "SYSTEMROOT".to_owned(),
+            "windir".to_owned(),
+            "SystemDrive".to_owned(),
+            "ProgramFiles".to_owned(),
+            "ProgramFiles(x86)".to_owned(),
+            "ProgramW6432".to_owned(),
+            "LIB".to_owned(),
+            "LIBPATH".to_owned(),
+            "INCLUDE".to_owned(),
+            "WindowsSdkDir".to_owned(),
+            "WindowsSDKLibVersion".to_owned(),
+            "VCINSTALLDIR".to_owned(),
+            "VCTOOLSINSTALLDIR".to_owned(),
+            "VCToolsInstallDir".to_owned(),
+        ]);
+    }
+    vars
+}
+
 fn maybe_wrap_container(program: &str, args: &[String], config: &PipelineConfig) -> ProcessConfig {
     let Some(opts) = &config.container else {
         return ProcessConfig {
@@ -328,6 +369,7 @@ fn maybe_wrap_container(program: &str, args: &[String], config: &PipelineConfig)
             args: args.to_vec(),
             timeout: config.timeout,
             max_output_bytes: config.max_output_bytes,
+            allowed_env: toolchain_subprocess_allowed_env(),
             ..ProcessConfig::default()
         };
     };
@@ -509,6 +551,7 @@ mod tests {
         )
         .expect("subsystem hint");
         assert!(hint.contains("/subsystem:console"));
+        assert!(hint.contains("--linker-arg"));
         assert!(hint.contains("leaf object"));
 
         let ld_hint = windows_link_hint(
@@ -518,6 +561,24 @@ mod tests {
         )
         .expect("ld hint");
         assert!(ld_hint.contains("lld-link"));
+    }
+
+    #[test]
+    fn toolchain_env_keeps_path_and_skips_credentials() {
+        let allowed = toolchain_subprocess_allowed_env();
+        assert!(allowed.iter().any(|e| e == "PATH"));
+        for forbidden in ["AWS_SECRET_ACCESS_KEY", "GITHUB_TOKEN", "OPENAI_API_KEY"] {
+            assert!(
+                !allowed.iter().any(|e| e == forbidden),
+                "{forbidden} must not be forwarded"
+            );
+        }
+        #[cfg(windows)]
+        {
+            assert!(allowed.iter().any(|e| e == "SystemRoot"));
+            assert!(allowed.iter().any(|e| e == "ProgramFiles(x86)"));
+            assert!(allowed.iter().any(|e| e == "LIB"));
+        }
     }
 
     #[test]

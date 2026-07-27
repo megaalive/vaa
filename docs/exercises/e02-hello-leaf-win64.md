@@ -64,4 +64,4 @@ out/hello.exe   # process exit 42
 - [x] Tooling: clearer Win64 hint when `subsystem must be defined`
 - [ ] Optional later: `vaa build --object-only` (or skip link for callable leaves)
 - [ ] Non-goal: do not admit `increment_i64` into the skill snapshot just to pass E02
-- [ ] E03: WriteFile / `kernel32` hosted stub (imports + capabilities)
+- [x] E03: WriteFile / `kernel32` hosted stub (imports + capabilities) → see [e03-writefile-win64.md](e03-writefile-win64.md)

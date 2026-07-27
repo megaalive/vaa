@@ -261,6 +261,11 @@ enum Commands {
         /// Twin-build same-host reproducibility check (PR-021).
         #[arg(long, default_value_t = false)]
         check_reproducible: bool,
+        /// Extra linker argument (repeatable). Win64 hosted examples:
+        /// `--linker-arg /subsystem:console --linker-arg /entry:mainCRTStartup
+        /// --linker-arg /DEFAULTLIB:kernel32.lib`.
+        #[arg(long = "linker-arg", value_name = "ARG")]
+        linker_args: Vec<String>,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -1312,6 +1317,7 @@ fn run_cli() -> ExitCode {
             require_rootless,
             cache,
             check_reproducible,
+            linker_args,
             format,
         } => build_command(
             &source,
@@ -1328,6 +1334,7 @@ fn run_cli() -> ExitCode {
             require_rootless,
             cache,
             check_reproducible,
+            &linker_args,
             format,
         ),
         Commands::Cache { command } => match command {
@@ -4843,6 +4850,7 @@ fn build_command(
     require_rootless: bool,
     use_cache: bool,
     check_reproducible: bool,
+    linker_args: &[String],
     format: OutputFormat,
 ) -> ExitCode {
     if check_reproducible {
@@ -4851,6 +4859,7 @@ fn build_command(
             output_dir: output_dir.to_path_buf(),
             target: target.to_owned(),
             linker_path: vaa::default_linker_for_target(target),
+            extra_ld_args: linker_args.to_vec(),
             ..PipelineConfig::default()
         };
         return match vaa::check_reproducible(&config) {
@@ -4937,6 +4946,7 @@ fn build_command(
         output_dir: output_dir.to_path_buf(),
         target: target.to_owned(),
         linker_path: vaa::default_linker_for_target(target),
+        extra_ld_args: linker_args.to_vec(),
         container,
         ..PipelineConfig::default()
     };
@@ -4957,7 +4967,7 @@ fn build_command(
                     "-f".into(),
                     vaa::nasm_format_for_target(target).to_owned(),
                 ]),
-                linker_args_fingerprint: vaa::args_fingerprint(&[]),
+                linker_args_fingerprint: vaa::args_fingerprint(linker_args),
                 container_image_digest: container_image_digest.unwrap_or("").to_owned(),
             };
             let store = vaa::CacheStore::open(vaa::resolve_cache_root());
@@ -5015,7 +5025,7 @@ fn build_command(
                     "-f".into(),
                     vaa::nasm_format_for_target(target).to_owned(),
                 ]),
-                linker_args_fingerprint: vaa::args_fingerprint(&[]),
+                linker_args_fingerprint: vaa::args_fingerprint(linker_args),
                 container_image_digest: container_image_digest.unwrap_or("").to_owned(),
             };
             let store = vaa::CacheStore::open(vaa::resolve_cache_root());
