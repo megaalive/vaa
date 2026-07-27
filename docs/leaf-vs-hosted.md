@@ -48,6 +48,10 @@ does not get behavioral seals from the allowlisted admission snapshot.
 A line loop / REPL that *calls* an admitted leaf does **not** inherit the leaf's
 seal. Admit/verify the leaf; treat the hosted loop as integration only (E04/E05).
 
+`vaa validate` rejects `artifact_kind = "callable-function"` when
+`capabilities.imports` is non-empty — Win32/I-O imports belong on
+`hosted-program` (see [exercises/e05-repl-sketch-win64.md](exercises/e05-repl-sketch-win64.md)).
+
 ## 5. Task TOML trial-and-error
 
 Schema 0.1 is fail-closed (`deny_unknown_fields`):

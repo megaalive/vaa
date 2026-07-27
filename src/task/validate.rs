@@ -147,6 +147,16 @@ pub fn validate_task(task: &Task) -> Vec<String> {
         ));
     }
 
+    // Keep leaf tasks free of host imports so agents cannot "validate" a REPL as a leaf.
+    if task.artifact_kind == ArtifactKind::CallableFunction && !task.capabilities.imports.is_empty()
+    {
+        diagnostics.push(
+            "callable-function must not list capabilities.imports (Win32/I-O imports belong on \
+             hosted-program; leaf seal ≠ REPL — see docs/leaf-vs-hosted.md and docs/exercises/)"
+                .to_owned(),
+        );
+    }
+
     diagnostics
 }
 
@@ -275,5 +285,16 @@ mod tests {
         task.verification.require_behavioral_tests = true;
         let diags = validate_task(&task);
         assert!(diags.iter().any(|d| d.contains("[[tests]]")));
+    }
+
+    #[test]
+    fn rejects_callable_function_with_host_imports() {
+        let mut task = minimal_task();
+        task.capabilities.imports = vec!["GetStdHandle".to_owned(), "ReadFile".to_owned()];
+        let diags = validate_task(&task);
+        assert!(
+            diags.iter().any(|d| d.contains("capabilities.imports")),
+            "diags={diags:?}"
+        );
     }
 }

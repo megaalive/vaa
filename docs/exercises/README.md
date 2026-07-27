@@ -39,5 +39,6 @@ Template for summaries: [`FRICTION.template.md`](FRICTION.template.md).
 | [E02](e02-hello-leaf-win64.md) | Leaf verify vs admit decline; thin Win64 main exit 42 |
 | [E03](e03-writefile-win64.md) | Hosted WriteFile/`kernel32`; admit+verify decline; `--linker-arg` |
 | [E04](e04-line-loop-win64.md) | Admitted `max_i64` + hosted line loop; seal leaf-only; `--extra-object` |
+| [E05](e05-repl-sketch-win64.md) | REPL sketch runs; no REPL seal; reject callable+imports |
 
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).

@@ -52,7 +52,7 @@ vaa build …/main.asm --target x86_64-pc-windows-msvc --output-dir …/out \
 | 3 | `vaa build` without extras → `subsystem must be defined` | tooling | Fixed: repeatable `--linker-arg` |
 | 4 | With `--linker-arg …kernel32.lib`, still `could not open 'kernel32.lib'` under VAA | tooling | ProcessRunner `env_clear` dropped `SystemRoot`/`ProgramFiles(x86)`; fixed via toolchain allowlist |
 | 5 | Task `capabilities.imports` are declarative only; not checked against `extern` | honesty / tooling | Validate does not cross-check asm |
-| 6 | `callable-function` + Win32 `imports` + a dummy `[[tests]]` still validates | honesty | Schema gap; skill path still declines on admit/verify |
+| 6 | `callable-function` + Win32 `imports` + a dummy `[[tests]]` still validated | honesty | Closed in E05: validate rejects imports on callable-function |
 | 7 | `filesystem = false` with `WriteFile` to stdout still validates | honesty | Capabilities are not I/O-policy enforced yet |
 
 ## Outcomes
@@ -68,7 +68,7 @@ vaa build …/main.asm --target x86_64-pc-windows-msvc --output-dir …/out \
 - [x] Docs: this friction log
 - [x] Tooling: `vaa build --linker-arg` for PE subsystem/entry/import libs
 - [x] Tooling: forward Windows SDK discovery env into assemble/link subprocesses
-- [ ] Optional: validate warn when `callable-function` lists non-empty `imports`
+- [x] Tooling: reject `callable-function` with non-empty `capabilities.imports` (E05)
 - [ ] Optional: map task imports → suggested linker libs (still explicit)
 - [ ] Non-goal: do not admit WriteFile / REPL into the skill snapshot
 - [x] E04: line loop (orchestration vs leaf seal) → see [e04-line-loop-win64.md](e04-line-loop-win64.md)
