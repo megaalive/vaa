@@ -34,8 +34,11 @@ mkdir -p .vaa-exercises/e02-hello-leaf-win64
 
 Template for summaries: [`FRICTION.template.md`](FRICTION.template.md).
 
+**Status:** E01–E05 friction logs are committed (scratch under `.vaa-exercises/`).
+
 | Logged | Summary |
 |---|---|
+| [E01](e01-leaf-clinic.md) | Intent→name→behavior→repair; SemASM verified ≠ admit |
 | [E02](e02-hello-leaf-win64.md) | Leaf verify vs admit decline; thin Win64 main exit 42 |
 | [E03](e03-writefile-win64.md) | Hosted WriteFile/`kernel32`; admit+verify decline; `--linker-arg` |
 | [E04](e04-line-loop-win64.md) | Admitted `max_i64` + hosted line loop; seal leaf-only; `--extra-object` |

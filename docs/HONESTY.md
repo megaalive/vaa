@@ -20,6 +20,9 @@ The goal is narrow and durable: never let VAA/SemASM overclaim.
    is a discovery/freeze **mirror** of those `leaf_names` — not a second skill
    list to memorize. Anything outside admission — a new shape, free-form `.S`,
    "fix my assembly" — is **declined**, not attempted.
+   **SemASM `agent verify` success on a recognized name is not admission**
+   (e.g. clinic `min_i64` may verify while `vaa admit` declines — see
+   [`exercises/e01-leaf-clinic.md`](exercises/e01-leaf-clinic.md)).
 4. **`verified_under_preconditions` (VUP) is not unconditional `verified`.**
    Report it as VUP. Only leaves with `strict_verified_ok: true` may be called
    plainly "verified".

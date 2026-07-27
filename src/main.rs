@@ -3780,11 +3780,18 @@ fn admit_command(
             "capability_snapshot_digest": vaa::CAPABILITY_SNAPSHOT_DIGEST,
             "admission_source": vaa::ADMISSION_SOURCE,
             "next_action": "decline",
+            "hint": "SemASM may still agent-verify recognized shapes (e.g. min_*/abs_*/inc_*); \
+                     skill admission is a separate frozen-snapshot gate. Do not treat \
+                     semasm verified as skill-admitted — see docs/HONESTY.md and docs/exercises/e01-leaf-clinic.md.",
         });
         match format {
             OutputFormat::Json => println!("{body}"),
             OutputFormat::Terminal => {
                 println!("declined: {leaf} @ {target} ({assembler}) — not in admission snapshot");
+                println!(
+                    "hint: SemASM verify ≠ skill admit; only snapshot leaves are skill-eligible \
+                     (docs/HONESTY.md, docs/exercises/e01-leaf-clinic.md)"
+                );
             }
         }
         // Not admitted is a successful query that reports decline (exit 0)
