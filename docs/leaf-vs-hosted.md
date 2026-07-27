@@ -35,12 +35,20 @@ does not get behavioral seals from the allowlisted admission snapshot.
   [exercises/e03-writefile-win64.md](exercises/e03-writefile-win64.md)).
   Local builds forward Windows SDK discovery env (`SystemRoot`,
   `ProgramFiles(x86)`, optional `LIB`) so `lld-link` can find Kits libs.
+- Multi-object programs (hosted main + leaf `.o`): assemble the leaf first, then
+  `vaa build main.asm … --extra-object path/to/leaf.o --linker-arg …` (see
+  [exercises/e04-line-loop-win64.md](exercises/e04-line-loop-win64.md)).
 - Leaf object inspection for SemASM often only needs assemble + object; full
   PE link is optional for verify. Linking a leaf alone without `/subsystem:…`
   fails under `lld-link` — use a thin hosted main for PE (see
   [exercises/e02-hello-leaf-win64.md](exercises/e02-hello-leaf-win64.md)).
 
-## 4. Task TOML trial-and-error
+## 4. Orchestration vs leaf seal
+
+A line loop / REPL that *calls* an admitted leaf does **not** inherit the leaf's
+seal. Admit/verify the leaf; treat the hosted loop as integration only (E04/E05).
+
+## 5. Task TOML trial-and-error
 
 Schema 0.1 is fail-closed (`deny_unknown_fields`):
 

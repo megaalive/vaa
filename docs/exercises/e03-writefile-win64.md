@@ -71,4 +71,4 @@ vaa build …/main.asm --target x86_64-pc-windows-msvc --output-dir …/out \
 - [ ] Optional: validate warn when `callable-function` lists non-empty `imports`
 - [ ] Optional: map task imports → suggested linker libs (still explicit)
 - [ ] Non-goal: do not admit WriteFile / REPL into the skill snapshot
-- [ ] E04: line loop (orchestration vs leaf seal)
+- [x] E04: line loop (orchestration vs leaf seal) → see [e04-line-loop-win64.md](e04-line-loop-win64.md)

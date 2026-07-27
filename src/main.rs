@@ -266,6 +266,10 @@ enum Commands {
         /// --linker-arg /DEFAULTLIB:kernel32.lib`.
         #[arg(long = "linker-arg", value_name = "ARG")]
         linker_args: Vec<String>,
+        /// Additional object file to pass to the linker (repeatable). Use when a
+        /// hosted main links against a separately assembled leaf object.
+        #[arg(long = "extra-object", value_name = "OBJ")]
+        extra_objects: Vec<PathBuf>,
         /// Output format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Terminal)]
         format: OutputFormat,
@@ -1318,6 +1322,7 @@ fn run_cli() -> ExitCode {
             cache,
             check_reproducible,
             linker_args,
+            extra_objects,
             format,
         } => build_command(
             &source,
@@ -1335,6 +1340,7 @@ fn run_cli() -> ExitCode {
             cache,
             check_reproducible,
             &linker_args,
+            &extra_objects,
             format,
         ),
         Commands::Cache { command } => match command {
@@ -4851,8 +4857,16 @@ fn build_command(
     use_cache: bool,
     check_reproducible: bool,
     linker_args: &[String],
+    extra_objects: &[PathBuf],
     format: OutputFormat,
 ) -> ExitCode {
+    let mut effective_linker_args: Vec<String> = Vec::new();
+    for obj in extra_objects {
+        effective_linker_args.push(obj.display().to_string());
+    }
+    effective_linker_args.extend(linker_args.iter().cloned());
+    let linker_args = &effective_linker_args;
+
     if check_reproducible {
         let config = PipelineConfig {
             source_path: source.to_path_buf(),
