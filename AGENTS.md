@@ -19,11 +19,13 @@ Non-negotiables:
 - **Parse stdout JSON only.** stderr is noise.
 - **Admission only.** `vaa admit --leaf … --target …`; anything else → decline
   (see [`docs/agent-playbook.md`](docs/agent-playbook.md) decline path).
-- **`verified_under_preconditions` ≠ `verified`.** Only `acceptance_level:
-  verified` (e.g. `max_i64`) is strict.
+- **`verified_under_preconditions` ≠ `verified`.** Read `claim` (and
+  `acceptance_level`) from `vaa admit` JSON — never infer “verified” from
+  `tier` alone (`behavioral_acceptance` covers both).
 - **Dry-runs / stub `VAA_BIN` runs are not evidence.**
 - Prefer `python scripts/agent_harness_adapter.py loop-direct …` over ad-hoc
-  `vaa harness` pipelines.
+  `vaa harness` pipelines. Do **not** hardcode leaf names in skills — call
+  `vaa admit`.
 
 This is a local CLI + project skill. There is **no MCP server** and no HTTP API.
 

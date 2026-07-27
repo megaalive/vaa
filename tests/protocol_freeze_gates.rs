@@ -424,3 +424,52 @@ fn allowlist_leaves_are_covered_by_admission_snapshot() {
         );
     }
 }
+
+/// AGENTS.md must not hardcode leaf allowlists / “only max_i64 is strict”.
+#[test]
+fn agents_md_has_no_hardcoded_leaf_strictness_claims() {
+    let body = std::fs::read_to_string("AGENTS.md").expect("AGENTS.md");
+    let lower = body.to_ascii_lowercase();
+    assert!(
+        !lower.contains("only max_i64 is strict"),
+        "AGENTS.md must not claim a single hardcoded strict leaf"
+    );
+    assert!(
+        body.contains("vaa admit"),
+        "AGENTS.md must direct agents to `vaa admit`"
+    );
+    assert!(
+        !body.contains("static allowlist") || body.contains("discovery"),
+        "AGENTS.md must not present a static allowlist as the admission gate"
+    );
+}
+
+/// README fluent status must acknowledge delivered fluent surface.
+#[test]
+fn readme_fluent_status_matches_fluent_agent_surface() {
+    let readme = std::fs::read_to_string("README.md").expect("README.md");
+    let fluent = std::fs::read_to_string("docs/fluent-agent-surface.md")
+        .expect("docs/fluent-agent-surface.md");
+    assert!(
+        readme.contains("fluent-agent-surface.md"),
+        "README must link fluent-agent-surface.md"
+    );
+    assert!(
+        readme.to_ascii_lowercase().contains("fluent")
+            && readme.to_ascii_lowercase().contains("delivered"),
+        "README must state fluent surface is delivered"
+    );
+    for release in ["Release A", "Release B", "Release C", "Release D"] {
+        assert!(
+            fluent.contains(release) && fluent.contains("delivered"),
+            "fluent-agent-surface.md must mark {release} delivered"
+        );
+    }
+    assert!(
+        readme.contains("vaa admit")
+            && readme.contains("vaa agent")
+            && readme.contains("vaa optimize")
+            && readme.contains("vaa evidence"),
+        "README happy path must list admit/agent/optimize/evidence"
+    );
+}

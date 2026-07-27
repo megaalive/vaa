@@ -89,6 +89,11 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
         format: OutputFormat,
     },
+    /// SemASM fixture maintenance (capability snapshot sync).
+    Semasm {
+        #[command(subcommand)]
+        command: SemasmCommands,
+    },
     /// Verify an assembly source against a locked task.
     Verify {
         /// Path to the locked task file.
@@ -475,6 +480,27 @@ enum AgentCommands {
         /// Optional leaf / shape filter (`max_i64`, `count_byte`, …).
         #[arg(long)]
         shape: Option<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum SemasmCommands {
+    /// Fetch live SemASM capabilities, diff against frozen snapshot, optionally apply.
+    ///
+    /// Never commits. Use `--apply` to write the JSON fixture and patch the digest constant.
+    CapabilitySync {
+        /// SemASM binary (default: `SEMASM_BIN` or `semasm` on PATH).
+        #[arg(long)]
+        semasm: Option<PathBuf>,
+        /// Output path for the capabilities snapshot JSON.
+        #[arg(long, default_value = "fixtures/semasm/capabilities-snapshot.json")]
+        output: PathBuf,
+        /// Write snapshot + patch `CAPABILITY_SNAPSHOT_DIGEST` (still no git commit).
+        #[arg(long, default_value_t = false)]
+        apply: bool,
+        /// Path to `src/semasm/admission.rs` when `--apply` (repo-relative).
+        #[arg(long, default_value = "src/semasm/admission.rs")]
+        admission_rs: PathBuf,
     },
 }
 
@@ -1210,6 +1236,14 @@ fn run_cli() -> ExitCode {
             list,
             format,
         } => admit_command(leaf.as_deref(), target.as_deref(), &assembler, list, format),
+        Commands::Semasm { command } => match command {
+            SemasmCommands::CapabilitySync {
+                semasm,
+                output,
+                apply,
+                admission_rs,
+            } => capability_sync_command(semasm.as_deref(), &output, apply, &admission_rs),
+        },
         Commands::Verify {
             task,
             source,
@@ -3773,6 +3807,40 @@ fn capabilities_command(target: &str, format: OutputFormat) -> ExitCode {
     VaaExitCode::Success.as_std()
 }
 
+fn capability_sync_command(
+    semasm: Option<&Path>,
+    output: &Path,
+    apply: bool,
+    admission_rs: &Path,
+) -> ExitCode {
+    let bin = vaa::resolve_semasm_bin(semasm);
+    match vaa::capability_sync(&bin, output, apply, apply.then_some(admission_rs)) {
+        Ok((live, diff)) => {
+            print!("{}", vaa::format_diff(&diff));
+            if apply {
+                println!(
+                    "\napplied: wrote {} and patched digest → {}",
+                    output.display(),
+                    live.digest
+                );
+                println!(
+                    "note: not committed — run admission/allowlist freeze tests before commit"
+                );
+            } else {
+                println!(
+                    "\ndry-run only (pass --apply to write {} and update CAPABILITY_SNAPSHOT_DIGEST)",
+                    output.display()
+                );
+            }
+            VaaExitCode::Success.as_std()
+        }
+        Err(e) => {
+            eprintln!("error: capability-sync: {e}");
+            VaaExitCode::ToolFailure.as_std()
+        }
+    }
+}
+
 fn admit_command(
     leaf: Option<&str>,
     target: Option<&str>,
@@ -3793,6 +3861,8 @@ fn admit_command(
                         "assemblers": e.snapshot.assemblers,
                         "acceptance_level": e.snapshot.acceptance_level,
                         "tier": e.tier.as_str(),
+                        "claim": e.claim,
+                        "obligations": e.obligations,
                     })
                 })
             })
@@ -3841,6 +3911,9 @@ fn admit_command(
             "capability_id": entry.snapshot.capability_id,
             "acceptance_level": entry.snapshot.acceptance_level,
             "tier": entry.tier.as_str(),
+            "claim": entry.claim,
+            "obligations": entry.obligations,
+            "speakable": vaa::speakable_acceptance(&entry.claim),
             "oracles": entry.snapshot.oracles,
             "required_gates": entry.snapshot.required_gates,
             "capability_snapshot_digest": vaa::CAPABILITY_SNAPSHOT_DIGEST,
@@ -3850,10 +3923,13 @@ fn admit_command(
             OutputFormat::Json => println!("{body}"),
             OutputFormat::Terminal => {
                 println!(
-                    "admitted: {leaf} @ {target} ({assembler}) — {} / {}",
-                    entry.snapshot.acceptance_level,
+                    "admitted: {leaf} @ {target} ({assembler}) — claim={} / tier={}",
+                    entry.claim,
                     entry.tier.as_str()
                 );
+                if !entry.obligations.is_empty() {
+                    println!("  obligations: {}", entry.obligations.join("; "));
+                }
             }
         }
         VaaExitCode::Success.as_std()

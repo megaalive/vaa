@@ -68,12 +68,98 @@ pub struct SnapshotAdmission {
     pub required_gates: Vec<String>,
 }
 
-/// Admitted leaf entry with VAA tier attached.
+/// Admitted leaf entry with VAA tier + claim class attached.
+///
+/// **tier** selects available operations; **claim** is what may be *said*
+/// (`verified` vs `verified_under_preconditions` stay distinct even when they
+/// share [`AdmissionTier::BehavioralAcceptance`]).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AdmissionEntry {
     #[serde(flatten)]
     pub snapshot: SnapshotAdmission,
     pub tier: AdmissionTier,
+    /// Exact SemASM acceptance claim (`verified`, `verified_under_preconditions`, …).
+    pub claim: String,
+    /// Caller obligations implied by the claim (empty when fully verified).
+    #[serde(default)]
+    pub obligations: Vec<String>,
+}
+
+/// Map SemASM `acceptance_level` → speakable claim class (never upgrades VUP).
+#[must_use]
+pub fn claim_for_acceptance_level(acceptance_level: &str) -> String {
+    match acceptance_level {
+        "verified" => "verified".into(),
+        "verified_under_preconditions" => "verified_under_preconditions".into(),
+        "static" | "static_analysis" => "static_analysis".into(),
+        other => other.to_owned(),
+    }
+}
+
+/// Default obligations for a claim class when the snapshot does not list them.
+#[must_use]
+pub fn obligations_for_claim(claim: &str, snapshot: &SnapshotAdmission) -> Vec<String> {
+    if claim != "verified_under_preconditions" {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    if snapshot.parameters.iter().any(|p| p.contains("src"))
+        && snapshot.parameters.iter().any(|p| p.contains("dst"))
+    {
+        out.push("src and dst must be disjoint".into());
+    }
+    if out.is_empty() {
+        out.push("caller must satisfy SemASM contract preconditions".into());
+    }
+    out
+}
+
+/// Human speech label: never emit bare “verified” for VUP claims.
+#[must_use]
+pub fn speakable_acceptance(claim: &str) -> &'static str {
+    match claim {
+        "verified" => "verified",
+        "verified_under_preconditions" => "verified_under_preconditions",
+        "static_analysis" | "static" => "static_analysis",
+        "authoring_only" => "authoring_only",
+        _ => "not_verified",
+    }
+}
+
+/// Map SemASM `acceptance_level` → VAA [`AdmissionTier`].
+///
+/// `verified` / `verified_under_preconditions` become
+/// [`AdmissionTier::BehavioralAcceptance`], or
+/// [`AdmissionTier::SealedAcceptance`] when `allow_sealed` is true.
+/// `authoring_only` stays authoring-only.
+///
+/// Callers that only look at **tier** must also read [`AdmissionEntry::claim`].
+#[must_use]
+pub fn map_acceptance_level(acceptance_level: &str, allow_sealed: bool) -> AdmissionTier {
+    match acceptance_level {
+        "static" | "static_analysis" => AdmissionTier::StaticAnalysis,
+        "verified" | "verified_under_preconditions" => {
+            if allow_sealed {
+                AdmissionTier::SealedAcceptance
+            } else {
+                AdmissionTier::BehavioralAcceptance
+            }
+        }
+        // `authoring_only` and unknown levels stay authoring-only (fail closed).
+        _ => AdmissionTier::AuthoringOnly,
+    }
+}
+
+fn entry_from_row(row: SnapshotAdmission) -> AdmissionEntry {
+    let claim = claim_for_acceptance_level(&row.acceptance_level);
+    let obligations = obligations_for_claim(&claim, &row);
+    let tier = map_acceptance_level(&row.acceptance_level, false);
+    AdmissionEntry {
+        tier,
+        claim,
+        obligations,
+        snapshot: row,
+    }
 }
 
 /// Full frozen SemASM capabilities document (subset used by VAA).
@@ -89,28 +175,6 @@ pub struct CapabilitiesSnapshot {
     pub targets: Vec<serde_json::Value>,
     #[serde(default)]
     pub workspace_crates: Vec<String>,
-}
-
-/// Map SemASM `acceptance_level` → VAA [`AdmissionTier`].
-///
-/// `verified` / `verified_under_preconditions` become
-/// [`AdmissionTier::BehavioralAcceptance`], or
-/// [`AdmissionTier::SealedAcceptance`] when `allow_sealed` is true.
-/// `authoring_only` stays authoring-only.
-#[must_use]
-pub fn map_acceptance_level(acceptance_level: &str, allow_sealed: bool) -> AdmissionTier {
-    match acceptance_level {
-        "static" | "static_analysis" => AdmissionTier::StaticAnalysis,
-        "verified" | "verified_under_preconditions" => {
-            if allow_sealed {
-                AdmissionTier::SealedAcceptance
-            } else {
-                AdmissionTier::BehavioralAcceptance
-            }
-        }
-        // `authoring_only` and unknown levels stay authoring-only (fail closed).
-        _ => AdmissionTier::AuthoringOnly,
-    }
 }
 
 /// Load the checked-in capabilities snapshot (compile-time include).
@@ -139,11 +203,7 @@ pub fn admit_leaf(name: &str, target: &str, assembler: &str) -> Option<Admission
         let target_ok = row.targets.iter().any(|t| t == target);
         let asm_ok = row.assemblers.iter().any(|a| a == assembler);
         if leaf_ok && target_ok && asm_ok {
-            let tier = map_acceptance_level(&row.acceptance_level, false);
-            Some(AdmissionEntry {
-                tier,
-                snapshot: row,
-            })
+            Some(entry_from_row(row))
         } else {
             None
         }
@@ -162,13 +222,7 @@ pub fn list_admitted(target: Option<&str>, assembler: Option<&str>) -> Vec<Admis
         .filter(|row| target.is_none_or(|t| row.targets.iter().any(|x| x == t)))
         .filter(|row| assembler.is_none_or(|a| row.assemblers.iter().any(|x| x == a)))
         .filter(|row| !row.leaf_names.is_empty())
-        .map(|row| {
-            let tier = map_acceptance_level(&row.acceptance_level, false);
-            AdmissionEntry {
-                tier,
-                snapshot: row,
-            }
-        })
+        .map(entry_from_row)
         .collect()
 }
 
@@ -191,6 +245,9 @@ mod tests {
             .expect("max_i64 must be admitted");
         assert_eq!(entry.snapshot.acceptance_level, "verified");
         assert_eq!(entry.tier, AdmissionTier::BehavioralAcceptance);
+        assert_eq!(entry.claim, "verified");
+        assert!(entry.obligations.is_empty());
+        assert_eq!(speakable_acceptance(&entry.claim), "verified");
         assert_eq!(
             map_acceptance_level("verified", true),
             AdmissionTier::SealedAcceptance
@@ -213,6 +270,13 @@ mod tests {
             "verified_under_preconditions"
         );
         assert_eq!(entry.tier, AdmissionTier::BehavioralAcceptance);
+        assert_eq!(entry.claim, "verified_under_preconditions");
+        assert!(!entry.obligations.is_empty());
+        assert_eq!(
+            speakable_acceptance(&entry.claim),
+            "verified_under_preconditions"
+        );
+        assert_ne!(speakable_acceptance(&entry.claim), "verified");
     }
 
     #[test]

@@ -129,10 +129,13 @@ pub use search::{
     SearchIngestConfig, SearchReport,
 };
 pub use semasm::{
-    admit_leaf, compare_live_status, list_admitted, load_snapshot, map_acceptance_level,
-    match_task_requirements, parse_status_json, probe_live_for_target, snapshot_digest,
-    AdmissionEntry, AdmissionTier, CapabilitiesSnapshot, CapabilityMatch, CompareOutcome,
-    DoctorReport, DoctorStatus, EvidencePolicy, LiveProbeSummary, LiveStatusCompare, SemasmDoctor,
+    admit_leaf, capability_sync, claim_for_acceptance_level, compare_live_status, diff_snapshots,
+    fetch_live_capabilities, format_diff, list_admitted, load_snapshot, map_acceptance_level,
+    match_task_requirements, obligations_for_claim, parse_capabilities_json, parse_status_json,
+    patch_digest_constant, probe_live_for_target, resolve_semasm_bin, snapshot_digest,
+    speakable_acceptance, write_snapshot_file, AdmissionEntry, AdmissionTier, CapabilitiesSnapshot,
+    CapabilityMatch, CapabilitySyncDiff, CapabilitySyncError, CompareOutcome, DoctorReport,
+    DoctorStatus, EvidencePolicy, LiveProbeSummary, LiveStatusCompare, SemasmDoctor,
     SemasmStatusDocument, SemasmVerify, SnapshotAdmission, TargetCapabilities, VerifyError,
     VerifyReport, ADMISSION_SOURCE, CAPABILITY_SNAPSHOT_DIGEST, CAPABILITY_SOURCE,
 };

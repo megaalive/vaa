@@ -1,18 +1,39 @@
 # VAA — Verifiable Assembly Agent
 
-**Status:** experimental  
-**Language:** Rust  
-**Form:** local CLI, single binary crate with library modules  
+**Status:** experimental · **Fluent agent surface:** delivered (see
+[`docs/fluent-agent-surface.md`](docs/fluent-agent-surface.md))  
+**Language:** Rust · **Form:** local CLI (+ library)
 
-VAA is a small, fail-closed controller that will turn a constrained task specification into assembly candidates, collect evidence from [SemASM](https://github.com/megaalive/semasm) and the native toolchain, and return an evidence bundle.
+VAA is a fail-closed controller: constrained tasks → assembly candidates →
+SemASM evidence → optional sealed selection. Agents propose; SemASM verifies.
 
-> **Honesty charter.** Before wiring an agent or citing what VAA "proves", read
-> [`docs/HONESTY.md`](docs/HONESTY.md). Short version: agents propose, SemASM
-> verifies; controllers parse **stdout JSON only**; work is limited to
-> **admitted** leaves (`vaa admit` / capability snapshot; allowlist JSON is a
-> discovery mirror);
-> `verified_under_preconditions` ≠ `verified`; dry-runs ≠ evidence. VAA is a
+> **Honesty charter.** Read [`docs/HONESTY.md`](docs/HONESTY.md) before citing
+> what VAA "proves". Controllers parse **stdout JSON only**; work is limited to
+> **admitted** leaves (`vaa admit`); `verified_under_preconditions` ≠
+> `verified` (use admit `claim`, not tier alone). Dry-runs ≠ evidence. VAA is a
 > local CLI + project skill — **not an MCP product**.
+
+## Happy path (fluent surface)
+
+Primary commands for agent authoring workflows:
+
+| Command | Role |
+|---|---|
+| `vaa author` | Case / seed scaffolding |
+| `vaa admit` | Capability admission lookup (`claim` + `tier` + `obligations`) |
+| `vaa agent serve --stdio --case <dir>` | NDJSON session (assembler from target; resume explicit) |
+| `vaa optimize` | Correctness-preserving ranking (`object_file_bytes` never from source) |
+| `vaa evidence` | Seal / bundle / chain checks |
+
+Older commands (`harness`, `verify`, `run`, `ingest`, …) remain for
+compatibility. Detail + release status:
+[`docs/fluent-agent-surface.md`](docs/fluent-agent-surface.md).
+
+Refresh the frozen SemASM snapshot (no auto-commit):
+
+```text
+vaa semasm capability-sync --semasm <bin> [--apply]
+```
 
 ## For agents
 
@@ -23,7 +44,6 @@ Drive VAA through the project skill
 operates **only** on admitted leaves (`vaa admit`) and declines anything else. Copy-paste a
 happy path and a decline path from [`docs/agent-playbook.md`](docs/agent-playbook.md).
 Bounds are fixed by [`docs/HONESTY.md`](docs/HONESTY.md); there is no MCP server.
-Roadmap: [`docs/fluent-agent-surface.md`](docs/fluent-agent-surface.md).
 
 ## What works today
 
@@ -34,6 +54,8 @@ Roadmap: [`docs/fluent-agent-surface.md`](docs/fluent-agent-surface.md).
 | Task content digest (`sha256:…`) | Available after successful validate |
 | `vaa doctor` | Available — SemASM version & schema compat |
 | `vaa capabilities --target <triple>` | Available — machine-readable JSON |
+| `vaa admit` / `vaa semasm capability-sync` | Available — frozen snapshot + refresh |
+| `vaa author` / `vaa agent` / `vaa optimize` | Available — fluent surface |
 | `vaa verify <task> --source <asm> --contract <sem.toml>` | Available — SemASM report 0.4, identity-bound evidence |
 | `vaa run <task> --contract … --wrong … --repaired …` | Available — fixture wrong→repair loop (no live LLM); writes sealed evidence |
 | `vaa ingest <task> --contract … --source …` | Available — generator-agnostic candidate deposit (no model) |
@@ -125,6 +147,10 @@ Known limits: container ≠ absolute isolation; Rekor/Sigstore/SoftHSM ≠ SemAS
 Verified or hardware HSM; `search --ingest` ≠ CryptOpt; local transparency
 artifact ≠ remote append-only log. Next release should narrate the stack leap,
 not only commit lists — no rush to tag until CHANGELOG + checklist agree.
+
+Hardening milestone (optimizer metrics, session identity, multi-dialect): see
+companion living doc in the cli-repl workspace when present; do not expand
+surface with a “Release E” feature dump.
 
 ## License
 
