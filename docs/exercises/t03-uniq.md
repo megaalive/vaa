@@ -7,8 +7,9 @@
 
 ## Intent
 
-Everyday **`uniq`** (cicil-1): drop **adjacent** duplicate LF lines. Compose
-admitted **`find_first_byte`** + **`memcmp`** + **`memcpy`**. Probe denser leaf
+Everyday **`uniq`** (cicil-2): drop **adjacent** duplicate lines; treat `\r\n`
+like `\n` for compare/emit (strip CR before LF). Compose admitted
+**`find_first_byte`** + **`memcmp`** + **`memcpy`**. Probe denser leaf
 **`equal_run`** for SemASM shape pressure. Tool not sealed.
 
 Scratch (gitignored): `.vaa-exercises/t03-uniq/`.
@@ -20,7 +21,7 @@ Scratch (gitignored): `.vaa-exercises/t03-uniq/`.
 | `find_first_byte`, `memcmp`, `memcpy` | **Admitted** + SemASM **VUP** |
 | `equal_run` | **Not admitted**; SemASM **`UNSUPPORTED_SHAPE`** |
 | Hosted `uniq` | **Not admitted**; not sealed |
-| Runtime `a b b c c c d` → `a b c d` | Integration evidence only |
+| Runtime mixed CR/LF → `a\nb\nc\nd\n` | Integration evidence only |
 
 ## Commands run
 
@@ -30,7 +31,7 @@ vaa validate … ; semasm agent verify memcmp|find_first_byte|memcpy  # VUP
 semasm agent verify equal_run.asm …   # UNSUPPORTED_SHAPE
 vaa build leaves --object-only ; vaa build main … --extra-object ×3 --linker-arg …
 uniq.exe sample.txt
-# → a\nb\nc\nd\n
+# mixed CR/LF sample → a\nb\nc\nd\n (CR stripped on emit)
 ```
 
 ## What helped
@@ -46,7 +47,7 @@ uniq.exe sample.txt
 | 2 | `admit uniq|equal_run` decline | honesty | Expected |
 | 3 | Adjacent-only; no global sort/uniq | deferred | Cicil-1 |
 | 4 | Single 4KiB buffer | deferred | Chunk policy |
-| 5 | CR stripped only if part of compared line bytes | deferred | LF-oriented |
+| 5 | CR stripped only if part of compared line bytes | resolved cicil-2 | normalize before memcmp/emit |
 
 ## Outcomes
 
@@ -56,7 +57,7 @@ uniq.exe sample.txt
 
 ## Follow-ups
 
-- [ ] T03b: `-c` counts / ignore CR
+- [x] T03b: ignore CR before LF
 - [ ] T03c: streaming across chunk boundaries (prev-line spill)
 - [ ] Non-goal: do not admit `uniq` / `equal_run` as skill leaves
 - [x] Roadmap → `friction_logged`

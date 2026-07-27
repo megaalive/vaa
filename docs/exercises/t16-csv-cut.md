@@ -7,9 +7,10 @@
 
 ## Intent
 
-Everyday **CSV column cut** (cicil-1): emit 0-based column (default **1**) per
-LF line via **`find_first_byte`** for `,` / LF. Probe **`csv_cut`** leaf. No
-quotes/escapes. Tool not sealed.
+Everyday **CSV column cut**: emit 0-based column (default **1**, argv **0–99**)
+per LF line via **`find_first_byte`** for `,` / LF / `"`. Light quotes (**T16b**):
+field starting with `"` takes until closing `"` (no escapes). Probe **`csv_cut`**
+leaf. Tool not sealed.
 
 Scratch (gitignored): `.vaa-exercises/t16-csv-cut/`.
 
@@ -20,7 +21,7 @@ Scratch (gitignored): `.vaa-exercises/t16-csv-cut/`.
 | `find_first_byte` | **Admitted** + SemASM **VUP** |
 | `csv_cut` | **Not admitted**; SemASM **`UNSUPPORTED_SHAPE`** (`ptr+len+col`) |
 | Hosted tool | **Not admitted**; not sealed |
-| Runtime col1 → `b/2/y`; col0 → `a/1/x` | Integration evidence only |
+| Runtime col1 → `b`/`hello,world`/`y`/`1`; col10 → `10` | Integration evidence only |
 
 ## Commands run
 
@@ -28,33 +29,37 @@ Scratch (gitignored): `.vaa-exercises/t16-csv-cut/`.
 vaa admit --leaf find_first_byte|csv_cut …
 semasm agent verify find_first_byte.asm …  # VUP
 semasm agent verify csv_cut.asm …          # UNSUPPORTED_SHAPE
-vaa build … --extra-object find_first_byte.o --linker-arg …
-csv_cut.exe                 # → b\n2\ny\n
-csv_cut.exe sample.csv 0    # → a\n1\nx\n
+vaa build find_first_byte.asm --object-only --target x86_64-pc-windows-msvc
+vaa build main.asm --extra-object find_first_byte.o --linker-arg …
+csv_cut.exe                 # → b\nhello,world\ny\n1\n
+csv_cut.exe sample.csv 0    # → a\n1\nx\n0\n
+csv_cut.exe sample.csv 10   # → 10\n
 ```
 
 ## What helped
 
 - Delimiter scan is exactly the admitted first-byte leaf in a hosted loop.
-- Same shape pressure as `find_nth_lf`: extra column index ≠ scan+needle.
+- Quoted-field branch reuses `find_first_byte` for closing `"`.
 
 ## Friction
 
 | # | Symptom | Likely class | Evidence |
 |---|---|---|---|
 | 1 | `csv_cut` → `UNSUPPORTED_SHAPE` | honesty / SemASM gap | ptr+len+col |
-| 2 | No quoted fields / commas-in-quotes | deferred | Cicil-1 |
-| 3 | Single-digit column argv only | deferred | |
+| 2 | No escaped quotes (`""`) | deferred | T16b light only |
+| 3 | Multi-digit col capped 0–99 (2 digits) | bounded | T16c |
 | 4 | Single 4KiB buffer | deferred | |
+| 5 | Rows missing the column emit nothing | deferred | |
 
 ## Outcomes
 
 - Working leaf: **admitted VUP**. Candidate: **decline + UNSUPPORTED_SHAPE**.
-- Tool **runs**; seal: **none**. Tier C pick logged.
+- Tool **runs** with T16c + T16b light; seal: **none**.
 
 ## Follow-ups
 
-- [ ] T16b: quoted CSV fields
-- [ ] T16c: multi-digit `-f` / stdout TSV
+- [x] T16b: quoted CSV fields (light; no escapes)
+- [x] T16c: multi-digit column argv 0–99
+- [ ] Escaped quotes / RFC CSV
 - [ ] Non-goal: do not admit `csv_cut` as a skill leaf
 - [x] Roadmap → `friction_logged`

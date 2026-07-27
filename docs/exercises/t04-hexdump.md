@@ -7,9 +7,10 @@
 
 ## Intent
 
-Everyday **hexdump**: read argv/`sample.bin`/stdin, emit lowercase hex pairs
-with spaces, **16 bytes per line**, using a local leaf **`nibble_to_hex`**.
-Do not claim SemASM/skill seal for the leaf or the tool.
+Everyday **hexdump** (cicil-2): read argv/`sample.bin`/stdin, emit lowercase hex
+pairs with spaces, **runtime width** `w` (`hexdump.exe [path] [w]`, default 16,
+allow 1–32) via local leaf **`nibble_to_hex`**. Do not claim SemASM/skill seal
+for the leaf or the tool.
 
 Scratch (gitignored): `.vaa-exercises/t04-hexdump/`.
 
@@ -30,8 +31,9 @@ semasm agent verify nibble_to_hex.asm …   # UNSUPPORTED_SHAPE
 vaa build nibble_to_hex.asm … --object-only
 vaa build main.asm … --extra-object out/nibble_to_hex.o --linker-arg …
 hexdump.exe sample.bin
-# → 00 01 0a ff 48 69 0d 0a 01 02 03 04 05 06 07 08
-#    09 0a 0b 0c
+# → 00 01 0a ff 48 69 0d 0a 01 02 03 04 05 06 07 08 / 09 0a 0b 0c
+hexdump.exe sample.bin 8
+# → three lines of 8 / 8 / 4 pairs
 ```
 
 ## What helped
@@ -47,7 +49,7 @@ hexdump.exe sample.bin
 | 1 | `nibble_to_hex` → `UNSUPPORTED_SHAPE` despite i64→i64 | honesty / SemASM gap | Encoding/nibble not a harness oracle yet |
 | 2 | `admit` declines leaf + tool | honesty | Expected |
 | 3 | Task `[[tests]]` exist but SemASM never runs them (shape fail first) | honesty | VAA validate ≠ SemASM verify |
-| 4 | Width flags (`-w`) not implemented | deferred | Fixed WIDTH=16 for cicil-1 |
+| 4 | Width flags (`-w`) not implemented | resolved cicil-2 | argv w 1..32 |
 | 5 | ASCII sidebar / offsets not implemented | deferred | Hex pairs only |
 
 ## Outcomes
@@ -59,7 +61,7 @@ hexdump.exe sample.bin
 ## Follow-ups
 
 - [ ] SemASM (optional epic): recognize `nibble_to_hex` / hex-digit unary + vectors — **only with oracle**, then consider admission separately
-- [ ] T04b: width flag / bytes-per-line
+- [x] T04b: width flag / bytes-per-line
 - [ ] T04c: offset column + ASCII gutter
 - [ ] Non-goal: do not admit `hexdump` / `nibble_to_hex` just because the tool works
-- [x] Roadmap status → `friction_logged` (cicil-1 fixed-width)
+- [x] Roadmap status → `friction_logged` (cicil-2 runtime width)

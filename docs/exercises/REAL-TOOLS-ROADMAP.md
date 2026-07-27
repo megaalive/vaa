@@ -54,19 +54,19 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 | ID | Tool | Leaf focus | Hosted focus | Status | Progress notes |
 |---|---|---|---|---|---|
 | T01 | `wc`-lite (bytes/lines/LF) | `count_byte` / line-count buffer | argv path, `CreateFile`/`ReadFile`, print counts | `done_enough` | 2026-07-27: argv+`sample.txt`+stdin; leaf VUP; AV from stack misalign fixed in scratch. [t01-wc-lite.md](t01-wc-lite.md) |
-| T02 | `head` / `tail` | find-nth-LF / slice-by-offset | file I/O + byte budget | `friction_logged` | 2026-07-27: `head` N=10 via `find_first_byte` VUP; `find_nth_lf` UNSUPPORTED_SHAPE. [t02-head.md](t02-head.md) |
-| T03 | `uniq` consecutive | memcmp window / equal-run | streaming buffer policy | `friction_logged` | 2026-07-27: adjacent uniq via find/memcmp/memcpy VUP; `equal_run` UNSUPPORTED_SHAPE. [t03-uniq.md](t03-uniq.md) |
-| T04 | hexdump | nibble encode leaf | format loop, width flags | `friction_logged` | 2026-07-27: fixed-width dump works; `nibble_to_hex` UNSUPPORTED_SHAPE+admit decline. [t04-hexdump.md](t04-hexdump.md) |
-| T05 | `xor` / `crc32` filter | pure-int or buffer transform | stdin→stdout pipeline | `friction_logged` | 2026-07-27: xor KEY via `xor_u8` link+run; `xor_u8`/`xor_bytes` UNSUPPORTED_SHAPE. [t05-xor.md](t05-xor.md) |
+| T02 | `head` / `tail` | find-nth-LF / slice-by-offset | file I/O + byte budget | `friction_logged` | 2026-07-27: cicil-2 argv N + `tail.exe`; `find_nth_lf` UNSUPPORTED_SHAPE. [t02-head.md](t02-head.md) |
+| T03 | `uniq` consecutive | memcmp window / equal-run | streaming buffer policy | `friction_logged` | 2026-07-27: cicil-2 ignore CR before LF; `equal_run` UNSUPPORTED_SHAPE. [t03-uniq.md](t03-uniq.md) |
+| T04 | hexdump | nibble encode leaf | format loop, width flags | `friction_logged` | 2026-07-27: cicil-2 argv width 1..32; `nibble_to_hex` UNSUPPORTED_SHAPE+admit decline. [t04-hexdump.md](t04-hexdump.md) |
+| T05 | `xor` / `crc32` filter | pure-int or buffer transform | stdin→stdout pipeline | `friction_logged` | 2026-07-27: cicil-2 argv key hex; `xor_u8`/`xor_bytes` UNSUPPORTED_SHAPE. [t05-xor.md](t05-xor.md) |
 
 ## Tier B — tools people use more often
 
 | ID | Tool | Why it matures VAA/SemASM | Status | Progress notes |
 |---|---|---|---|---|
-| T06 | path join / basename (Win, length-bounded) | string/buffer contracts, VUP honesty | `friction_logged` | 2026-07-27: basename via `find_last_byte` VUP; `basename` UNSUPPORTED_SHAPE. [t06-path.md](t06-path.md) |
-| T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `friction_logged` | 2026-07-27: flat `key=` via `memcmp`+`find_first_byte` VUP; `ini_lookup` UNSUPPORTED_SHAPE. [t07-ini-lookup.md](t07-ini-lookup.md) |
-| T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `friction_logged` | 2026-07-27: one `${NAME}` + `find_first_byte` VUP; [t08-env-subst.md](t08-env-subst.md) |
-| T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `friction_logged` | 2026-07-27: string-key extract via memcmp+find; `json_get` UNSUPPORTED_SHAPE. [t09-json-get.md](t09-json-get.md) |
+| T06 | path join / basename (Win, length-bounded) | string/buffer contracts, VUP honesty | `friction_logged` | 2026-07-27: T06b join+basename; `find_last_byte` VUP; `basename` UNSUPPORTED_SHAPE. [t06-path.md](t06-path.md) |
+| T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `friction_logged` | 2026-07-27: T07b `[section]`+key; `memcmp`/`find_first_byte` VUP; `ini_lookup` UNSUPPORTED_SHAPE. [t07-ini-lookup.md](t07-ini-lookup.md) |
+| T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `friction_logged` | 2026-07-27: T08b multi `${NAME}` loop; `find_first_byte` VUP. [t08-env-subst.md](t08-env-subst.md) |
+| T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `friction_logged` | 2026-07-27: string+bare-value key extract (T09c); minify (T09b) skipped; `json_get` UNSUPPORTED_SHAPE. [t09-json-get.md](t09-json-get.md) |
 | T10 | diff hunk stats (line-oriented; no full Myers) | E04 line-loop → useful metric tool | `planned` | |
 
 ## Tier C — pick 2–3 around real workflow (optional)
@@ -78,7 +78,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 | T13 | checksum tree | dir walk hosted + hash leaf (admit only after oracle) | `planned` | |
 | T14 | clipboard / path helper (Win) | hosted-only; build/import UX — **not** skill seal | `planned` | |
 | T15 | HTTP HEAD timer | network capability fail-closed stress | `planned` | Expect decline today |
-| T16 | CSV column cut | delimiter scan leaf + argv hosted | `friction_logged` | 2026-07-27: col cut via `find_first_byte` VUP; `csv_cut` UNSUPPORTED_SHAPE. [t16-csv-cut.md](t16-csv-cut.md) |
+| T16 | CSV column cut | delimiter scan leaf + argv hosted | `friction_logged` | 2026-07-27: col 0–99 + light quotes (T16c/T16b); `find_first_byte` VUP; `csv_cut` UNSUPPORTED_SHAPE. [t16-csv-cut.md](t16-csv-cut.md) |
 
 ---
 
@@ -117,3 +117,5 @@ When starting `Txx`:
 | 2026-07-27 | T06 cicil-1: basename + `find_last_byte` VUP; [t06-path.md](t06-path.md) |
 | 2026-07-27 | T09 cicil-1: JSON string-key extract; `json_get` UNSUPPORTED_SHAPE; [t09-json-get.md](t09-json-get.md) |
 | 2026-07-27 | T16 cicil-1: CSV column cut; `csv_cut` UNSUPPORTED_SHAPE; [t16-csv-cut.md](t16-csv-cut.md) |
+| 2026-07-27 | T09c: bare numeric/bool values; T09b minify skipped; T16c multi-digit col + T16b light quotes |
+| 2026-07-27 | T02/T03/T04/T05 cicil-2: argv N+tail, CR/LF uniq, argv width, argv xor key |

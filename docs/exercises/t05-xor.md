@@ -7,7 +7,8 @@
 
 ## Intent
 
-Everyday **XOR filter** (cicil-1): each input byte XOR fixed `KEY=0x5A` via leaf
+Everyday **XOR filter** (cicil-2): each input byte XOR argv key
+(`xor_filter.exe [path] [key]`, key = two hex digits, default `5A`) via leaf
 **`xor_u8`** (binary i64). Also probe buffer leaf **`xor_bytes`**. Demonstrate
 double-XOR restores plaintext. Tool not sealed.
 
@@ -32,8 +33,10 @@ semasm agent verify xor_u8.asm …     # UNSUPPORTED_SHAPE
 semasm agent verify xor_bytes.asm …  # UNSUPPORTED_SHAPE
 vaa build xor_u8.asm --object-only
 vaa build main.asm … --extra-object xor_u8.o --linker-arg …
-xor_filter.exe sample.bin   # → 12 3f 36 36 35
-xor_filter.exe xor1-in.bin  # → Hello
+xor_filter.exe sample.bin      # → 12 3f 36 36 35 (key 5A default)
+xor_filter.exe sample.bin 5A   # same
+xor_filter.exe sample.bin FF   # then again → Hello round-trip
+xor_filter.exe xor1-in.bin     # → Hello
 ```
 
 ## What helped
@@ -47,7 +50,7 @@ xor_filter.exe xor1-in.bin  # → Hello
 |---|---|---|---|
 | 1 | `xor_u8` arity matches binary pure-int but name rejected | honesty / SemASM gap | Need `xor_*` token or stay declined |
 | 2 | `xor_bytes` mutate+key not a buffer oracle | honesty / SemASM gap | Closest admitted: `replace_byte` |
-| 3 | Fixed KEY; no argv key | deferred | Cicil-1 |
+| 3 | Fixed KEY; no argv key | resolved cicil-2 | argv 2 hex digits |
 | 4 | Per-byte call overhead (not vectorized) | deferred | Depth vs perf |
 | 5 | `crc32` not attempted | deferred | T05b |
 
@@ -60,7 +63,7 @@ xor_filter.exe xor1-in.bin  # → Hello
 ## Follow-ups
 
 - [ ] T05b: `crc32` / rolling checksum leaf pressure
-- [ ] T05c: argv key byte; stdin pipeline
+- [x] T05c: argv key byte; stdin pipeline (key done; stdin still via CreateFile fail path)
 - [ ] Optional SemASM: recognize `xor_*` binary i64 (only if repeated demand)
 - [ ] Non-goal: do not widen admission just for this filter
 - [x] Roadmap → `friction_logged`

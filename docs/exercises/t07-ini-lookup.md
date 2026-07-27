@@ -7,10 +7,11 @@
 
 ## Intent
 
-Everyday **flat INI key lookup** (cicil-1): `key=value` lines, no `[sections]`.
-Locate `=` / LF via admitted **`find_first_byte`**; match keys with admitted
-**`memcmp`**. Probe a parse leaf **`ini_lookup`** for SemASM shape pressure.
-Tool binary not sealed.
+Everyday **INI `[section]` key lookup** (cicil-2 / T07b): defaults
+`sample.ini` / `demo` / `name`. Locate `=` / LF / `[` via admitted
+**`find_first_byte`**; match section/key with admitted **`memcmp`**. Empty
+section argv `""` → flat whole-file (see scratch `OUTCOME.txt`). Probe
+**`ini_lookup`** for SemASM shape pressure. Tool binary not sealed.
 
 Scratch (gitignored): `.vaa-exercises/t07-ini-lookup/`.
 
@@ -21,7 +22,7 @@ Scratch (gitignored): `.vaa-exercises/t07-ini-lookup/`.
 | `memcmp`, `find_first_byte` | **Admitted** + SemASM **VUP** |
 | `ini_lookup` (parse leaf) | **Not admitted**; SemASM **`UNSUPPORTED_SHAPE`** (two ptr+len buffers) |
 | Hosted tool | **Not admitted**; not sealed |
-| Runtime `name`→`widget`, `count`→`3` | Integration evidence only |
+| Runtime `demo`/`name`→`widget` | Integration only — see scratch `OUTCOME.txt` |
 
 ## Commands run
 
@@ -31,11 +32,13 @@ vaa validate memcmp|find_first_byte|ini_lookup|main.vaa.toml
 semasm agent verify memcmp.asm …          # VUP
 semasm agent verify find_first_byte.asm … # VUP
 semasm agent verify ini_lookup.asm …      # UNSUPPORTED_SHAPE
-vaa build memcmp.asm|find_first_byte.asm … --object-only
+vaa build memcmp.asm|find_first_byte.asm --object-only --target …
 vaa build main.asm … --extra-object memcmp.o --extra-object find_first_byte.o --linker-arg …
-ini_lookup.exe                          # → widget (cwd = scratch)
-ini_lookup.exe sample.ini count         # → 3
-ini_lookup.exe sample.ini missing       # exit 1
+ini_lookup.exe                          # → widget ([demo]/name)
+ini_lookup.exe sample.ini demo count    # → 3
+ini_lookup.exe sample.ini other name    # → gadget
+ini_lookup.exe sample.ini "" flat_key   # → orphan (flat mode)
+ini_lookup.exe sample.ini demo missing  # exit 1
 ```
 
 ## What helped
@@ -53,19 +56,19 @@ ini_lookup.exe sample.ini missing       # exit 1
 | 2 | `admit ini_lookup|ini_get` decline | honesty | Expected |
 | 3 | Leafs are VUP, not strict `verified` | honesty | admit JSON |
 | 4 | Default `sample.ini` depends on process CWD | agent-mistake / tool UX | Run from scratch or pass argv path |
-| 5 | No `[section]` / whitespace around `=` / comments | deferred | Cicil-1 flat only |
+| 5 | No `[section]` at cicil-1 | resolved (T07b) | Section window until next `[` |
 | 6 | Single 4KiB read | deferred | Matches leaf `length <= 4096` |
 
 ## Outcomes
 
 - Working leaves: **admitted VUP**.
 - Parse candidate: **decline + UNSUPPORTED_SHAPE** (pressure on SemASM depth).
-- Tool **runs** for flat keys; seal claim for tool: **none**.
+- Tool **runs** section + optional flat (`""`); seal: **none**. Scratch `OUTCOME.txt`.
 
 ## Follow-ups
 
-- [ ] T07b: `[section]` + `key` lookup; quoted values
+- [x] T07b: `[section]` + `key` lookup (quoted values still open)
 - [ ] T07c: streaming / multi-chunk files
 - [ ] Optional SemASM epic: dual-buffer / “find key then slice” template (only if repeated)
 - [ ] Non-goal: do not admit `ini_lookup` just because the tool works
-- [x] Roadmap → `friction_logged` for cicil-1
+- [x] Roadmap → `friction_logged` for cicil-2
