@@ -17,6 +17,12 @@ SemASM synthesizes behavioral vectors for **recognized leaf shapes**:
 recognized token. Full REPL loops with `GetStdHandle` / `ReadFile` are **not**
 an admitted leaf.
 
+Real-tools pressure (T02/T04/T07): dual-buffer parse (`ini_lookup`), nibble
+encode (`nibble_to_hex`), and `find_nth_lf` (`ptr+len+n`) are useful for tools
+but currently fail closed at SemASM synthesis — compose admitted scans
+(`find_first_byte`, `memcmp`, `count_byte`) in the hosted loop instead of
+weakening `UNSUPPORTED_SHAPE`.
+
 ## 2. Hosted / REPL programs (out of agent-skill scope)
 
 A Windows console REPL that imports `kernel32` is a `hosted-program` task with

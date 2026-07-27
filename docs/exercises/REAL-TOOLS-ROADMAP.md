@@ -54,7 +54,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 | ID | Tool | Leaf focus | Hosted focus | Status | Progress notes |
 |---|---|---|---|---|---|
 | T01 | `wc`-lite (bytes/lines/LF) | `count_byte` / line-count buffer | argv path, `CreateFile`/`ReadFile`, print counts | `done_enough` | 2026-07-27: argv+`sample.txt`+stdin; leaf VUP; AV from stack misalign fixed in scratch. [t01-wc-lite.md](t01-wc-lite.md) |
-| T02 | `head` / `tail` | find-nth-LF / slice-by-offset | file I/O + byte budget | `planned` | After T01 |
+| T02 | `head` / `tail` | find-nth-LF / slice-by-offset | file I/O + byte budget | `friction_logged` | 2026-07-27: `head` N=10 via `find_first_byte` VUP; `find_nth_lf` UNSUPPORTED_SHAPE. [t02-head.md](t02-head.md) |
 | T03 | `uniq` consecutive | memcmp window / equal-run | streaming buffer policy | `planned` | |
 | T04 | hexdump | nibble encode leaf | format loop, width flags | `friction_logged` | 2026-07-27: fixed-width dump works; `nibble_to_hex` UNSUPPORTED_SHAPE+admit decline. [t04-hexdump.md](t04-hexdump.md) |
 | T05 | `xor` / `crc32` filter | pure-int or buffer transform | stdin→stdout pipeline | `planned` | |
@@ -64,7 +64,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 | ID | Tool | Why it matures VAA/SemASM | Status | Progress notes |
 |---|---|---|---|---|
 | T06 | path join / basename (Win, length-bounded) | string/buffer contracts, VUP honesty | `planned` | |
-| T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `planned` | |
+| T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `friction_logged` | 2026-07-27: flat `key=` via `memcmp`+`find_first_byte` VUP; `ini_lookup` UNSUPPORTED_SHAPE. [t07-ini-lookup.md](t07-ini-lookup.md) |
 | T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `friction_logged` | 2026-07-27: one `${NAME}` + `find_first_byte` VUP; [t08-env-subst.md](t08-env-subst.md) |
 | T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `planned` | |
 | T10 | diff hunk stats (line-oriented; no full Myers) | E04 line-loop → useful metric tool | `planned` | |
@@ -110,3 +110,5 @@ When starting `Txx`:
 | 2026-07-27 | T01 cicil-2: `GetCommandLineA` argv path; Win64 stack-align AV noted; status `done_enough` |
 | 2026-07-27 | T04 cicil-1: hexdump + `nibble_to_hex` UNSUPPORTED_SHAPE; [t04-hexdump.md](t04-hexdump.md) |
 | 2026-07-27 | T08 cicil-1: env-subst one `${NAME}` + `find_first_byte` VUP; [t08-env-subst.md](t08-env-subst.md) |
+| 2026-07-27 | T07 cicil-1: flat INI lookup + dual-buffer `ini_lookup` UNSUPPORTED_SHAPE; [t07-ini-lookup.md](t07-ini-lookup.md) |
+| 2026-07-27 | T02 cicil-1: `head` 10 lines + `find_nth_lf` UNSUPPORTED_SHAPE; [t02-head.md](t02-head.md) |

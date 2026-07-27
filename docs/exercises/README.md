@@ -55,7 +55,9 @@ Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 | Logged | Summary |
 |---|---|
 | [T01](t01-wc-lite.md) | wc-lite via `count_byte` VUP; argv+file+stdin; tool not sealed |
+| [T02](t02-head.md) | `head` 10 lines via `find_first_byte` VUP; `find_nth_lf` UNSUPPORTED_SHAPE |
 | [T04](t04-hexdump.md) | hexdump runs; `nibble_to_hex` UNSUPPORTED_SHAPE (not sealed) |
+| [T07](t07-ini-lookup.md) | flat INI lookup via `memcmp`+`find_first_byte`; `ini_lookup` UNSUPPORTED_SHAPE |
 | [T08](t08-env-subst.md) | env-subst one `${NAME}`; `find_first_byte` VUP; tool not sealed |
 
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).
