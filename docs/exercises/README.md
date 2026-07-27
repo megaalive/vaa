@@ -65,6 +65,7 @@ Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 | [T08](t08-env-subst.md) | D1 `replace_byte` CR→LF + multi `${}`; leaves VUP |
 | [T09](t09-json-get.md) | D3 minify + bare values; `json_get` decline |
 | [T10](t10-diff-hunk-stats.md) | unified diff hunk stats; counts `hunks/added/removed`; tool not sealed |
+| [T11](t11-git-status-porcelain.md) | `git status --porcelain` parse; counts M/A/D; tool not sealed |
 | [T16](t16-csv-cut.md) | cicil-2: col 0–99 + light quotes; `csv_cut` UNSUPPORTED_SHAPE |
 
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).

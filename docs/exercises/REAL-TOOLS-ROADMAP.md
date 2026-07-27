@@ -73,7 +73,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 
 | ID | Tool idea | Notes | Status | Progress notes |
 |---|---|---|---|---|
-| T11 | `git status` porcelain summary (count M/A/D) | hosted parse + leaf counters | `planned` | Owner pick |
+| T11 | `git status` porcelain summary (count M/A/D) | hosted parse + leaf counters | `friction_logged` | 2026-07-27: hosted parser for porcelain `XY`; counts M/A/D. [t11-git-status-porcelain.md](t11-git-status-porcelain.md) |
 | T12 | log grepper (chunked large buffers) | find/count + mmap/chunk friction | `planned` | |
 | T13 | checksum tree | dir walk hosted + hash leaf (admit only after oracle) | `planned` | |
 | T14 | clipboard / path helper (Win) | hosted-only; build/import UX — **not** skill seal | `planned` | |
