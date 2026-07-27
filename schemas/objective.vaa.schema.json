@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/megaalive/vaa/schemas/objective.vaa.schema.json",
-  "title": "VAA optimize objective schema 0.1",
-  "description": "Correctness-preserving optimization objective. Lives in a separate TOML file (not task.vaa.toml) so task schema 0.1 fixtures stay stable. Ranking never selects violated/incomplete/failed candidates; must_preserve_status must be true.",
+  "title": "VAA optimize objective schema 0.2",
+  "description": "Correctness-preserving optimization objective. Lives in a separate TOML file (not task.vaa.toml). Ranking never selects violated/incomplete/failed candidates; must_preserve_status must be true. object_file_bytes is never inferred from source text.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,17 +14,29 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "0.1"
+      "enum": ["0.2", "0.1"]
     },
     "primary": {
       "type": "string",
-      "enum": ["object_bytes", "instruction_count", "stack_bytes"]
+      "enum": [
+        "object_file_bytes",
+        "object_bytes",
+        "source_text_bytes",
+        "instruction_count",
+        "stack_bytes"
+      ]
     },
     "secondary": {
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["object_bytes", "instruction_count", "stack_bytes"]
+        "enum": [
+          "object_file_bytes",
+          "object_bytes",
+          "source_text_bytes",
+          "instruction_count",
+          "stack_bytes"
+        ]
       }
     },
     "must_preserve_status": {

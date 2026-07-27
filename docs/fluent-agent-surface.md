@@ -121,7 +121,8 @@ response, and finish with sealed evidence.
   [`fixtures/optimize/objective.object_bytes.toml`](../fixtures/optimize/objective.object_bytes.toml)
   (separate from `task.vaa.toml`)
 - `src/optimize/mod.rs` — parse/validate objective; scan sealed candidates;
-  compute `object_bytes` / `instruction_count` / `stack_bytes`;
+  compute `object_file_bytes` / `source_text_bytes` / `instruction_count` / `stack_bytes`
+  (never invent object size from source; primary metric required);
   `rank_candidates` → `selection-evidence.json`
 - CLI: `vaa optimize validate` / `vaa optimize rank --run-dir … --objective …`
   (`--allow-under-preconditions` for VUP; fail-closed if no accepted)

@@ -107,10 +107,11 @@ pub use model::{
     ModelResponse, DEFAULT_STAGING_OUTPUT,
 };
 pub use optimize::{
-    collect_candidate_metrics, load_objective, metrics_for_candidate_dir, objective_digest,
-    parse_objective_toml, rank_candidates, rank_run_dir, status_label, validate_objective,
-    CandidateMetrics, Objective, ObjectiveMetric, OptimizeError, RejectedCandidate,
-    SelectedObjectiveView, SelectionEvidence, OBJECTIVE_SCHEMA_VERSION, SELECTION_EVIDENCE_FILE,
+    collect_candidate_metrics, load_objective, metric_evidence_digest, metrics_for_candidate_dir,
+    objective_digest, parse_objective_toml, rank_candidates, rank_run_dir, status_label,
+    validate_objective, CandidateMetrics, MetricBasis, Objective, ObjectiveMetric, OptimizeError,
+    RejectedCandidate, SelectedObjectiveView, SelectionEvidence, OBJECTIVE_SCHEMA_VERSION,
+    SELECTION_EVIDENCE_FILE,
 };
 pub use orchestrate::{MachineState, Orchestrator, StateTransition};
 pub use process::{ProcessConfig, ProcessError, ProcessOutput, ProcessRunner};

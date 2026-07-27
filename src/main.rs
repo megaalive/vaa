@@ -3530,8 +3530,11 @@ fn optimize_rank_command(
                     println!("ok: correctness-preserving selection");
                     println!("  selected_candidate: {:04}", evidence.selected_candidate);
                     println!("  correctness_status: {}", evidence.correctness_status);
-                    if let Some(n) = evidence.objective.object_bytes {
-                        println!("  object_bytes: {n}");
+                    if let Some(n) = evidence.objective.object_file_bytes {
+                        println!("  object_file_bytes: {n}");
+                    }
+                    if let Some(n) = evidence.objective.source_text_bytes {
+                        println!("  source_text_bytes: {n}");
                     }
                     if let Some(n) = evidence.objective.instruction_count {
                         println!("  instruction_count: {n}");
@@ -3540,9 +3543,14 @@ fn optimize_rank_command(
                         println!("  stack_bytes: {n}");
                     }
                     if let Some(b) = &evidence.objective.metric_basis {
-                        println!("  metric_basis: {b}");
+                        println!("  metric_basis: {}", b.as_str());
                     }
+                    println!("  tool_version: {}", evidence.objective.tool_version);
                     println!("  objective_digest: {}", evidence.objective_digest);
+                    println!(
+                        "  metric_evidence_digest: {}",
+                        evidence.metric_evidence_digest
+                    );
                     println!("  seal_digest: {}", evidence.seal_digest);
                     println!("  selection_evidence: {}", out_path.display());
                     if !evidence.rejected_candidates.is_empty() {
