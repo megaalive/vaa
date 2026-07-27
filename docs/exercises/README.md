@@ -52,4 +52,8 @@ See [`SUMMARY.md`](SUMMARY.md), [`FOLLOW-UPS.md`](FOLLOW-UPS.md),
 Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 (T01 `wc`-lite → … → Tier C picks). Same method; higher everyday utility.
 
+| Logged | Summary |
+|---|---|
+| [T01](t01-wc-lite.md) | wc-lite via `count_byte` VUP; tool runs; argv path deferred |
+
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).
