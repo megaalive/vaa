@@ -32,3 +32,8 @@ Status after the ladder close-out. Prefer bounded fixes; keep non-goals closed.
 | Full TTY line editing / ReadConsole | Out of leaf scope; E05 sketch is enough |
 | Cross-check `extern` vs `capabilities.imports` | Larger static-analysis feature; keep declarative for now |
 | Auto-pass `/DEFAULTLIB` from task TOML into `vaa build` | Keep linker args explicit; suggestions only |
+
+## Next workstream
+
+Everyday utilities (not hello-world): track and update progress in
+[`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md).

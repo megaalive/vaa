@@ -152,5 +152,5 @@ response, and finish with sealed evidence.
 - [`exercises/`](exercises/) — maturity ladder + friction logs (scratch under `.vaa-exercises/`)
 - [`exercises/SUMMARY.md`](exercises/SUMMARY.md) — E01–E05 verdict and dual-gate rules
 - [`exercises/verifiable-vs-admitted.md`](exercises/verifiable-vs-admitted.md) — SemASM verify ≠ admit inventory
-- [`agent-playbook.md`](agent-playbook.md) — happy / decline paths
+- [`exercises/REAL-TOOLS-ROADMAP.md`](exercises/REAL-TOOLS-ROADMAP.md) — everyday-tools ladder (T01+) + progress- [`agent-playbook.md`](agent-playbook.md) — happy / decline paths
 - SemASM: `docs/fluent-agent-surface.md` (controller-facing pointer)

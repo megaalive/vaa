@@ -35,8 +35,9 @@ mkdir -p .vaa-exercises/e02-hello-leaf-win64
 Template for summaries: [`FRICTION.template.md`](FRICTION.template.md).
 
 **Status:** E01–E05 friction logs are committed (scratch under `.vaa-exercises/`).
-See [`SUMMARY.md`](SUMMARY.md), [`FOLLOW-UPS.md`](FOLLOW-UPS.md), and
-[`verifiable-vs-admitted.md`](verifiable-vs-admitted.md).
+See [`SUMMARY.md`](SUMMARY.md), [`FOLLOW-UPS.md`](FOLLOW-UPS.md),
+[`verifiable-vs-admitted.md`](verifiable-vs-admitted.md), and the next ladder
+[`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md) (everyday utilities T01+).
 
 | Logged | Summary |
 |---|---|
@@ -45,5 +46,10 @@ See [`SUMMARY.md`](SUMMARY.md), [`FOLLOW-UPS.md`](FOLLOW-UPS.md), and
 | [E03](e03-writefile-win64.md) | Hosted WriteFile/`kernel32`; admit+verify decline; `--linker-arg` |
 | [E04](e04-line-loop-win64.md) | Admitted `max_i64` + hosted line loop; seal leaf-only; `--extra-object` |
 | [E05](e05-repl-sketch-win64.md) | REPL sketch runs; no REPL seal; reject callable+imports |
+
+## Next ladder — real tools
+
+Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
+(T01 `wc`-lite → … → Tier C picks). Same method; higher everyday utility.
 
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).

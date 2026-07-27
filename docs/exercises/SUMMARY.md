@@ -48,3 +48,8 @@ hosted I/O       →  vaa validate (task schema) + build/run
 ## Follow-ups from friction (tracked)
 
 See [`FOLLOW-UPS.md`](FOLLOW-UPS.md).
+
+## Next ladder
+
+Everyday tools (wc-lite, hexdump, env-subst, …):
+[`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md).
