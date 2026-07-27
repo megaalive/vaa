@@ -67,6 +67,7 @@ Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 | [T10](t10-diff-hunk-stats.md) | unified diff hunk stats; counts `hunks/added/removed`; tool not sealed |
 | [T11](t11-git-status-porcelain.md) | `git status --porcelain` parse; counts M/A/D; tool not sealed |
 | [T12](t12-log-grepper.md) | chunked log grepper; substring counts with carry overlap |
+| [T13](t13-checksum-tree.md) | bounded checksum tree (top-level files); sum-bytes in 16-hex |
 | [T16](t16-csv-cut.md) | cicil-2: col 0–99 + light quotes; `csv_cut` UNSUPPORTED_SHAPE |
 
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).

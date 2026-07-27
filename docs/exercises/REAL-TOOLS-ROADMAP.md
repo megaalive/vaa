@@ -75,7 +75,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 |---|---|---|---|---|
 | T11 | `git status` porcelain summary (count M/A/D) | hosted parse + leaf counters | `friction_logged` | 2026-07-27: hosted parser for porcelain `XY`; counts M/A/D. [t11-git-status-porcelain.md](t11-git-status-porcelain.md) |
 | T12 | log grepper (chunked large buffers) | find/count + mmap/chunk friction | `friction_logged` | 2026-07-27: hosted substring grepper; carry-over overlap; `matches` output. [t12-log-grepper.md](t12-log-grepper.md) |
-| T13 | checksum tree | dir walk hosted + hash leaf (admit only after oracle) | `planned` | |
+| T13 | checksum tree | dir walk hosted (bounded: top-level files only) + checksum | `friction_logged` | 2026-07-27: `checksum_tree.exe` enumerates top-level files; sum-bytes checksum printed as 16-hex digits. [t13-checksum-tree.md](t13-checksum-tree.md) |
 | T14 | clipboard / path helper (Win) | hosted-only; build/import UX — **not** skill seal | `planned` | |
 | T15 | HTTP HEAD timer | network capability fail-closed stress | `planned` | Expect decline today |
 | T16 | CSV column cut | delimiter scan leaf + argv hosted | `friction_logged` | 2026-07-27: col 0–99 + light quotes (T16c/T16b); `find_first_byte` VUP; `csv_cut` UNSUPPORTED_SHAPE. [t16-csv-cut.md](t16-csv-cut.md) |
