@@ -67,7 +67,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 | T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `friction_logged` | 2026-07-27: T07b `[section]`+key; D2 quoted values; `memcmp`/`find_first_byte` VUP; `ini_lookup` UNSUPPORTED_SHAPE. [t07-ini-lookup.md](t07-ini-lookup.md) |
 | T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `friction_logged` | 2026-07-27: T08b multi `${NAME}`; T08c/D1 `replace_byte` CR→LF; both leaves VUP. [t08-env-subst.md](t08-env-subst.md) |
 | T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `friction_logged` | 2026-07-27: T09c bare values + T09b/D3 minify argv; `json_get` UNSUPPORTED_SHAPE. [t09-json-get.md](t09-json-get.md) |
-| T10 | diff hunk stats (line-oriented; no full Myers) | E04 line-loop → useful metric tool | `planned` | |
+| T10 | diff hunk stats (line-oriented; no full Myers) | E04 line-loop → useful metric tool | `friction_logged` | 2026-07-27: hosted unified-diff parser; counts `hunks/added/removed`. [t10-diff-hunk-stats.md](t10-diff-hunk-stats.md) |
 
 ## Tier C — pick 2–3 around real workflow (optional)
 
