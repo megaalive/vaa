@@ -56,5 +56,6 @@ Track status and progress on [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md)
 |---|---|
 | [T01](t01-wc-lite.md) | wc-lite via `count_byte` VUP; argv+file+stdin; tool not sealed |
 | [T04](t04-hexdump.md) | hexdump runs; `nibble_to_hex` UNSUPPORTED_SHAPE (not sealed) |
+| [T08](t08-env-subst.md) | env-subst one `${NAME}`; `find_first_byte` VUP; tool not sealed |
 
 See also [`leaf-vs-hosted.md`](../leaf-vs-hosted.md).

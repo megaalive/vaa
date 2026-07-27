@@ -65,7 +65,7 @@ Exercise → Friction log → Bounded fix → Honest claim (or decline)
 |---|---|---|---|---|
 | T06 | path join / basename (Win, length-bounded) | string/buffer contracts, VUP honesty | `planned` | |
 | T07 | INI/TOML key lookup (read-only, fixed schema) | parse vs leaf seal; templates / `UNSUPPORTED_SHAPE` | `planned` | |
-| T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `planned` | |
+| T08 | env-subst (`${FOO}` in template) | `GetEnvironmentVariable` + find/replace leaf | `friction_logged` | 2026-07-27: one `${NAME}` + `find_first_byte` VUP; [t08-env-subst.md](t08-env-subst.md) |
 | T09 | JSON minify / key extract (strict subset) | structured buffer oracles **or** honest decline | `planned` | |
 | T10 | diff hunk stats (line-oriented; no full Myers) | E04 line-loop → useful metric tool | `planned` | |
 
@@ -109,3 +109,4 @@ When starting `Txx`:
 | 2026-07-27 | T01 cicil-1: `sample.txt`/stdin wc-lite + `count_byte` VUP; friction [t01-wc-lite.md](t01-wc-lite.md); argv deferred T01b |
 | 2026-07-27 | T01 cicil-2: `GetCommandLineA` argv path; Win64 stack-align AV noted; status `done_enough` |
 | 2026-07-27 | T04 cicil-1: hexdump + `nibble_to_hex` UNSUPPORTED_SHAPE; [t04-hexdump.md](t04-hexdump.md) |
+| 2026-07-27 | T08 cicil-1: env-subst one `${NAME}` + `find_first_byte` VUP; [t08-env-subst.md](t08-env-subst.md) |
