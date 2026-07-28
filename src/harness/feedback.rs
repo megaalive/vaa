@@ -271,12 +271,17 @@ fn classify_failure_code(code: &str) -> (HarnessOutcomeClass, HarnessNextAction,
             HarnessNextAction::FixToolchain,
             ExitCode::ToolFailure,
         ),
+        // Candidate (or harness-shaped) assembly failed to assemble — agent edits
+        // the source; not a host toolchain outage (`ASSEMBLE_ERROR`).
+        "ASSEMBLE_FAILED" | "ASSEMBLE_HARNESS_FAILED" => (
+            HarnessOutcomeClass::ViolatedRepairable,
+            HarnessNextAction::EditCandidate,
+            ExitCode::Violated,
+        ),
         "UNSUPPORTED_SHAPE"
         | "HARNESS_MISMATCH"
         | "CONTRACT_INVALID"
         | "CONTRACT_ENCODING"
-        | "ASSEMBLE_FAILED"
-        | "ASSEMBLE_HARNESS_FAILED"
         | "LINK_FAILED"
         | "INVALID_TARGET"
         | "SEAL_FAILED"
@@ -361,6 +366,20 @@ mod tests {
         assert_eq!(c, HarnessOutcomeClass::ToolchainRetryable);
         assert_eq!(n, HarnessNextAction::FixToolchain);
         assert!(c.may_auto_retry());
+    }
+
+    #[test]
+    fn assemble_failed_is_repairable() {
+        let (c, n, e) = classify_outcome(
+            EvidenceStatus::Failed,
+            None,
+            Some("ASSEMBLE_FAILED"),
+            false,
+        );
+        assert_eq!(c, HarnessOutcomeClass::ViolatedRepairable);
+        assert_eq!(n, HarnessNextAction::EditCandidate);
+        assert_eq!(e, ExitCode::Violated);
+        assert!(!c.may_auto_retry());
     }
 
     #[test]

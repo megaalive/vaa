@@ -67,7 +67,7 @@ unconditional verified), sealed." Do **not** drop the "under preconditions".
 | `class` | Do |
 |---|---|
 | `accepted` | Stop; report `evidence_status` + `seal_digest`. |
-| `violated_repairable` | Edit the candidate assembly only; resubmit. |
+| `violated_repairable` | Edit the candidate assembly only; resubmit. Includes candidate assemble failure (`ASSEMBLE_FAILED`). |
 | `policy_blocked` | Stop; report the path-policy refusal. |
 | `toolchain_retryable` | Stop; report missing/broken toolchain. Do not silently retry. |
 | `failed` / `incomplete` / other | Stop; report. Never promote to success. |

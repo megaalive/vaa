@@ -671,7 +671,7 @@ fn submit_direct_with_seal(
             let (class, mut next, exit) = classify_outcome(
                 outcome.evidence.final_status,
                 raw,
-                None,
+                outcome.agent_failure_code.as_deref(),
                 req.allow_under_preconditions,
             );
             if matches!(class, HarnessOutcomeClass::ViolatedRepairable) {
@@ -699,7 +699,7 @@ fn submit_direct_with_seal(
                     outcome.candidate_index,
                     evidence_status_label(outcome.evidence.final_status)
                 ),
-                failure_code: None,
+                failure_code: outcome.agent_failure_code.clone(),
                 candidate_digest: Some(candidate_digest.to_owned()),
                 run_dir: Some(run_dir.root().display().to_string()),
                 run_id: Some(run_id),

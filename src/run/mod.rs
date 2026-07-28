@@ -12,5 +12,5 @@ pub use run_dir::{RunDir, RunDirError, RunDirPaths};
 pub use run_id::RunId;
 pub use verify_seal::{
     assemble_and_inspect, assemble_and_inspect_with, doctor_and_capabilities, ingest_candidate,
-    verify_candidate_and_seal, VerifySealError, VerifySealInput, VerifySealOutcome,
+    strip_utf8_bom, verify_candidate_and_seal, VerifySealError, VerifySealInput, VerifySealOutcome,
 };

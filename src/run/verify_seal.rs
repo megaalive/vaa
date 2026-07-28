@@ -26,6 +26,8 @@ pub struct VerifySealOutcome {
     pub source_digest: String,
     pub contract_digest: String,
     pub verify: Option<VerifyReport>,
+    /// When SemASM returned `agent_failure` instead of a VerificationReport.
+    pub agent_failure_code: Option<String>,
     pub candidate_index: u32,
     pub candidate_dir: PathBuf,
 }
@@ -75,8 +77,10 @@ pub fn verify_candidate_and_seal(
     let task_bytes = std::fs::read(input.task_path)
         .map_err(|e| VerifySealError::Io(format!("read task: {e}")))?;
     let contract_digest = sha256_digest_prefixed(&contract_bytes);
-    let source_digest = sha256_digest_prefixed(input.source_bytes);
-    let source_text = std::str::from_utf8(input.source_bytes)
+    // UTF-8 BOM breaks NASM ("label '' alone on a line"); normalize before seal.
+    let source_bytes = strip_utf8_bom(input.source_bytes);
+    let source_digest = sha256_digest_prefixed(source_bytes);
+    let source_text = std::str::from_utf8(source_bytes)
         .map_err(|e| VerifySealError::Io(format!("source utf-8: {e}")))?
         .to_owned();
 
@@ -110,6 +114,7 @@ pub fn verify_candidate_and_seal(
         .as_ref()
         .ok_or(VerifySealError::SemasmUnavailable)?;
 
+    let mut agent_failure_code = None;
     let verify = match SemasmVerify::run(
         &source_path,
         input.contract_path,
@@ -120,8 +125,10 @@ pub fn verify_candidate_and_seal(
         Ok(report) => Some(report),
         Err(VerifyError::BinaryNotFound) => return Err(VerifySealError::SemasmUnavailable),
         Err(e) => {
-            // Do not invent a VerificationReport. Surface the adapter error so
-            // Gate failures are diagnosable (e.g. empty stdout / scratch dir).
+            // Do not invent a VerificationReport. Keep the SemASM failure code so
+            // harness classification can treat candidate assemble failures as
+            // repairable instead of a silent "verification report missing".
+            agent_failure_code = e.failure_code().map(str::to_owned);
             eprintln!("warning: semasm agent verify failed: {e}");
             None
         }
@@ -192,9 +199,19 @@ pub fn verify_candidate_and_seal(
         source_digest,
         contract_digest,
         verify,
+        agent_failure_code,
         candidate_index: outcome.index,
         candidate_dir: cand_dir,
     })
+}
+
+/// Drop a leading UTF-8 BOM (`U+FEFF`) if present.
+#[must_use]
+pub fn strip_utf8_bom(bytes: &[u8]) -> &[u8] {
+    match bytes {
+        [0xEF, 0xBB, 0xBF, rest @ ..] => rest,
+        other => other,
+    }
 }
 
 /// Convenience: doctor + capability snapshot for a locked task.
@@ -309,4 +326,17 @@ pub fn ingest_candidate(
         allow_execution,
         assembler: crate::harness::AssemblerFlavor::Nasm,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::strip_utf8_bom;
+
+    #[test]
+    fn strip_utf8_bom_drops_prefix() {
+        let with = b"\xEF\xBB\xBF; hello";
+        assert_eq!(strip_utf8_bom(with), b"; hello");
+        assert_eq!(strip_utf8_bom(b"; hello"), b"; hello");
+        assert_eq!(strip_utf8_bom(b""), b"");
+    }
 }

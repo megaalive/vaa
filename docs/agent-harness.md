@@ -146,7 +146,7 @@ Draft → review → **human** lock → agent harness start. Templates live unde
 | `class` | Meaning | Auto-retry? |
 |---|---|---|
 | `accepted` | Verified / patch Accepted | no |
-| `violated_repairable` | Semantic/behavior / suite rejected — edit candidate/generator | no |
+| `violated_repairable` | Semantic/behavior / suite rejected, or candidate assemble failure (`ASSEMBLE_FAILED`) — edit candidate/generator | no |
 | `incomplete_coverage` | Gate-1 only / suite missing — do not promote | no |
 | `toolchain_retryable` | Missing tool / I/O / timeout | yes (tooling only) |
 | `policy_blocked` | Forbidden / authority path mutation | never |
