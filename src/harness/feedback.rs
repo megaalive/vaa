@@ -278,14 +278,8 @@ fn classify_failure_code(code: &str) -> (HarnessOutcomeClass, HarnessNextAction,
             HarnessNextAction::EditCandidate,
             ExitCode::Violated,
         ),
-        "UNSUPPORTED_SHAPE"
-        | "HARNESS_MISMATCH"
-        | "CONTRACT_INVALID"
-        | "CONTRACT_ENCODING"
-        | "LINK_FAILED"
-        | "INVALID_TARGET"
-        | "SEAL_FAILED"
-        | "ALREADY_SEALED"
+        "UNSUPPORTED_SHAPE" | "HARNESS_MISMATCH" | "CONTRACT_INVALID" | "CONTRACT_ENCODING"
+        | "LINK_FAILED" | "INVALID_TARGET" | "SEAL_FAILED" | "ALREADY_SEALED"
         | "SUITE_REQUIRED" => (
             HarnessOutcomeClass::Failed,
             HarnessNextAction::Abort,
@@ -370,12 +364,8 @@ mod tests {
 
     #[test]
     fn assemble_failed_is_repairable() {
-        let (c, n, e) = classify_outcome(
-            EvidenceStatus::Failed,
-            None,
-            Some("ASSEMBLE_FAILED"),
-            false,
-        );
+        let (c, n, e) =
+            classify_outcome(EvidenceStatus::Failed, None, Some("ASSEMBLE_FAILED"), false);
         assert_eq!(c, HarnessOutcomeClass::ViolatedRepairable);
         assert_eq!(n, HarnessNextAction::EditCandidate);
         assert_eq!(e, ExitCode::Violated);
