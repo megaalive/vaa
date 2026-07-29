@@ -1,6 +1,6 @@
 # Implementation progress
 
-Tracks evidence gates from `VAA_REVIEWED_AND_HARDENED_ARCHITECTURE_PLAN.md` §26–§27.
+Tracks implementation evidence gates and phase status.
 
 Honesty rule: **Done** means the listed acceptance exists as code. Levels of evidence are
 called out separately (`unit-tested` / `integration-tested` / `verified-in-CI`).
@@ -1042,7 +1042,6 @@ Practice seals and Gate CI artifacts remain illustrative, not a trust root.
 
 | Document | Role |
 |---|---|
-| `VAA_REVIEWED_AND_HARDENED_ARCHITECTURE_PLAN.md` | Architecture baseline |
 | `docs/implementation-baseline.md` | Phase 0 SemASM reality check |
 | `docs/task-schema.md` | Task schema 0.1 |
 | `docs/progress.md` | This file |

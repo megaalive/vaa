@@ -102,11 +102,10 @@ Unknown fields are rejected. Authoritative tests and budgets are included in the
 
 Read before contributing functional code:
 
-1. [`VAA_REVIEWED_AND_HARDENED_ARCHITECTURE_PLAN.md`](VAA_REVIEWED_AND_HARDENED_ARCHITECTURE_PLAN.md)
-2. [`docs/implementation-baseline.md`](docs/implementation-baseline.md) — SemASM reality check
-3. [`docs/progress.md`](docs/progress.md) — PR / phase status
-4. [`docs/task-schema.md`](docs/task-schema.md)
-5. [`DEPENDENCIES.md`](DEPENDENCIES.md)
+1. [`docs/implementation-baseline.md`](docs/implementation-baseline.md) — SemASM reality check
+2. [`docs/progress.md`](docs/progress.md) — PR / phase status
+3. [`docs/task-schema.md`](docs/task-schema.md)
+4. [`DEPENDENCIES.md`](DEPENDENCIES.md)
 
 Non-negotiable direction:
 
