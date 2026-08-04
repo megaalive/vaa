@@ -32,6 +32,10 @@ The goal is narrow and durable: never let VAA/SemASM overclaim.
 6. **Pack pin ≠ tip pin.** The HlaX64 / EchoAsm pack SemASM pin and
    `SEMASM_TIP_SHA` are different things. Do not conflate them in agent prompts
    or claim pack behavior from a tip result (or vice versa).
+7. **Schema 0.1 task tests are intent, not execution evidence.** They are
+   locked into the task digest, but `vaa verify` does not pass them to SemASM.
+   Only SemASM's reported builtin-oracle cases ran. Never call task `[[tests]]`
+   executed without explicit vector provenance in a later protocol.
 
 ## What is actually proven (as of this charter)
 

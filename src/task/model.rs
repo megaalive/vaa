@@ -40,7 +40,10 @@ pub struct Task {
     pub budgets: Budgets,
     /// Delivery options for accepted artifacts.
     pub delivery: Delivery,
-    /// Authoritative behavioral tests (locked into the digest).
+    /// Author-supplied behavioral cases locked into the task digest.
+    ///
+    /// Schema 0.1 does not pass these cases to SemASM. SemASM verifies its own
+    /// synthesized oracle vectors; callers must not claim these cases ran.
     #[serde(default)]
     pub tests: Vec<TaskTest>,
 }
@@ -280,7 +283,9 @@ pub struct Delivery {
     pub include_evidence: bool,
 }
 
-/// One authoritative test case.
+/// One author-supplied test case.
+///
+/// In schema 0.1 this is task intent, not SemASM execution evidence.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskTest {

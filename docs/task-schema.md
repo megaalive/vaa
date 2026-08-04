@@ -43,7 +43,7 @@ Required top-level fields:
 | `budgets` | Candidate / time / token limits |
 | `delivery` | What to retain on accept |
 | `inputs` | Optional map of named inputs |
-| `tests` | Optional array; **required** when `require_behavioral_tests = true` |
+| `tests` | Optional author-supplied cases; **required** when `require_behavioral_tests = true` |
 
 Unknown fields are **rejected** (`deny_unknown_fields`).
 
@@ -69,7 +69,19 @@ over the **canonical JSON** encoding of the full task document:
 - arrays preserve author order;
 - compact JSON (no insignificant whitespace).
 
-Authoritative tests are included. Changing a test expectation or a budget changes the digest.
+Author-supplied tests are included. Changing a test expectation or a budget changes the digest.
+
+### Behavioral-test evidence boundary
+
+Schema 0.1 locks `[[tests]]` into the task digest, but `vaa verify` does **not**
+pass those cases to SemASM. SemASM executes the synthesized vectors for its
+recognized, versioned builtin oracle. A matching case name or value is not
+evidence that the task case ran.
+
+Consequently, schema 0.1 provides integrity for the author's test intent, not
+task-case execution provenance. Reports and documentation must not describe
+`[[tests]]` as executed unless a later protocol explicitly binds those cases
+into SemASM evidence.
 
 ## Example
 
@@ -79,6 +91,7 @@ See [`fixtures/tasks/sum_i64.vaa.toml`](../fixtures/tasks/sum_i64.vaa.toml) (arc
 
 - Natural-language `vaa plan` compilation
 - SemASM `.sem.toml` embedding (may be linked later as a side document)
+- SemASM execution provenance for task `[[tests]]`
 - Live model fields or provider secrets
 - Sandbox backend selection (policy may grow in a later schema minor)
 

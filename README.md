@@ -96,7 +96,11 @@ Authoritative contract format: `*.vaa.toml` (schema `0.1`).
 - JSON Schema: [`schemas/task.vaa.schema.json`](schemas/task.vaa.schema.json)
 - Example: [`fixtures/tasks/sum_i64.vaa.toml`](fixtures/tasks/sum_i64.vaa.toml)
 
-Unknown fields are rejected. Authoritative tests and budgets are included in the locked task digest so a repair loop cannot silently weaken the contract.
+Unknown fields are rejected. Author-supplied tests and budgets are included in
+the locked task digest so a repair loop cannot silently weaken the recorded
+intent. In schema 0.1, those task cases are **not** passed to SemASM; behavioral
+evidence comes from SemASM's synthesized builtin-oracle vectors. See the
+evidence boundary in [`docs/task-schema.md`](docs/task-schema.md).
 
 ## Design baseline
 

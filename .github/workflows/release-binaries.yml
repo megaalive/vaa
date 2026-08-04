@@ -22,6 +22,7 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  SEMASM_RELEASE_TAG: "v0.4.0"
 
 jobs:
   build-linux:
@@ -55,8 +56,26 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install Win64 verification toolchain
+        run: choco install nasm llvm --no-progress -y
       - name: Build release binary
         run: cargo build --release --locked
+      - name: Download compatible SemASM release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP "semasm-windows-x86_64.zip"
+          gh release download $env:SEMASM_RELEASE_TAG `
+            --repo megaalive/semasm `
+            --pattern "semasm-windows-x86_64.zip" `
+            --dir $env:RUNNER_TEMP
+          $semasmDir = Join-Path $env:RUNNER_TEMP "semasm-release"
+          Expand-Archive -LiteralPath $archive -DestinationPath $semasmDir -Force
+          $semasm = Get-ChildItem -Recurse -File -LiteralPath $semasmDir -Filter semasm.exe |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $semasm) { throw "SemASM release archive did not contain semasm.exe" }
+          "SEMASM_RELEASE_BIN=$semasm" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Package
         shell: pwsh
         run: |
@@ -68,6 +87,15 @@ jobs:
             if (Test-Path $f) { Copy-Item $f "$Stage\" }
           }
           Compress-Archive -Path $Stage -DestinationPath "$Stage.zip" -Force
+          $expanded = Join-Path $env:RUNNER_TEMP "vaa-expanded"
+          Expand-Archive -LiteralPath "$Stage.zip" -DestinationPath $expanded -Force
+          $stagedVaa = Get-ChildItem -Recurse -File -LiteralPath $expanded -Filter vaa.exe |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $stagedVaa) { throw "VAA release archive did not contain vaa.exe" }
+          ./scripts/release-artifact-smoke.ps1 `
+            -VaaBin $stagedVaa `
+            -SemasmBin $env:SEMASM_RELEASE_BIN `
+            -RepositoryRoot $env:GITHUB_WORKSPACE
           $hash = (Get-FileHash -Algorithm SHA256 "$Stage.zip").Hash.ToLower()
           Set-Content -Path SHA256SUMS-windows.txt -Value "$hash  $Stage.zip" -NoNewline
           Add-Content -Path SHA256SUMS-windows.txt -Value ""
