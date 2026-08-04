@@ -22,7 +22,7 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-  SEMASM_RELEASE_TAG: "v0.4.0"
+  SEMASM_RELEASE_TAG: "v0.5.0"
 
 jobs:
   build-linux:
@@ -43,6 +43,16 @@ jobs:
           tar -czf "${STAGE}.tar.gz" "${STAGE}"
           sha256sum "${STAGE}.tar.gz" > SHA256SUMS-linux.txt
           echo "ASSET=${STAGE}.tar.gz" >> "$GITHUB_ENV"
+      - name: Smoke packaged Linux archive
+        run: |
+          set -euo pipefail
+          STAGE="vaa-${GITHUB_REF_NAME}-x86_64-unknown-linux-gnu"
+          EXPANDED="${RUNNER_TEMP}/vaa-expanded"
+          mkdir -p "${EXPANDED}"
+          tar -xzf "${STAGE}.tar.gz" -C "${EXPANDED}"
+          VAA_BIN="${EXPANDED}/${STAGE}/vaa"
+          "${VAA_BIN}" version --format json >/dev/null
+          "${VAA_BIN}" status --format json >/dev/null
       - uses: actions/upload-artifact@v6
         with:
           name: linux-gnu

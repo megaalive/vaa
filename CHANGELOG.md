@@ -8,9 +8,15 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
 
 ## [Unreleased]
 
-`main` is **materially past** the `v0.1.1` tag. This section is the
-architectural summary for the **next** release notes — not a claim that a tag
-has shipped. SoftHSM ≠ hardware HSM; `search --ingest` ≠ CryptOpt; Incomplete ≠
+No changes yet.
+
+## [0.2.0] — 2026-08-04
+
+Final hardening adds task schema 0.2 binding to SemASM report 0.6 external
+vectors and post-package archive smoke tests against SemASM 0.5.0.
+
+This release remains honest about its boundaries: SoftHSM ≠ hardware HSM;
+`search --ingest` ≠ CryptOpt; Incomplete ≠
 Verified; HlaX64 ≠ SemASM Verified; local transparency artifact ≠ remote log.
 
 ### Added

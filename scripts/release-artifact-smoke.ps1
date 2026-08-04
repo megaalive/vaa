@@ -105,7 +105,24 @@ try {
         throw "release smoke did not preserve the SemASM VUP status"
     }
 
-    Write-Host "VAA staged release smoke passed (status=$($report.final_status))."
+    $sumRange = Join-Path $root "fixtures\semasm\sum_range"
+    $bound = Invoke-VaaJson -Arguments @(
+        "verify",
+        (Join-Path $root "fixtures\tasks\sum_range_win64_0_2.vaa.toml"),
+        "--source", (Join-Path $sumRange "sum_range_win64.asm"),
+        "--contract", (Join-Path $sumRange "sum_range.sem.toml"),
+        "--allow-execution",
+        "--format", "json"
+    )
+    if ($bound.final_status -ne "Verified") {
+        throw "schema 0.2 release smoke expected Verified, got $($bound.final_status)"
+    }
+    $raw = $bound.verify_report.raw_json | ConvertFrom-Json
+    if ($raw.schema_version -ne "0.6" -or $raw.vector_set.external_case_count -ne 2) {
+        throw "schema 0.2 release smoke did not bind both task vectors"
+    }
+
+    Write-Host "VAA staged release smoke passed (VUP preserved; schema 0.2 vectors bound)."
 } finally {
     $env:SEMASM_BIN = $oldSemasm
     $env:TEMP = $oldTemp

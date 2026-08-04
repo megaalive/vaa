@@ -139,9 +139,9 @@ Full table: architecture plan §19.3.
 
 ## What's next
 
-`main` is past tagged **`v0.1.1`** (portable Win/Linux binaries + `SHA256SUMS` —
+The current release is **`v0.2.0`** (portable Win/Linux binaries + `SHA256SUMS` —
 see [Releases](https://github.com/megaalive/vaa/releases)). See
-[`CHANGELOG.md`](CHANGELOG.md) **[Unreleased]** for the architectural summary
+[`CHANGELOG.md`](CHANGELOG.md) **[0.2.0]** for the architectural summary
 since that tag (Thin bridges, write-shape Gate, isolation, Horizon honesty,
 Dx-era SemASM pin). Alpha **`v0.1.0`** remains source-archive-only historically.
 
