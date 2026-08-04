@@ -51,8 +51,8 @@ jobs:
           mkdir -p "${EXPANDED}"
           tar -xzf "${STAGE}.tar.gz" -C "${EXPANDED}"
           VAA_BIN="${EXPANDED}/${STAGE}/vaa"
-          "${VAA_BIN}" version --format json >/dev/null
-          "${VAA_BIN}" status --format json >/dev/null
+          "${VAA_BIN}" version >/dev/null
+          "${VAA_BIN}" status >/dev/null
       - uses: actions/upload-artifact@v6
         with:
           name: linux-gnu
