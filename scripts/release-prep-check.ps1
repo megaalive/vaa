@@ -25,8 +25,8 @@ if (Get-Command cargo-deny -ErrorAction SilentlyContinue) {
 
 Write-Host ""
 Write-Host "Local prep checks OK."
-Write-Host "Before any v0.1.0 tag, confirm:"
+Write-Host "Before the v0.2.0 tag, confirm:"
 Write-Host "  - tip SHA CI is green (including Gate Win64 + Linux jobs)"
-Write-Host "  - docs/release-v0.1-checklist.md rows are signed off"
+Write-Host "  - docs/release-v0.2-checklist.md rows are signed off"
 Write-Host "  - CHANGELOG.md Unreleased notes are accurate"
 Write-Host "Tag ceremony is maintainer-only; this script never tags."
