@@ -8,9 +8,9 @@ use crate::TASK_SCHEMA_VERSION;
 pub fn validate_task(task: &Task) -> Vec<String> {
     let mut diagnostics = Vec::new();
 
-    if task.schema_version != TASK_SCHEMA_VERSION {
+    if !matches!(task.schema_version.as_str(), "0.1" | TASK_SCHEMA_VERSION) {
         diagnostics.push(format!(
-            "unsupported schema_version `{}` (this VAA build accepts only `{TASK_SCHEMA_VERSION}`)",
+            "unsupported schema_version `{}` (this VAA build accepts `0.1` and `{TASK_SCHEMA_VERSION}`)",
             task.schema_version
         ));
     }
@@ -109,6 +109,20 @@ pub fn validate_task(task: &Task) -> Vec<String> {
                 "tests[{index}].expected uses an unsupported value kind"
             ));
         }
+        if task.schema_version == "0.2" {
+            let actual = test.input.keys().map(String::as_str).collect::<Vec<_>>();
+            let expected = task.inputs.keys().map(String::as_str).collect::<Vec<_>>();
+            if actual != expected {
+                diagnostics.push(format!(
+                    "tests[{index}].input must name exactly the declared inputs in schema 0.2"
+                ));
+            }
+            if !matches!(test.expected, crate::task::model::TomlValue::Integer(_)) {
+                diagnostics.push(format!(
+                    "tests[{index}].expected must be an integer in schema 0.2"
+                ));
+            }
+        }
     }
 
     for (name, input) in &task.inputs {
@@ -195,8 +209,9 @@ fn is_safe_symbol(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::task::model::{
-        Behavior, Budgets, Capabilities, Delivery, Entry, InstructionPolicy, MemoryPolicy,
-        SemanticEvidenceRequirements, ValueKind, VerificationRequirements,
+        Behavior, Budgets, Capabilities, Delivery, Entry, InputSpec, InstructionPolicy,
+        MemoryPolicy, SemanticEvidenceRequirements, TaskTest, TomlValue, ValueKind,
+        VerificationRequirements,
     };
 
     fn minimal_task() -> Task {
@@ -269,6 +284,36 @@ mod tests {
     #[test]
     fn accepts_minimal_valid_task() {
         assert!(validate_task(&minimal_task()).is_empty());
+    }
+
+    #[test]
+    fn accepts_legacy_schema_0_1() {
+        let mut task = minimal_task();
+        task.schema_version = "0.1".into();
+        assert!(validate_task(&task).is_empty());
+    }
+
+    #[test]
+    fn schema_0_2_requires_exact_named_inputs_and_integer_expected() {
+        let mut task = minimal_task();
+        task.inputs.insert(
+            "n".into(),
+            InputSpec {
+                kind: "i64".into(),
+                element: None,
+                access: None,
+                length_from: None,
+                nullable: None,
+            },
+        );
+        task.tests.push(TaskTest {
+            name: "four".into(),
+            input: BTreeMap::new(),
+            expected: TomlValue::String("ten".into()),
+        });
+        let diagnostics = validate_task(&task);
+        assert!(diagnostics.iter().any(|d| d.contains("exactly")));
+        assert!(diagnostics.iter().any(|d| d.contains("must be an integer")));
     }
 
     #[test]

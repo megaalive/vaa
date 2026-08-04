@@ -510,7 +510,7 @@ fn push_semantic_evidence_checks(
     }
 }
 
-/// Accepted VerificationReport schemas: major 0, minor >= 4 and < 6 (0.4 / 0.5).
+/// Accepted VerificationReport schemas: major 0, minor >= 4 and < 7.
 #[must_use]
 pub fn schema_version_compatible(version: &str) -> bool {
     let mut parts = version.split('.');
@@ -520,7 +520,7 @@ pub fn schema_version_compatible(version: &str) -> bool {
     let Some(minor) = parts.next().and_then(|p| p.parse::<u32>().ok()) else {
         return false;
     };
-    major == 0 && (4..6).contains(&minor)
+    major == 0 && (4..7).contains(&minor)
 }
 
 fn iso_timestamp() -> String {
@@ -801,11 +801,12 @@ mod tests {
     }
 
     #[test]
-    fn schema_pin_accepts_0_4_and_0_5() {
+    fn schema_pin_accepts_0_4_through_0_6() {
         assert!(schema_version_compatible("0.4"));
         assert!(schema_version_compatible("0.5"));
+        assert!(schema_version_compatible("0.6"));
+        assert!(!schema_version_compatible("0.7"));
         assert!(!schema_version_compatible("0.3"));
-        assert!(!schema_version_compatible("0.6"));
         assert!(!schema_version_compatible("1.0"));
     }
 }

@@ -2,6 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
+
 use crate::candidate::CandidateProtocol;
 use crate::evidence::{
     append_seal_log, materialize_bundle_files, sha256_digest_prefixed, write_final_sealed_evidence,
@@ -17,6 +19,21 @@ use crate::semasm::{
 };
 use crate::task::LockedTask;
 use std::time::Duration;
+
+#[derive(Serialize)]
+struct ExternalVectorDocument<'a> {
+    schema_version: &'static str,
+    contract_digest: &'a str,
+    target: &'a str,
+    routine_symbol: &'a str,
+    cases: Vec<ExternalVectorCase<'a>>,
+}
+
+#[derive(Serialize)]
+struct ExternalVectorCase<'a> {
+    id: &'a str,
+    inputs: std::collections::BTreeMap<&'a str, serde_json::Value>,
+}
 
 /// Outcome of verifying one candidate and sealing evidence.
 #[derive(Debug)]
@@ -114,15 +131,38 @@ pub fn verify_candidate_and_seal(
         .as_ref()
         .ok_or(VerifySealError::SemasmUnavailable)?;
 
+    let vectors = build_external_vectors(input.locked, &contract_digest, &target)?;
+    let vectors_path = vectors.as_ref().map(|(path, _)| path.as_path());
+    let expected_vectors_digest = vectors.as_ref().map(|(_, digest)| digest.as_str());
     let mut agent_failure_code = None;
-    let verify = match SemasmVerify::run(
-        &source_path,
-        input.contract_path,
-        binary,
-        &target,
-        input.allow_execution,
-    ) {
-        Ok(report) => Some(report),
+    let verify_result = if let Some(vectors_path) = vectors_path {
+        SemasmVerify::run_with_vectors(
+            &source_path,
+            input.contract_path,
+            binary,
+            &target,
+            input.allow_execution,
+            vectors_path,
+        )
+    } else {
+        SemasmVerify::run(
+            &source_path,
+            input.contract_path,
+            binary,
+            &target,
+            input.allow_execution,
+        )
+    };
+    if let Some(vectors_path) = vectors_path {
+        let _ = std::fs::remove_file(vectors_path);
+    }
+    let verify = match verify_result {
+        Ok(mut report) => {
+            if let Some(expected_digest) = expected_vectors_digest {
+                enforce_task_vector_evidence(&mut report, input.locked, expected_digest);
+            }
+            Some(report)
+        }
         Err(VerifyError::BinaryNotFound) => return Err(VerifySealError::SemasmUnavailable),
         Err(e) => {
             // Do not invent a VerificationReport. Keep the SemASM failure code so
@@ -203,6 +243,111 @@ pub fn verify_candidate_and_seal(
         candidate_index: outcome.index,
         candidate_dir: cand_dir,
     })
+}
+
+/// Materialize the input-only SemASM vector document for schema 0.2 tasks.
+pub fn build_external_vectors(
+    locked: &LockedTask,
+    contract_digest: &str,
+    target: &str,
+) -> Result<Option<(PathBuf, String)>, VerifySealError> {
+    let task = locked.task();
+    if task.schema_version != "0.2" || task.tests.is_empty() {
+        return Ok(None);
+    }
+    let cases = task
+        .tests
+        .iter()
+        .map(|test| ExternalVectorCase {
+            id: &test.name,
+            inputs: test
+                .input
+                .iter()
+                .map(|(name, value)| (name.as_str(), toml_value_to_json(value)))
+                .collect(),
+        })
+        .collect();
+    let document = ExternalVectorDocument {
+        schema_version: "0.1",
+        contract_digest,
+        target,
+        routine_symbol: &task.entry.symbol,
+        cases,
+    };
+    let canonical = crate::canonical_json::canonical_json_bytes(&document);
+    let digest = sha256_digest_prefixed(&canonical);
+    let path = std::env::temp_dir().join(format!(
+        "vaa-vectors-{}-{}.json",
+        std::process::id(),
+        &digest[7..19]
+    ));
+    let pretty = serde_json::to_vec_pretty(&document)
+        .map_err(|error| VerifySealError::Io(format!("serialize external vectors: {error}")))?;
+    std::fs::write(&path, pretty)
+        .map_err(|error| VerifySealError::Io(format!("write external vectors: {error}")))?;
+    Ok(Some((path, digest)))
+}
+
+fn toml_value_to_json(value: &crate::task::TomlValue) -> serde_json::Value {
+    match value {
+        crate::task::TomlValue::Null => serde_json::Value::Null,
+        crate::task::TomlValue::Bool(value) => serde_json::json!(value),
+        crate::task::TomlValue::Integer(value) => serde_json::json!(value),
+        crate::task::TomlValue::String(value) => serde_json::json!(value),
+        crate::task::TomlValue::Array(values) => {
+            serde_json::Value::Array(values.iter().map(toml_value_to_json).collect())
+        }
+    }
+}
+
+/// Fail the mapped report when schema 0.2 vector evidence is incomplete or mismatched.
+pub fn enforce_task_vector_evidence(
+    report: &mut VerifyReport,
+    locked: &LockedTask,
+    expected_digest: &str,
+) {
+    let task = locked.task();
+    let raw = serde_json::from_str::<crate::semasm::verify::VerifyReportRaw>(&report.raw_json).ok();
+    let valid = raw
+        .as_ref()
+        .and_then(|raw| raw.vector_set.as_ref())
+        .is_some_and(|set| {
+            set.external_document_digest.as_deref() == Some(expected_digest)
+                && set.external_case_count == task.tests.len()
+                && task.tests.iter().all(|test| {
+                    let binding = set.cases.iter().find(|case| {
+                        case.origin == "external"
+                            && case.external_case_id.as_deref() == Some(test.name.as_str())
+                    });
+                    let expected = match test.expected {
+                        crate::task::TomlValue::Integer(value) => value.to_string(),
+                        _ => return false,
+                    };
+                    binding.is_some_and(|binding| {
+                        raw.as_ref()
+                            .and_then(|raw| raw.behavior.as_ref())
+                            .is_some_and(|behavior| {
+                                behavior.cases.iter().any(|case| {
+                                    case.name == binding.name
+                                        && case.expected == expected
+                                        && case.passed
+                                })
+                            })
+                    })
+                })
+        });
+    if !valid {
+        report.outcome = crate::evidence::EvidenceStatus::Failed;
+        report
+            .diagnostics
+            .push(crate::semasm::verify::SemasmDiagnostic {
+                code: Some("TASK_VECTOR_EVIDENCE_MISMATCH".into()),
+                severity: Some("error".into()),
+                message: "SemASM external-vector evidence does not match locked schema 0.2 tests"
+                    .into(),
+                location: None,
+            });
+    }
 }
 
 /// Drop a leading UTF-8 BOM (`U+FEFF`) if present.

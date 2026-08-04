@@ -143,4 +143,4 @@ pub use task::{load_locked_task, load_task_file, ArtifactKind, LockedTask, Task,
 
 pub const VAA_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATURITY: &str = "experimental";
-pub const TASK_SCHEMA_VERSION: &str = "0.1";
+pub const TASK_SCHEMA_VERSION: &str = "0.2";

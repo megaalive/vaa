@@ -36,6 +36,11 @@ The goal is narrow and durable: never let VAA/SemASM overclaim.
    locked into the task digest, but `vaa verify` does not pass them to SemASM.
    Only SemASM's reported builtin-oracle cases ran. Never call task `[[tests]]`
    executed without explicit vector provenance in a later protocol.
+8. **Schema 0.2 task-test claims require complete vector binding.** VAA may
+   call a task case executed only when SemASM report 0.6 binds the canonical
+   external-document digest, case ID/origin, oracle-derived expected value,
+   and passing behavioral result. Missing or mismatched evidence fails closed.
+   Pointer/region external vectors are not admitted by this protocol.
 
 ## What is actually proven (as of this charter)
 

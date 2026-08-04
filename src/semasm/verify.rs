@@ -36,6 +36,40 @@ pub struct VerifyReportRaw {
     pub source_digest: Option<String>,
     #[serde(default)]
     pub tool_version: Option<String>,
+    #[serde(default)]
+    pub vector_set: Option<SemasmVectorSet>,
+    #[serde(default)]
+    pub behavior: Option<SemasmBehavior>,
+}
+
+/// SemASM 0.6 vector-set binding used to prove task cases were included.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SemasmVectorSet {
+    pub external_document_digest: Option<String>,
+    pub builtin_case_count: usize,
+    pub external_case_count: usize,
+    pub cases: Vec<SemasmVectorCase>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SemasmVectorCase {
+    pub name: String,
+    pub origin: String,
+    pub external_case_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SemasmBehavior {
+    pub cases: Vec<SemasmBehaviorCase>,
+    pub all_passed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SemasmBehaviorCase {
+    pub name: String,
+    pub passed: bool,
+    pub expected: String,
+    pub observed: String,
 }
 
 /// Mapped verification report for the evidence aggregator.
@@ -101,6 +135,26 @@ impl SemasmVerify {
         Self::run_with_timeout(source, contract, binary, target, allow_execution, 120)
     }
 
+    /// Run verify with an additive SemASM external-vector document.
+    pub fn run_with_vectors(
+        source: &Path,
+        contract: &Path,
+        binary: &Path,
+        target: &str,
+        allow_execution: bool,
+        vectors_file: &Path,
+    ) -> Result<VerifyReport, VerifyError> {
+        Self::run_with_timeout_and_vectors(
+            source,
+            contract,
+            binary,
+            target,
+            allow_execution,
+            120,
+            Some(vectors_file),
+        )
+    }
+
     /// Like [`Self::run`] with an explicit subprocess timeout (seconds).
     pub fn run_with_timeout(
         source: &Path,
@@ -109,6 +163,26 @@ impl SemasmVerify {
         target: &str,
         allow_execution: bool,
         timeout_secs: u64,
+    ) -> Result<VerifyReport, VerifyError> {
+        Self::run_with_timeout_and_vectors(
+            source,
+            contract,
+            binary,
+            target,
+            allow_execution,
+            timeout_secs,
+            None,
+        )
+    }
+
+    fn run_with_timeout_and_vectors(
+        source: &Path,
+        contract: &Path,
+        binary: &Path,
+        target: &str,
+        allow_execution: bool,
+        timeout_secs: u64,
+        vectors_file: Option<&Path>,
     ) -> Result<VerifyReport, VerifyError> {
         let mut args = vec![
             "agent".to_owned(),
@@ -122,6 +196,10 @@ impl SemasmVerify {
         ];
         if allow_execution {
             args.push("--allow-execution".to_owned());
+        }
+        if let Some(vectors_file) = vectors_file {
+            args.push("--vectors-file".to_owned());
+            args.push(vectors_file.to_string_lossy().into_owned());
         }
         let config = ProcessConfig {
             program: binary.to_path_buf(),
@@ -169,6 +247,43 @@ impl SemasmVerify {
         target: &str,
         allow_execution: bool,
     ) -> Result<VerifyReport, VerifyError> {
+        Self::run_sandboxed_with_optional_vectors(
+            source,
+            contract,
+            binary,
+            target,
+            allow_execution,
+            None,
+        )
+    }
+
+    /// Sandboxed verify with an additive external-vector document.
+    pub fn run_sandboxed_with_vectors(
+        source: &Path,
+        contract: &Path,
+        binary: &Path,
+        target: &str,
+        allow_execution: bool,
+        vectors_file: &Path,
+    ) -> Result<VerifyReport, VerifyError> {
+        Self::run_sandboxed_with_optional_vectors(
+            source,
+            contract,
+            binary,
+            target,
+            allow_execution,
+            Some(vectors_file),
+        )
+    }
+
+    fn run_sandboxed_with_optional_vectors(
+        source: &Path,
+        contract: &Path,
+        binary: &Path,
+        target: &str,
+        allow_execution: bool,
+        vectors_file: Option<&Path>,
+    ) -> Result<VerifyReport, VerifyError> {
         use crate::sandbox::exec::ExecutionError;
         use crate::sandbox::{ExecutionSandbox, LocalBackend};
 
@@ -184,6 +299,10 @@ impl SemasmVerify {
         ];
         if allow_execution {
             args.push("--allow-execution".to_owned());
+        }
+        if let Some(vectors_file) = vectors_file {
+            args.push("--vectors-file".to_owned());
+            args.push(vectors_file.to_string_lossy().into_owned());
         }
 
         let mut sandbox = ExecutionSandbox::new(Box::new(LocalBackend));
@@ -278,16 +397,16 @@ impl SemasmVerify {
         })
     }
 
-    /// Accept VerificationReport schemas in `[0.4, 0.6)`.
+    /// Accept VerificationReport schemas in `[0.4, 0.7)`.
     fn check_schema_version(version: Option<&str>) -> Result<(), VerifyError> {
         let Some(version) = version else {
             return Err(VerifyError::ParseFailed(
-                "missing schema_version (required >=0.4,<0.6)".to_owned(),
+                "missing schema_version (required >=0.4,<0.7)".to_owned(),
             ));
         };
         if !schema_version_compatible(version) {
             return Err(VerifyError::ParseFailed(format!(
-                "unsupported VerificationReport schema_version `{version}` (accepted >=0.4,<0.6)"
+                "unsupported VerificationReport schema_version `{version}` (accepted >=0.4,<0.7)"
             )));
         }
         Ok(())
@@ -340,6 +459,33 @@ mod tests {
         assert_eq!(report.outcome, EvidenceStatus::VerifiedUnderPreconditions);
         assert_ne!(report.outcome, EvidenceStatus::Verified);
         assert_eq!(report.schema_version.as_deref(), Some("0.5"));
+    }
+
+    #[test]
+    fn parses_schema_0_6_external_vector_binding() {
+        let json = format!(
+            r#"{{
+                "schema_version":"0.6",
+                "status":"verified",
+                "vector_set":{{
+                    "external_document_digest":"sha256:{}",
+                    "builtin_case_count":5,
+                    "external_case_count":1,
+                    "cases":[{{"name":"external:four","origin":"external","external_case_id":"four"}}]
+                }},
+                "behavior":{{
+                    "all_passed":true,
+                    "cases":[{{"name":"external:four","passed":true,"expected":"10","observed":"10"}}]
+                }}
+            }}"#,
+            "c".repeat(64)
+        );
+        let report = SemasmVerify::parse_report(&json).expect("schema 0.6 report");
+        let raw: VerifyReportRaw = serde_json::from_str(&report.raw_json).unwrap();
+        let set = raw.vector_set.expect("vector set");
+        assert_eq!(set.external_case_count, 1);
+        assert_eq!(set.cases[0].external_case_id.as_deref(), Some("four"));
+        assert_eq!(raw.behavior.expect("behavior").cases[0].expected, "10");
     }
 
     #[test]

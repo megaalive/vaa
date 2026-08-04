@@ -1,4 +1,4 @@
-# Task schema v0.1
+# Task schemas v0.1 and v0.2
 
 **Status:** implemented in the VAA crate (parse + validate + digest)  
 **Authoritative on-disk format:** TOML (`*.vaa.toml`)  
@@ -29,7 +29,7 @@ Required top-level fields:
 
 | Field | Notes |
 |---|---|
-| `schema_version` | Must be `"0.1"` for this VAA build |
+| `schema_version` | `"0.1"` (intent-only tests) or `"0.2"` (SemASM-bound tests) |
 | `task_id` | Stable id: `[A-Za-z][A-Za-z0-9._-]{0,127}` |
 | `artifact_kind` | `callable-function` \| `hosted-program` \| `freestanding-image` |
 | `target` | Target triple string |
@@ -47,7 +47,7 @@ Required top-level fields:
 
 Unknown fields are **rejected** (`deny_unknown_fields`).
 
-## Fail-closed rules (schema 0.1)
+## Fail-closed rules
 
 - `capabilities.network = true` → validation error
 - `memory.allow_self_modifying_code = true` → validation error
@@ -83,19 +83,34 @@ task-case execution provenance. Reports and documentation must not describe
 `[[tests]]` as executed unless a later protocol explicitly binds those cases
 into SemASM evidence.
 
+Schema 0.2 is that explicit binding for recognized scalar integer oracles.
+VAA writes an input-only external-vector document containing the locked case
+IDs and named inputs. SemASM rejects caller-supplied expected values, retains
+its builtin vectors, and computes expected results using its builtin oracle.
+VAA then requires the report's canonical document digest, external case count,
+case IDs/origins, oracle-derived expected strings, and passing case results to
+match the locked task. Any missing or mismatched field fails closed.
+
+In schema 0.2 every case must name exactly the declared task inputs and its
+expected value must currently be an integer. Pointer/region cases remain on
+schema 0.1 until SemASM explicitly admits their external representation.
+
 ## Example
 
 See [`fixtures/tasks/sum_i64.vaa.toml`](../fixtures/tasks/sum_i64.vaa.toml) (architecture plan §9.2 / §9.3).
+For schema 0.2 scalar vector binding, see
+[`fixtures/tasks/sum_range_win64_0_2.vaa.toml`](../fixtures/tasks/sum_range_win64_0_2.vaa.toml).
 
-## What is not in schema 0.1
+## What is not in schemas 0.1/0.2
 
 - Natural-language `vaa plan` compilation
 - SemASM `.sem.toml` embedding (may be linked later as a side document)
-- SemASM execution provenance for task `[[tests]]`
+- External task vectors for pointer/region oracle shapes
 - Live model fields or provider secrets
 - Sandbox backend selection (policy may grow in a later schema minor)
 
 ## Versioning
 
 - **Major** changes that break existing tasks require a new `schema_version` and a deliberate VAA acceptance range update.
-- This build accepts **only** `0.1`.
+- This build accepts `0.1` and `0.2`; new task-case execution claims require
+  `0.2` evidence binding.

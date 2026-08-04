@@ -4001,6 +4001,16 @@ fn verify_command(
     };
     let source_digest = sha256_digest_prefixed(&source_bytes);
     let contract_digest = sha256_digest_prefixed(&contract_bytes);
+    let task_vectors =
+        match vaa::run::verify_seal::build_external_vectors(&locked, &contract_digest, target) {
+            Ok(vectors) => vectors,
+            Err(error) => {
+                eprintln!("error: cannot prepare schema 0.2 task vectors: {error}");
+                return VaaExitCode::ToolFailure.as_std();
+            }
+        };
+    let vectors_path = task_vectors.as_ref().map(|(path, _)| path.as_path());
+    let vectors_digest = task_vectors.as_ref().map(|(_, digest)| digest.as_str());
 
     let cache_materials = || {
         let semasm_version = doctor
@@ -4037,18 +4047,39 @@ fn verify_command(
             }
         }
 
-        if let Some(report) = cached {
+        if let Some(mut report) = cached {
+            if let Some(digest) = vectors_digest {
+                vaa::run::verify_seal::enforce_task_vector_evidence(&mut report, &locked, digest);
+            }
             report
         } else {
             let verify_result = match doctor.binary_path.as_ref() {
                 Some(binary) => {
-                    if execution_sandbox {
+                    if let (true, Some(vectors_path)) = (execution_sandbox, vectors_path) {
+                        SemasmVerify::run_sandboxed_with_vectors(
+                            source_path,
+                            contract_path,
+                            binary,
+                            target,
+                            allow_execution,
+                            vectors_path,
+                        )
+                    } else if execution_sandbox {
                         SemasmVerify::run_sandboxed(
                             source_path,
                             contract_path,
                             binary,
                             target,
                             allow_execution,
+                        )
+                    } else if let Some(vectors_path) = vectors_path {
+                        SemasmVerify::run_with_vectors(
+                            source_path,
+                            contract_path,
+                            binary,
+                            target,
+                            allow_execution,
+                            vectors_path,
                         )
                     } else {
                         SemasmVerify::run(
@@ -4063,7 +4094,14 @@ fn verify_command(
                 None => Err(VerifyError::BinaryNotFound),
             };
             match verify_result {
-                Ok(report) => {
+                Ok(mut report) => {
+                    if let Some(digest) = vectors_digest {
+                        vaa::run::verify_seal::enforce_task_vector_evidence(
+                            &mut report,
+                            &locked,
+                            digest,
+                        );
+                    }
                     if use_cache {
                         let store = vaa::CacheStore::open(vaa::resolve_cache_root());
                         let status = match report.outcome {
@@ -4147,6 +4185,9 @@ fn verify_command(
             }
         }
     };
+    if let Some(vectors_path) = vectors_path {
+        let _ = std::fs::remove_file(vectors_path);
+    }
 
     let mut expect = EvidenceExpect::new(target.clone(), source_digest, contract_digest);
     if locked.task().verification.require_object_inspection {

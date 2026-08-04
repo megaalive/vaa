@@ -1,4 +1,4 @@
-//! Typed `task.vaa.toml` model (schema 0.1).
+//! Typed `task.vaa.toml` model (schemas 0.1 and 0.2).
 //!
 //! Unknown fields are rejected (`deny_unknown_fields`) so policy drift surfaces
 //! as a hard validation error rather than silent ignore.
@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Task {
-    /// Schema version string, currently `"0.1"`.
+    /// Schema version string. `0.1` remains readable; `0.2` executes tests
+    /// through SemASM's external-vector oracle protocol.
     pub schema_version: String,
     /// Stable task identifier chosen by the author.
     pub task_id: String,
@@ -42,8 +43,8 @@ pub struct Task {
     pub delivery: Delivery,
     /// Author-supplied behavioral cases locked into the task digest.
     ///
-    /// Schema 0.1 does not pass these cases to SemASM. SemASM verifies its own
-    /// synthesized oracle vectors; callers must not claim these cases ran.
+    /// Schema 0.1 keeps these as intent only. Schema 0.2 passes their inputs to
+    /// SemASM and requires oracle-derived expected values to match this task.
     #[serde(default)]
     pub tests: Vec<TaskTest>,
 }
@@ -285,7 +286,8 @@ pub struct Delivery {
 
 /// One author-supplied test case.
 ///
-/// In schema 0.1 this is task intent, not SemASM execution evidence.
+/// In schema 0.1 this is task intent, not SemASM execution evidence. Schema
+/// 0.2 binds it to SemASM external-vector evidence.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskTest {
