@@ -24,9 +24,11 @@ You are a **proposer**; SemASM is the verifier. The canonical claim boundary is
    [`schemas/agent-leaf-allowlist.json`](../../../schemas/agent-leaf-allowlist.json)
    is a discovery/freeze **mirror** of admitted `leaf_names` — do not treat it
    as a separate skill allowlist to memorize.
-   If the user asks for any other shape, free-form `.S`, RISC-V verify, "fix
-   my assembly", or generator-repair — **stop and decline** (see the playbook
-   decline path). Do not improvise.
+   If the user asks for any other shape, free-form `.S`, RISC-V verify, or
+   "fix my assembly" — **stop and decline** (see the playbook decline path).
+   If they ask for HlaX64 / EchoAsm / generator-repair, **stop this skill** and
+   follow [`.cursor/skills/vaa-generator/SKILL.md`](../vaa-generator/SKILL.md).
+   Do not improvise leaf admission.
 2. **Use the adapter, not shell soup.** Prefer
    `python scripts/agent_harness_adapter.py loop-direct …`. Do not hand-roll
    `vaa harness` pipelines.
@@ -46,8 +48,9 @@ You are a **proposer**; SemASM is the verifier. The canonical claim boundary is
 6. **No claim without evidence.** Never say "sealed"/"verified" without a real
    `seal_digest` in the JSON (or `vaa evidence verify-chain` exit 0). A stub /
    `VAA_BIN` dry-run is **not** evidence.
-7. **v1 excludes:** generator-repair, HlaX64/EchoAsm pack work, live model,
-   RISC-V agent-verify. Point to the docs and decline.
+7. **v1 excludes:** live model, RISC-V agent-verify. Generator-repair /
+   HlaX64/EchoAsm pack work is a **different skill** (`vaa-generator`), not an
+   implicit upgrade of this leaf allowlist.
 8. **Never lock.** `vaa author lock` is **human CLI only**. If asked to lock a
    case, grant seal authority, or flip `AUTHOR_STATE` / write `LOCKED` —
    **decline** and point humans to [`docs/author.md`](../../../docs/author.md)

@@ -1,6 +1,6 @@
 # EchoAsm pack — stack lock (exact pins only).
-# Pack SemASM pin stays aligned with HlaX64 (Phase-E-stable). Tip for agent
-# harness lives in CI env SEMASM_TIP_SHA, not here.
+# Pack SemASM pin stays aligned with HlaX64 (v0.5.0; C/D VUP re-checked).
+# Tip for agent harness lives in CI env SEMASM_TIP_SHA, not here.
 schema_version = "0.1"
 
 [vaa]
@@ -9,7 +9,7 @@ revision = "git:0a7991f17fc027f68d3cb05b03c250684470fa49"
 
 [semasm]
 repository = "https://github.com/megaalive/semasm"
-revision = "git:67cba2a17683c71d96543a84b645c12364482bee"
+revision = "git:5888b3a137a7f62c9679d722fa74d4537d8dc8a6"
 
 [toolchain]
 rust = "1.85"

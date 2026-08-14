@@ -39,6 +39,10 @@ Status after the ladder close-out. Prefer bounded fixes; keep non-goals closed.
 Everyday utilities (not hello-world): track and update progress in
 [`REAL-TOOLS-ROADMAP.md`](REAL-TOOLS-ROADMAP.md).
 
+Compiler dogfood (HlaX64 pack Gate, not tools):
+[`g01-hlax64-compiler-demo.md`](g01-hlax64-compiler-demo.md),
+[`../compiler-demo.md`](../compiler-demo.md).
+
 **Deepen debt D1–D5** (ledger in
 [Open deepen backlog](REAL-TOOLS-ROADMAP.md#open-deepen-backlog-tracked-debt--do-not-drop)):
 **all paid 2026-07-27.**

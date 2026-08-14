@@ -86,9 +86,12 @@ and the response to give:
 - **RISC-V64 verify**:
   > RISC-V64 is GAS dialect-only in VAA (capability `Unknown`, fail-closed). No
   > agent-verify claim exists yet — see `docs/HONESTY.md`.
-- **Generator-repair / HlaX64 pack / live model**:
-  > Out of scope for the agent skill v1. See `docs/agent-harness.md`; I won't
-  > attempt it here.
+- **Live model**:
+  > Out of scope for the leaf skill. See `docs/HONESTY.md`; I won't attempt it.
+- **Generator-repair / HlaX64 pack**:
+  > Out of scope for **this** leaf skill. Use skill `vaa-generator` and
+  > `docs/generator-playbook.md` / `docs/compiler-demo.md`. I won't mix pack
+  > Gate with `vaa admit`.
 
 In every decline: state the boundary, point at `docs/HONESTY.md`, and stop. Do
 not partially attempt or invent a result.

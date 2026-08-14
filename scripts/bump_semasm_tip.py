@@ -11,8 +11,8 @@ drift and a bump is a reviewable one-liner in each file.
     python scripts/bump_semasm_tip.py --sha <40-hex>   # rewrite both files
 
 The pack pin (SEMASM_PACK_SHA) is intentionally NOT touched: it tracks the
-Phase-E-stable SemASM for HlaX64/EchoAsm suites and moves under a separate,
-suite-policy-gated decision.
+HlaX64/EchoAsm pack SemASM (currently v0.5.0) and moves under a separate,
+suite-policy-gated decision (C/D VUP must not promote).
 """
 
 from __future__ import annotations

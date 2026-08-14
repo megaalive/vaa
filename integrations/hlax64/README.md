@@ -2,6 +2,10 @@
 
 First external-generator integration pack for the VAA verified-repair bridge.
 
+Operator card (pins, Gate commands, CLAIM template):
+[`docs/compiler-demo.md`](../../docs/compiler-demo.md).
+Agent skill: [`.cursor/skills/vaa-generator/SKILL.md`](../../.cursor/skills/vaa-generator/SKILL.md).
+
 VAA core stays generator-agnostic. This directory owns HlaX64-specific lock,
 spec, cases, suites, and agent rules. Adding another generator means a new pack under
 `integrations/<id>/`, not a VAA fork.

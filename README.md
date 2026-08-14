@@ -13,6 +13,10 @@ SemASM evidence → optional sealed selection. Agents propose; SemASM verifies.
 > `verified` (use admit `claim`, not tier alone). Dry-runs ≠ evidence. VAA is a
 > local CLI + project skill — **not an MCP product**.
 
+Compiler demo (HlaX64 pack Gate, not “compiler verified”):
+[`docs/compiler-demo.md`](docs/compiler-demo.md). Generator-repair skill:
+[`.cursor/skills/vaa-generator/SKILL.md`](.cursor/skills/vaa-generator/SKILL.md).
+
 ## Happy path (fluent surface)
 
 Primary commands for agent authoring workflows:
@@ -37,13 +41,17 @@ vaa semasm capability-sync --semasm <bin> [--apply]
 
 ## For agents
 
-Drive VAA through the project skill
-[`.cursor/skills/vaa-harness/SKILL.md`](.cursor/skills/vaa-harness/SKILL.md)
-(Codex: see [`AGENTS.md`](AGENTS.md)), backed by the reference adapter
-[`scripts/agent_harness_adapter.py`](scripts/agent_harness_adapter.py). The skill
-operates **only** on admitted leaves (`vaa admit`) and declines anything else. Copy-paste a
-happy path and a decline path from [`docs/agent-playbook.md`](docs/agent-playbook.md).
-Bounds are fixed by [`docs/HONESTY.md`](docs/HONESTY.md); there is no MCP server.
+Drive VAA through the project skills (Codex: [`AGENTS.md`](AGENTS.md)), backed by
+[`scripts/agent_harness_adapter.py`](scripts/agent_harness_adapter.py):
+
+- Admitted NASM leaves: [`.cursor/skills/vaa-harness/SKILL.md`](.cursor/skills/vaa-harness/SKILL.md)
+  and [`docs/agent-playbook.md`](docs/agent-playbook.md) (`vaa admit` only).
+- External generator repair (HlaX64 pack first):
+  [`.cursor/skills/vaa-generator/SKILL.md`](.cursor/skills/vaa-generator/SKILL.md)
+  and [`docs/generator-playbook.md`](docs/generator-playbook.md).
+
+Do not merge the two allowlists. Bounds: [`docs/HONESTY.md`](docs/HONESTY.md).
+There is no MCP server.
 
 ## What works today
 

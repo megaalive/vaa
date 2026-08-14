@@ -245,7 +245,8 @@ commit, and only if all pass opens a reviewable PR bumping the tip — it never
 pushes to `main`.
 
 The **pack** pin (`SEMASM_PACK_SHA`, and `integrations/*/stack.lock.toml`) is
-deliberately out of this loop: it tracks the Phase-E-stable SemASM for the
-HlaX64/EchoAsm suites. Bumping it to tip requires per-suite
-`allow_verified_under_preconditions` decisions for memory leaves plus updates to
-the inline suite-aggregation asserts, so it stays a separate, human-gated change.
+deliberately out of the tip-bump loop. It now tracks SemASM **`v0.5.0`**
+(`5888b3a`) after Win64 memory-read/write pack Gate stayed
+`VerifiedUnderPreconditions`. Bumping it further still requires a human Gate
+re-check of C/D VUP honesty (do not promote VUP). `SEMASM_TIP_SHA` stays on
+the automated `semasm-tip-bump.yml` path.

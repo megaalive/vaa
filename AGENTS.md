@@ -29,6 +29,18 @@ Non-negotiables:
 
 This is a local CLI + project skill. There is **no MCP server** and no HTTP API.
 
+## Generator repair (HlaX64 pack / EchoAsm)
+
+If asked to repair an **external generator** (HlaX64 backend, EchoAsm pack) so
+that pack leaves re-verify, follow
+[`.cursor/skills/vaa-generator/SKILL.md`](.cursor/skills/vaa-generator/SKILL.md)
+and [`docs/generator-playbook.md`](docs/generator-playbook.md). Operator card:
+[`docs/compiler-demo.md`](docs/compiler-demo.md).
+
+- Edit generator source on the pack allowlist only — never generated assembly.
+- Do not treat this as leaf skill admission (`min_i64` pack Gate ≠ `vaa admit`).
+- `verified_under_preconditions` ≠ `verified`. Dry-runs ≠ evidence.
+
 ## General repo work
 
 For non-harness changes, keep VAA's fail-closed contract intact: never promote

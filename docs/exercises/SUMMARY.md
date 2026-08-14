@@ -17,6 +17,7 @@ docs, but never inherits a SemASM/skill seal.**
 | [E03](e03-writefile-win64.md) | `GetStdHandle` + `WriteFile` stub | Hosted validate ok; admit/verify decline; print works | `--linker-arg`; Win SDK env for `kernel32.lib` |
 | [E04](e04-line-loop-win64.md) | Admitted `max_i64` + ReadFile line loop | **Leaf** sealed; loop declined; exit 5 | `--extra-object` |
 | [E05](e05-repl-sketch-win64.md) | Prompt/echo/quit REPL + leaf metric | REPL runs; no REPL seal | Reject `callable-function` + `imports` |
+| [G01](g01-hlax64-compiler-demo.md) | HlaX64 compiler dogfood (live unsigned-compare repair) | Pack leaves sealed; **compiler not sealed** | `vaa-generator` skill + operator card |
 
 ## Dual gates (never collapse these)
 

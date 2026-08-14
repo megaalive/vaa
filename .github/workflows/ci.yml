@@ -11,8 +11,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   # Single source for agent-harness / Gate-1/2 SemASM tip (not the HlaX64 pack pin).
   SEMASM_TIP_SHA: 0ab80041f6f00d93457a7baa689f5ac08c8881fc
-  # Pack pin: last known Phase-E-stable SemASM for HlaX64/EchoAsm suites.
-  SEMASM_PACK_SHA: 67cba2a17683c71d96543a84b645c12364482bee
+  # Pack pin: SemASM v0.5.0; C/D memory suites stay VUP (human-gated bump).
+  SEMASM_PACK_SHA: 5888b3a137a7f62c9679d722fa74d4537d8dc8a6
   HLAX64_PIN_SHA: 0778aad3bd8bb5394252755367de00e52618bde8
 
 jobs:

@@ -1,10 +1,11 @@
 # HlaX64 instance pack — stack lock (exact pins only).
 # Floating refs (`main`, `latest`) are rejected by `vaa generator validate-lock`.
 #
-# SemASM pack pin tracks the last Phase-E-stable SHA used by hlax64-bridge CI.
-# Agent-harness / Gate-1/2 tip is separate (see .github/workflows/ci.yml
-# SEMASM_TIP_SHA). Do not bump [semasm] to tip without re-validating suite
-# aggregation for VerifiedUnderPreconditions on buffer leaves.
+# SemASM pack pin: SemASM v0.5.0 (`5888b3a`). Bumped after Win64
+# memory-read/write pack Gate stayed VerifiedUnderPreconditions
+# (not promoted to unconditional Verified). Agent-harness / Gate-1/2
+# tip is separate (see .github/workflows/ci.yml SEMASM_TIP_SHA).
+# Do not bump [semasm] to an untested tip without re-validating C/D VUP.
 schema_version = "0.1"
 
 [vaa]
@@ -13,7 +14,7 @@ revision = "git:1cdc56314c19a6f2b517aff843e644583d914b62"
 
 [semasm]
 repository = "https://github.com/megaalive/semasm"
-revision = "git:67cba2a17683c71d96543a84b645c12364482bee"
+revision = "git:5888b3a137a7f62c9679d722fa74d4537d8dc8a6"
 
 [toolchain]
 rust = "1.85"

@@ -153,5 +153,8 @@ response, and finish with sealed evidence.
 - [`exercises/`](exercises/) — maturity ladder + friction logs (scratch under `.vaa-exercises/`)
 - [`exercises/SUMMARY.md`](exercises/SUMMARY.md) — E01–E05 verdict and dual-gate rules
 - [`exercises/verifiable-vs-admitted.md`](exercises/verifiable-vs-admitted.md) — SemASM verify ≠ admit inventory
-- [`exercises/REAL-TOOLS-ROADMAP.md`](exercises/REAL-TOOLS-ROADMAP.md) — everyday-tools ladder (T01+) + progress- [`agent-playbook.md`](agent-playbook.md) — happy / decline paths
+- [`exercises/REAL-TOOLS-ROADMAP.md`](exercises/REAL-TOOLS-ROADMAP.md) — everyday-tools ladder (T01+) + progress
+- [`compiler-demo.md`](compiler-demo.md) — HlaX64 pack Gate operator card
+- [`generator-playbook.md`](generator-playbook.md) — generator-repair happy / decline
+- [`agent-playbook.md`](agent-playbook.md) — leaf happy / decline paths
 - SemASM: `docs/fluent-agent-surface.md` (controller-facing pointer)

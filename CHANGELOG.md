@@ -8,7 +8,17 @@ for **crate** versions. See `docs/release-v0.1-checklist.md` for release hygiene
 
 ## [Unreleased]
 
-No changes yet.
+- Compiler-demo operator card (`docs/compiler-demo.md`): three SemASM pins
+  (pack / Gate tip / release), Win64 Gate commands, CLAIM template.
+- Pack HlaX64/EchoAsm SemASM pin bumped to tag `v0.5.0` (`5888b3a`) after
+  Win64 memory-read/write Gate stayed `VerifiedUnderPreconditions`.
+  `SEMASM_TIP_SHA` is unchanged (bump only via `semasm-tip-bump.yml`).
+- Generator-repair agent skill (`.cursor/skills/vaa-generator`) and
+  `docs/generator-playbook.md`. Leaf skill `vaa-harness` no longer silently
+  swallows pack work; it hands off. Dual allowlists stay separate.
+- Friction G01 records the HlaX64 live unsigned-compare repair as the
+  compiler dogfood pattern (`docs/exercises/g01-hlax64-compiler-demo.md`).
+  HlaX64 emit ≠ SemASM Verified; Fb9c stays locked.
 
 ## [0.2.0] — 2026-08-04
 

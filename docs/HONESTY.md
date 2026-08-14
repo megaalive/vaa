@@ -66,10 +66,12 @@ Do not write or imply any of:
 ## Not an MCP product
 
 The agent surface is a **Cursor/Codex project skill** plus the reference adapter
-[`scripts/agent_harness_adapter.py`](../scripts/agent_harness_adapter.py). There
-is intentionally **no MCP server** and **no HTTP API** for the harness. See
-[`docs/agent-playbook.md`](agent-playbook.md) for the happy path and the decline
-path.
+[`scripts/agent_harness_adapter.py`](../scripts/agent_harness_adapter.py):
+admitted-leaf repair (`.cursor/skills/vaa-harness`) and generator-repair
+(`.cursor/skills/vaa-generator`). There is intentionally **no MCP server**
+and **no HTTP API** for the harness. See
+[`docs/agent-playbook.md`](agent-playbook.md) and
+[`docs/generator-playbook.md`](generator-playbook.md).
 
 ## Fluent surface roadmap
 

@@ -162,10 +162,12 @@ evidence `evidence/vaa-live-repair-sysv-stack-balance` (`9cec09d` →
 evidence `evidence/vaa-live-repair-sysv-callee-saved` (`4461cbd` →
 `e23b1d9`); main regression `0778aad`; fixture
 `hlax64-callee-saved-sysv-live-worktree` + CI Gate **7n**.
-**Next:** Fb9c stays locked. Honest next empty until a new SemASM chip
-or non-ABI repair surface. Optional hygiene: bump Gate `SEMASM_TIP_SHA`
-from `0ab8004` (pre-`v0.3.0`) toward SemASM `v0.5.0` after owner jobs
-re-validate; do not treat a pin bump as a product-claim expansion.
+**Next:** Fb9c stays locked. Compiler dogfood (HlaX64 pack Gate +
+`vaa-generator` skill) is the useful agent path; it is **not** a SemASM
+chip. Pack `[semasm]` / `SEMASM_PACK_SHA` = `v0.5.0` after C/D VUP
+re-check. Optional hygiene: bump Gate `SEMASM_TIP_SHA` from `0ab8004`
+(pre-`v0.3.0`) toward SemASM `v0.5.0` after owner jobs re-validate via
+`semasm-tip-bump.yml`; do not treat a tip bump as a product-claim expansion.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
