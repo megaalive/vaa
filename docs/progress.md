@@ -22,14 +22,15 @@ is **done** (Io0–Io5 at `c040828`:
 [`docs/ISOLATION_OPS_PROOF_PLAN.md`](ISOLATION_OPS_PROOF_PLAN.md)). G5 (trust
 **ops** proof) is **done** (Tr0–Tr5 at `ef748c5`:
 [`docs/TRUST_ROOT_OPS_PROOF_PLAN.md`](TRUST_ROOT_OPS_PROOF_PLAN.md)).
-**G1–G5 closed.** SemASM tip `928bd66` (find_first/find_last equal atoms +
-region_access under_preconditions + Sei P0/Ra; report schema `0.5`). Gate pin
-tracks tip ([plan](V0_2_CONTROLLER_DEPTH_PLAN.md) Vd15); Gate `count_byte`
-(including HlaX64) uses `leaf-pure-v1`; Gate `memcpy` / `memset` /
-`replace_byte` / `memcmp` / `find_first_byte` / `find_last_byte` use
-`memory-leaf-affine-v1`. SemASM **Co** + **Mm** + Tw/Ff/Ab
+**G1–G5 closed.** SemASM release tag is **`v0.5.0`** (`5888b3a`; report
+schema `0.6`, external `--vectors-file`). VAA release tag is **`v0.2.0`**.
+Gate `SEMASM_TIP_SHA` in `.github/workflows/ci.yml` may lag the SemASM tag
+until a pin-bump PR (historical Vd15 pin `928bd66` is not the packaged
+release). Gate `count_byte` (including HlaX64) uses `leaf-pure-v1`; Gate
+`memcpy` / `memset` / `replace_byte` / `memcmp` / `find_first_byte` /
+`find_last_byte` use `memory-leaf-affine-v1`. SemASM **Co** + **Mm** + Tw/Ff/Ab
 + Sei (sample ≠ CFG/CFI, region-precise store, or formal ABI / memory-safety
-proof). Tag **`v0.2.1`** remains the last release archive (`22d1543`).
+proof). Packaged SemASM archive for VAA release smoke is **`v0.5.0`**.
 **Production** trust root / hardware HSM / operated remote log as Gate default
 remain Horizon-locked. Authenticity ≠ semantic truth.
 `verified_under_preconditions` ≠ unconditional `verified`.
@@ -162,7 +163,9 @@ evidence `evidence/vaa-live-repair-sysv-callee-saved` (`4461cbd` →
 `e23b1d9`); main regression `0778aad`; fixture
 `hlax64-callee-saved-sysv-live-worktree` + CI Gate **7n**.
 **Next:** Fb9c stays locked. Honest next empty until a new SemASM chip
-or non-ABI repair surface.
+or non-ABI repair surface. Optional hygiene: bump Gate `SEMASM_TIP_SHA`
+from `0ab8004` (pre-`v0.3.0`) toward SemASM `v0.5.0` after owner jobs
+re-validate; do not treat a pin bump as a product-claim expansion.
 
 | Gate | Status | Evidence level | Notes |
 |---|---|---|---|
