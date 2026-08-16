@@ -4,6 +4,9 @@
 # Default: generate + identity only (--skip-verify) -> Incomplete.
 # Gate mode: --gate implies verify + --allow-execution -> expect Accepted/Verified.
 # Practice seal is not a trust root. Incomplete is not Verified.
+#
+# WSL note: put Linux ~/.dotnet and a Linux-built semasm ahead of Windows PATH.
+# Windows dotnet/hla64 shims report Linux /mnt/... sources as "not found".
 set -euo pipefail
 
 SUITE="${SUITE:-integrations/hlax64/suites/scalar-sysv.vaa-suite.toml}"
