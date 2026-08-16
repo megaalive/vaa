@@ -6,7 +6,8 @@
 // Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
 // Locals are live across the final return so the backend must allocate frame
 // slots (register pressure / spill), not just elide them.
-// Parameter is copied through a register first to avoid illegal mem-mem mov.
+// Parameter may spill to the frame; mem-mem `mov` into v0 bounces through a
+// scratch register.
 
 program forced_register_spill;
 
@@ -21,8 +22,7 @@ var
     v6: int64;
     v7: int64;
 begin forced_register_spill;
-    mov(x, r8);
-    mov(r8, v0);
+    mov(x, v0);
     mov(1, v1);
     mov(2, v2);
     mov(3, v3);

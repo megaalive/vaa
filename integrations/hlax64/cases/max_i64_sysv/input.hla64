@@ -3,20 +3,18 @@
 // Downstream: emit Win64 NASM → vaa ingest --generator hlax64
 // Contract shape: (i64, i64) -> i64  (builtin.pure_int.binary_i64, claim "max")
 // Honesty: HlaX64 emit / -Wverify ≠ SemASM verified.
-// Win64: only volatile regs (rax/rcx/rdx/r8/r9) — a=rcx, b=rdx.
 // Signed compare (`>`) matches the `i64` contract type; the unsigned `>?`
 // would misorder negative values (contrast with max_usize).
+// Parameters may spill to the frame; mem-mem `cmp` bounces through a register.
 
 program max_i64;
 
 export procedure max_i64(a: int64; b: int64); @returns("rax");
 begin max_i64;
-    mov(a, r8);
-    mov(b, r9);
-    if(r8 > r9) then
-        mov(r8, rax);
+    if(a > b) then
+        mov(a, rax);
     else
-        mov(r9, rax);
+        mov(b, rax);
     endif;
 end max_i64;
 
